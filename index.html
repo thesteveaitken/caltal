@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CalTal</title>
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<style>
+  :root {
+    --bg: #14171a;
+    --bg-elevated: #1c2024;
+    --bg-card: #20242a;
+    --border: #2a2f36;
+    --text: #ECEFF2;
+    --text-dim: #8A9099;
+    --text-faint: #565C64;
+    --accent: #E8A23D;
+    --accent-dim: #5C4422;
+    --protein: #5FA8D3;
+    --carbs: #8FBC6A;
+    --fat: #D38FA8;
+    --danger: #C75C5C;
+    --radius: 14px;
+    --radius-sm: 9px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    height: 100%;
+    overscroll-behavior-y: none;
+  }
+
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 84px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    padding: 22px 20px 14px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .wordmark {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+  }
+  .wordmark .dot { color: var(--accent); font-size: 22px; line-height: 0; }
+
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .date-nav button {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 16px; padding: 4px 6px; cursor: pointer; line-height: 1;
+  }
+  .date-nav button:active { color: var(--accent); }
+  .date-label { min-width: 64px; text-align: center; font-weight: 600; color: var(--text); }
+
+  /* ---------- Totals ---------- */
+  .totals {
+    margin: 4px 20px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .totals-cal {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .totals-cal .num { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; }
+  .totals-cal .unit { font-size: 14px; color: var(--text-dim); font-weight: 500; }
+
+  .macro-row { display: flex; gap: 18px; }
+  .macro {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .macro-bar-bg {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .macro-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+  .macro-p .macro-bar-fill { background: var(--protein); }
+  .macro-c .macro-bar-fill { background: var(--carbs); }
+  .macro-f .macro-bar-fill { background: var(--fat); }
+  .macro-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+  .macro-label b { color: var(--text); font-weight: 600; }
+
+  /* ---------- Section label ---------- */
+  .section-label {
+    margin: 4px 20px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+  }
+
+  /* ---------- Today's entries ---------- */
+  .entry-list { margin: 0 20px 22px; display: flex; flex-direction: column; gap: 8px; }
+  .entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .entry-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .entry-name { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry-sub { font-size: 12px; color: var(--text-dim); }
+  .entry-cal { font-size: 14px; font-weight: 700; color: var(--accent); margin-left: 10px; white-space: nowrap; }
+  .entry-del {
+    background: none; border: none; color: var(--text-faint);
+    font-size: 18px; padding: 0 0 0 12px; cursor: pointer;
+  }
+  .entry-del:active { color: var(--danger); }
+
+  .empty-state {
+    margin: 0 20px 22px;
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-faint);
+    font-size: 13.5px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* ---------- Search ---------- */
+  .search-wrap { margin: 0 20px 12px; position: relative; }
+  .search-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text-faint); }
+
+  .food-list { margin: 0 20px 10px; display: flex; flex-direction: column; gap: 6px; max-height: 38vh; overflow-y: auto; }
+  .food-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    cursor: pointer;
+  }
+  .food-item:active { border-color: var(--accent); }
+  .food-main { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .star { color: var(--accent); font-size: 13px; flex-shrink: 0; }
+  .food-name { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .food-cal { font-size: 13px; color: var(--text-dim); margin-left: 10px; white-space: nowrap; }
+
+  .add-new-row {
+    margin: 0 20px 22px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--text-dim);
+    padding: 10px;
+  }
+  .add-new-row a { color: var(--accent); font-weight: 600; cursor: pointer; }
+
+  /* ---------- Bottom nav ---------- */
+  .tabbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 0 2px;
+    cursor: pointer;
+  }
+  .tab.active { color: var(--accent); }
+  .tab .icon { font-size: 19px; display: block; margin-bottom: 2px; }
+
+  /* ---------- Modal sheet ---------- */
+  .sheet-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: flex-end;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .sheet-overlay.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg-elevated);
+    border-radius: 20px 20px 0 0;
+    padding: 22px 20px calc(22px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+  }
+  .sheet-overlay.open .sheet { transform: translateY(0); }
+
+  .sheet-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .sheet-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; }
+
+  .qty-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin: 18px 0 20px;
+  }
+  .qty-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qty-btn:active { border-color: var(--accent); color: var(--accent); }
+  .qty-value { font-size: 26px; font-weight: 700; min-width: 64px; text-align: center; }
+
+  .sheet-macros {
+    display: flex;
+    justify-content: space-around;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 20px;
+  }
+  .sheet-macro { text-align: center; }
+  .sheet-macro .v { font-size: 16px; font-weight: 700; }
+  .sheet-macro .l { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #1a1206;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 15px;
+    font-size: 15.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-secondary {
+    width: 100%;
+    background: none;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  .field-row { margin-bottom: 14px; }
+  .field-label { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block; }
+  .field-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+  }
+  .field-input:focus { border-color: var(--accent); }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .fav-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 18px;
+    cursor: pointer;
+  }
+  .fav-toggle .check {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 1.5px solid var(--text-faint);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .fav-toggle.on .check { background: var(--accent); border-color: var(--accent); color: #1a1206; }
+  .fav-toggle.on { border-color: var(--accent-dim); }
+  .fav-toggle .ftext { font-size: 14px; color: var(--text); }
+
+  .sheet-close-x {
+    position: absolute;
+    top: 18px; right: 18px;
+    background: none; border: none;
+    color: var(--text-faint);
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  /* ---------- History list ---------- */
+  .hist-day {
+    margin: 0 20px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    cursor: pointer;
+  }
+  .hist-day:active { border-color: var(--accent); }
+  .hist-date { font-size: 14px; font-weight: 600; }
+  .hist-cal { font-size: 13px; color: var(--text-dim); }
+
+  .toast {
+    position: fixed;
+    bottom: 92px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 13.5px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    z-index: 60;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .loading-row { text-align: center; color: var(--text-faint); font-size: 13px; padding: 20px; }
+
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <header>
+    <div class="wordmark">CalTal<span class="dot">.</span></div>
+    <div class="date-nav" id="dateNav">
+      <button id="prevDay">‹</button>
+      <span class="date-label" id="dateLabel">Today</span>
+      <button id="nextDay">›</button>
+    </div>
+  </header>
+
+  <!-- TODAY VIEW -->
+  <div id="view-today">
+    <div class="totals">
+      <div class="totals-cal">
+        <span class="num" id="totalCal">0</span>
+        <span class="unit">calories</span>
+      </div>
+      <div class="macro-row">
+        <div class="macro macro-p">
+          <div class="macro-bar-bg"><div class="macro-bar-fill" id="barP" style="width:0%"></div></div>
+          <div class="macro-label"><span>Protein</span><b id="valP">0g</b></div>
+        </div>
+        <div class="macro macro-c">
+          <div class="macro-bar-bg"><div class="macro-bar-fill" id="barC" style="width:0%"></div></div>
+          <div class="macro-label"><span>Carbs</span><b id="valC">0g</b></div>
+        </div>
+        <div class="macro macro-f">
+          <div class="macro-bar-bg"><div class="macro-bar-fill" id="barF" style="width:0%"></div></div>
+          <div class="macro-label"><span>Fat</span><b id="valF">0g</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Logged</div>
+    <div class="entry-list" id="entryList">
+      <div class="loading-row">Loading…</div>
+    </div>
+
+    <div class="section-label">Add food</div>
+    <div class="search-wrap">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search saved foods…">
+    </div>
+    <div class="food-list" id="foodList">
+      <div class="loading-row">Loading…</div>
+    </div>
+    <div class="add-new-row">
+      Can't find it? <a id="addNewFoodLink">Add a new food</a>
+    </div>
+  </div>
+
+  <!-- HISTORY VIEW -->
+  <div id="view-history" style="display:none;">
+    <div class="section-label">Past days</div>
+    <div id="historyList">
+      <div class="loading-row">Loading…</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="tabbar">
+  <button class="tab active" id="tabToday"><span class="icon">●</span>Today</button>
+  <button class="tab" id="tabHistory"><span class="icon">▤</span>History</button>
+</div>
+
+<!-- LOG QUANTITY SHEET -->
+<div class="sheet-overlay" id="logSheetOverlay">
+  <div class="sheet">
+    <button class="sheet-close-x" id="closeLogSheet">✕</button>
+    <div class="sheet-title" id="logSheetTitle">Food name</div>
+    <div class="sheet-sub" id="logSheetSub">per serving</div>
+
+    <div class="qty-control">
+      <button class="qty-btn" id="qtyMinus">−</button>
+      <div class="qty-value" id="qtyValue">1</div>
+      <button class="qty-btn" id="qtyPlus">+</button>
+    </div>
+
+    <div class="sheet-macros">
+      <div class="sheet-macro"><div class="v" id="prevCal">0</div><div class="l">Cal</div></div>
+      <div class="sheet-macro"><div class="v" id="prevP">0g</div><div class="l">Protein</div></div>
+      <div class="sheet-macro"><div class="v" id="prevC">0g</div><div class="l">Carbs</div></div>
+      <div class="sheet-macro"><div class="v" id="prevF">0g</div><div class="l">Fat</div></div>
+    </div>
+
+    <button class="btn-primary" id="confirmLog">Log it</button>
+  </div>
+</div>
+
+<!-- ADD NEW FOOD SHEET -->
+<div class="sheet-overlay" id="addFoodOverlay">
+  <div class="sheet">
+    <button class="sheet-close-x" id="closeAddFood">✕</button>
+    <div class="sheet-title">New saved food</div>
+    <div class="sheet-sub">Enter it at the size you'll usually log</div>
+
+    <div class="field-row">
+      <label class="field-label">Name</label>
+      <input type="text" class="field-input" id="newFoodName" placeholder="e.g. 6oz Steak">
+    </div>
+    <div class="field-row">
+      <label class="field-label">Calories</label>
+      <input type="number" class="field-input" id="newFoodCal" placeholder="0" inputmode="decimal">
+    </div>
+    <div class="field-row field-grid">
+      <div>
+        <label class="field-label">Protein g</label>
+        <input type="number" class="field-input" id="newFoodP" placeholder="0" inputmode="decimal">
+      </div>
+      <div>
+        <label class="field-label">Carbs g</label>
+        <input type="number" class="field-input" id="newFoodC" placeholder="0" inputmode="decimal">
+      </div>
+      <div>
+        <label class="field-label">Fat g</label>
+        <input type="number" class="field-input" id="newFoodF" placeholder="0" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="fav-toggle" id="favToggle">
+      <div class="check">✓</div>
+      <div class="ftext">Mark as favourite</div>
+    </div>
+
+    <button class="btn-primary" id="saveNewFood">Save food</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   CalTal — Calorie Tracker
+   Talks directly to a Google Apps Script web app deployed
+   from the companion AppsScript.gs file. No build step —
+   this is the whole app.
+   ========================================================= */
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbyHEclIIadV2wkWKXINHpp2dQbqjEgYAZg7TQjAgOqHMQMfDVqqNckOvamU5RHNTEfahg/exec';
+
+// ---------- State ----------
+let foods = [];           // saved foods list, favourites first (from backend)
+let currentDate = todayStr();
+let entries = [];         // today's (or viewed day's) log entries
+let activeFood = null;    // food currently in the "log it" sheet
+let pendingQty = 1;
+
+// ---------- Helpers ----------
+function todayStr() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatDateLabel(dateStr) {
+  if (dateStr === todayStr()) return 'Today';
+  if (dateStr === addDays(todayStr(), -1)) return 'Yesterday';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function round1(n) { return Math.round(n * 10) / 10; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---------- API ----------
+async function apiGet(params) {
+  const url = `${API_URL}?${new URLSearchParams(params).toString()}`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function apiPost(body) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+// ---------- Loading data ----------
+async function loadFoods() {
+  try {
+    foods = await apiGet({ action: 'foods' });
+    renderFoodList();
+  } catch (err) {
+    document.getElementById('foodList').innerHTML = '<div class="loading-row">Could not load foods. Check your connection.</div>';
+  }
+}
+
+async function loadEntriesForDate(date) {
+  document.getElementById('entryList').innerHTML = '<div class="loading-row">Loading…</div>';
+  try {
+    entries = await apiGet({ action: 'log', date });
+    renderEntries();
+    renderTotals();
+  } catch (err) {
+    document.getElementById('entryList').innerHTML = '<div class="loading-row">Could not load entries.</div>';
+  }
+}
+
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = '<div class="loading-row">Loading…</div>';
+  try {
+    const dates = await apiGet({ action: 'dates' });
+    if (!dates.length) {
+      list.innerHTML = '<div class="empty-state">No history yet — entries you log will show up here.</div>';
+      return;
+    }
+    // Fetch totals for each date (sequential is fine for personal use / small history)
+    const rows = [];
+    for (const d of dates) {
+      const dayEntries = await apiGet({ action: 'log', date: d });
+      const cal = dayEntries.reduce((s, e) => s + e.calories, 0);
+      rows.push({ date: d, cal });
+    }
+    list.innerHTML = rows.map(r => `
+      <div class="hist-day" data-date="${r.date}">
+        <span class="hist-date">${formatDateLabel(r.date)}</span>
+        <span class="hist-cal">${Math.round(r.cal)} cal</span>
+      </div>
+    `).join('');
+    list.querySelectorAll('.hist-day').forEach(el => {
+      el.addEventListener('click', () => {
+        currentDate = el.dataset.date;
+        switchView('today');
+        refreshDateUI();
+      });
+    });
+  } catch (err) {
+    list.innerHTML = '<div class="loading-row">Could not load history.</div>';
+  }
+}
+
+// ---------- Rendering: totals ----------
+function renderTotals() {
+  const totals = entries.reduce((acc, e) => {
+    acc.cal += e.calories; acc.p += e.protein; acc.c += e.carbs; acc.f += e.fat;
+    return acc;
+  }, { cal: 0, p: 0, c: 0, f: 0 });
+
+  document.getElementById('totalCal').textContent = Math.round(totals.cal);
+  document.getElementById('valP').textContent = round1(totals.p) + 'g';
+  document.getElementById('valC').textContent = round1(totals.c) + 'g';
+  document.getElementById('valF').textContent = round1(totals.f) + 'g';
+
+  // Bars are relative to each other just to give a sense of proportion (no fixed goal yet)
+  const maxMacro = Math.max(totals.p, totals.c, totals.f, 1);
+  document.getElementById('barP').style.width = (totals.p / maxMacro * 100) + '%';
+  document.getElementById('barC').style.width = (totals.c / maxMacro * 100) + '%';
+  document.getElementById('barF').style.width = (totals.f / maxMacro * 100) + '%';
+}
+
+// ---------- Rendering: today's entries ----------
+function renderEntries() {
+  const list = document.getElementById('entryList');
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state">Nothing logged yet. Add something below.</div>';
+    return;
+  }
+  list.innerHTML = entries.map(e => `
+    <div class="entry" data-row="${e.rowIndex}">
+      <div class="entry-main">
+        <span class="entry-name">${escapeHtml(e.food)}</span>
+        <span class="entry-sub">${e.quantity}× · P${round1(e.protein)} C${round1(e.carbs)} F${round1(e.fat)}</span>
+      </div>
+      <span class="entry-cal">${Math.round(e.calories)}</span>
+      <button class="entry-del" data-row="${e.rowIndex}">✕</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.entry-del').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const rowIndex = Number(btn.dataset.row);
+      btn.closest('.entry').style.opacity = '0.4';
+      try {
+        await apiPost({ action: 'deleteLogEntry', rowIndex });
+        await loadEntriesForDate(currentDate);
+        showToast('Removed');
+      } catch (err) {
+        showToast('Could not remove — try again');
+      }
+    });
+  });
+}
+
+// ---------- Rendering: food list (search) ----------
+function renderFoodList() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = q ? foods.filter(f => f.name.toLowerCase().includes(q)) : foods;
+  const list = document.getElementById('foodList');
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state">No matches. Try a different search or add it as new.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(f => `
+    <div class="food-item" data-name="${escapeHtml(f.name)}">
+      <div class="food-main">
+        ${f.favourite ? '<span class="star">★</span>' : ''}
+        <span class="food-name">${escapeHtml(f.name)}</span>
+      </div>
+      <span class="food-cal">${Math.round(f.calories)} cal</span>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.food-item').forEach(el => {
+    el.addEventListener('click', () => openLogSheet(el.dataset.name));
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- Log quantity sheet ----------
+function openLogSheet(foodName) {
+  activeFood = foods.find(f => f.name === foodName);
+  if (!activeFood) return;
+  pendingQty = 1;
+  document.getElementById('logSheetTitle').textContent = activeFood.name;
+  document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
+  updateQtyDisplay();
+  document.getElementById('logSheetOverlay').classList.add('open');
+}
+
+function updateQtyDisplay() {
+  document.getElementById('qtyValue').textContent = pendingQty;
+  document.getElementById('prevCal').textContent = Math.round(activeFood.calories * pendingQty);
+  document.getElementById('prevP').textContent = round1(activeFood.protein * pendingQty) + 'g';
+  document.getElementById('prevC').textContent = round1(activeFood.carbs * pendingQty) + 'g';
+  document.getElementById('prevF').textContent = round1(activeFood.fat * pendingQty) + 'g';
+}
+
+document.getElementById('qtyMinus').addEventListener('click', () => {
+  pendingQty = Math.max(0.5, round1(pendingQty - 0.5));
+  updateQtyDisplay();
+});
+document.getElementById('qtyPlus').addEventListener('click', () => {
+  pendingQty = round1(pendingQty + 0.5);
+  updateQtyDisplay();
+});
+document.getElementById('closeLogSheet').addEventListener('click', () => {
+  document.getElementById('logSheetOverlay').classList.remove('open');
+});
+
+document.getElementById('confirmLog').addEventListener('click', async () => {
+  const btn = document.getElementById('confirmLog');
+  btn.textContent = 'Logging…';
+  btn.disabled = true;
+  try {
+    await apiPost({
+      action: 'addLogEntry',
+      date: currentDate,
+      food: activeFood.name,
+      quantity: pendingQty,
+      calories: round1(activeFood.calories * pendingQty),
+      protein: round1(activeFood.protein * pendingQty),
+      carbs: round1(activeFood.carbs * pendingQty),
+      fat: round1(activeFood.fat * pendingQty),
+    });
+    document.getElementById('logSheetOverlay').classList.remove('open');
+    document.getElementById('searchInput').value = '';
+    renderFoodList();
+    await loadEntriesForDate(currentDate);
+    showToast(`Logged ${activeFood.name}`);
+  } catch (err) {
+    showToast('Could not log — try again');
+  } finally {
+    btn.textContent = 'Log it';
+    btn.disabled = false;
+  }
+});
+
+// ---------- Add new food sheet ----------
+let newFoodFavourite = false;
+
+document.getElementById('addNewFoodLink').addEventListener('click', () => {
+  document.getElementById('newFoodName').value = document.getElementById('searchInput').value.trim();
+  document.getElementById('newFoodCal').value = '';
+  document.getElementById('newFoodP').value = '';
+  document.getElementById('newFoodC').value = '';
+  document.getElementById('newFoodF').value = '';
+  newFoodFavourite = false;
+  document.getElementById('favToggle').classList.remove('on');
+  document.getElementById('addFoodOverlay').classList.add('open');
+});
+document.getElementById('closeAddFood').addEventListener('click', () => {
+  document.getElementById('addFoodOverlay').classList.remove('open');
+});
+document.getElementById('favToggle').addEventListener('click', () => {
+  newFoodFavourite = !newFoodFavourite;
+  document.getElementById('favToggle').classList.toggle('on', newFoodFavourite);
+});
+
+document.getElementById('saveNewFood').addEventListener('click', async () => {
+  const name = document.getElementById('newFoodName').value.trim();
+  const calories = Number(document.getElementById('newFoodCal').value) || 0;
+  const protein = Number(document.getElementById('newFoodP').value) || 0;
+  const carbs = Number(document.getElementById('newFoodC').value) || 0;
+  const fat = Number(document.getElementById('newFoodF').value) || 0;
+
+  if (!name) { showToast('Give it a name first'); return; }
+
+  const btn = document.getElementById('saveNewFood');
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  try {
+    await apiPost({ action: 'addFood', name, calories, protein, carbs, fat, favourite: newFoodFavourite });
+    document.getElementById('addFoodOverlay').classList.remove('open');
+    await loadFoods();
+    showToast('Food saved');
+  } catch (err) {
+    showToast('Could not save — try again');
+  } finally {
+    btn.textContent = 'Save food';
+    btn.disabled = false;
+  }
+});
+
+// ---------- Search ----------
+document.getElementById('searchInput').addEventListener('input', renderFoodList);
+
+// ---------- Date navigation ----------
+function refreshDateUI() {
+  document.getElementById('dateLabel').textContent = formatDateLabel(currentDate);
+  loadEntriesForDate(currentDate);
+}
+document.getElementById('prevDay').addEventListener('click', () => {
+  currentDate = addDays(currentDate, -1);
+  refreshDateUI();
+});
+document.getElementById('nextDay').addEventListener('click', () => {
+  if (currentDate === todayStr()) return; // no future logging
+  currentDate = addDays(currentDate, 1);
+  refreshDateUI();
+});
+
+// ---------- Tabs ----------
+function switchView(view) {
+  document.getElementById('view-today').style.display = view === 'today' ? '' : 'none';
+  document.getElementById('view-history').style.display = view === 'history' ? '' : 'none';
+  document.getElementById('dateNav').style.display = view === 'today' ? 'flex' : 'none';
+  document.getElementById('tabToday').classList.toggle('active', view === 'today');
+  document.getElementById('tabHistory').classList.toggle('active', view === 'history');
+  if (view === 'history') loadHistory();
+}
+document.getElementById('tabToday').addEventListener('click', () => switchView('today'));
+document.getElementById('tabHistory').addEventListener('click', () => switchView('history'));
+
+// ---------- Init ----------
+document.getElementById('dateLabel').textContent = formatDateLabel(currentDate);
+loadFoods();
+loadEntriesForDate(currentDate);
+</script>
+
+</body>
+</html>
