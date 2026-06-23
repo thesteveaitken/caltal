@@ -92,7 +92,7 @@
     gap: 8px;
     margin-bottom: 14px;
   }
-  .totals-cal .num { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; }
+  .totals-cal .num { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
   .totals-cal .unit { font-size: 14px; color: var(--text-dim); font-weight: 500; }
 
   .macro-row { display: flex; gap: 18px; }
@@ -135,21 +135,38 @@
   .entry {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 12px 14px;
+    padding: 12px 8px 12px 14px;
   }
-  .entry-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .entry-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .entry-name { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .entry-sub { font-size: 12px; color: var(--text-dim); }
-  .entry-cal { font-size: 14px; font-weight: 700; color: var(--accent); margin-left: 10px; white-space: nowrap; }
+  .entry-sub { font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+  .entry-sub .qty { color: var(--text-dim); }
+  .entry-sub .sep { color: var(--border); }
+  .entry-sub .m-p { color: var(--protein); }
+  .entry-sub .m-c { color: var(--carbs); }
+  .entry-sub .m-f { color: var(--fat); }
+  .entry-cal {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    min-width: 46px;
+    text-align: right;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
   .entry-del {
     background: none; border: none; color: var(--text-faint);
-    font-size: 18px; padding: 0 0 0 12px; cursor: pointer;
+    font-size: 16px; cursor: pointer;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border-radius: 50%;
   }
-  .entry-del:active { color: var(--danger); }
+  .entry-del:active { color: var(--danger); background: rgba(199,92,92,0.12); }
 
   .empty-state {
     margin: 0 20px 22px;
@@ -180,7 +197,6 @@
   .food-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -188,10 +204,19 @@
     cursor: pointer;
   }
   .food-item:active { border-color: var(--accent); }
-  .food-main { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .food-main { flex: 1; display: flex; align-items: center; gap: 7px; min-width: 0; }
   .star { color: var(--accent); font-size: 13px; flex-shrink: 0; }
   .food-name { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .food-cal { font-size: 13px; color: var(--text-dim); margin-left: 10px; white-space: nowrap; }
+  .food-cal {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-left: 10px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    min-width: 56px;
+    text-align: right;
+    flex-shrink: 0;
+  }
 
   .add-new-row {
     margin: 0 20px 22px;
@@ -283,7 +308,7 @@
     margin-bottom: 20px;
   }
   .sheet-macro { text-align: center; }
-  .sheet-macro .v { font-size: 16px; font-weight: 700; }
+  .sheet-macro .v { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .sheet-macro .l { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
   .btn-primary {
@@ -384,7 +409,7 @@
   }
   .hist-day:active { border-color: var(--accent); }
   .hist-date { font-size: 14px; font-weight: 600; }
-  .hist-cal { font-size: 13px; color: var(--text-dim); }
+  .hist-cal { font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 
   .toast {
     position: fixed;
@@ -696,7 +721,13 @@ function renderEntries() {
     <div class="entry" data-row="${e.rowIndex}">
       <div class="entry-main">
         <span class="entry-name">${escapeHtml(e.food)}</span>
-        <span class="entry-sub">${e.quantity}× · P${round1(e.protein)} C${round1(e.carbs)} F${round1(e.fat)}</span>
+        <span class="entry-sub">
+          <span class="qty">${e.quantity}×</span>
+          <span class="sep">·</span>
+          <span class="m-p">P${round1(e.protein)}</span>
+          <span class="m-c">C${round1(e.carbs)}</span>
+          <span class="m-f">F${round1(e.fat)}</span>
+        </span>
       </div>
       <span class="entry-cal">${Math.round(e.calories)}</span>
       <button class="entry-del" data-row="${e.rowIndex}">✕</button>
