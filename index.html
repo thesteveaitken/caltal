@@ -472,7 +472,7 @@
       </div>
     </div>
 
-    <div class="section-label">Logged</div>
+    <div class="section-label" id="loggedSectionLabel">Logged Today</div>
     <div class="entry-list" id="entryList">
       <div class="loading-row">Loading…</div>
     </div>
@@ -485,7 +485,7 @@
       <div class="loading-row">Loading…</div>
     </div>
     <div class="add-new-row">
-      Can't find it? <a id="addNewFoodLink">Add a new food</a>
+      Can't find it? <a id="addNewFoodLink">Add a new food</a> · <a id="logOneOffLink">Log a one-off</a>
     </div>
   </div>
 
@@ -564,6 +564,40 @@
     </div>
 
     <button class="btn-primary" id="saveNewFood">Save food</button>
+  </div>
+</div>
+
+<!-- LOG ONE-OFF SHEET -->
+<div class="sheet-overlay" id="oneOffOverlay">
+  <div class="sheet">
+    <button class="sheet-close-x" id="closeOneOff">✕</button>
+    <div class="sheet-title">Log a one-off</div>
+    <div class="sheet-sub">Logs straight to today — won't be saved to your food list</div>
+
+    <div class="field-row">
+      <label class="field-label">Name</label>
+      <input type="text" class="field-input" id="oneOffName" placeholder="e.g. Birthday cake slice">
+    </div>
+    <div class="field-row">
+      <label class="field-label">Calories</label>
+      <input type="number" class="field-input" id="oneOffCal" placeholder="0" inputmode="decimal">
+    </div>
+    <div class="field-row field-grid">
+      <div>
+        <label class="field-label">Protein g</label>
+        <input type="number" class="field-input" id="oneOffP" placeholder="0" inputmode="decimal">
+      </div>
+      <div>
+        <label class="field-label">Carbs g</label>
+        <input type="number" class="field-input" id="oneOffC" placeholder="0" inputmode="decimal">
+      </div>
+      <div>
+        <label class="field-label">Fat g</label>
+        <input type="number" class="field-input" id="oneOffF" placeholder="0" inputmode="decimal">
+      </div>
+    </div>
+
+    <button class="btn-primary" id="saveOneOff">Log it</button>
   </div>
 </div>
 
@@ -891,12 +925,58 @@ document.getElementById('saveNewFood').addEventListener('click', async () => {
   }
 });
 
+// ---------- Log a one-off (skips Foods entirely, logs straight to today's entries) ----------
+document.getElementById('logOneOffLink').addEventListener('click', () => {
+  document.getElementById('oneOffName').value = '';
+  document.getElementById('oneOffCal').value = '';
+  document.getElementById('oneOffP').value = '';
+  document.getElementById('oneOffC').value = '';
+  document.getElementById('oneOffF').value = '';
+  document.getElementById('oneOffOverlay').classList.add('open');
+});
+document.getElementById('closeOneOff').addEventListener('click', () => {
+  document.getElementById('oneOffOverlay').classList.remove('open');
+});
+
+document.getElementById('saveOneOff').addEventListener('click', async () => {
+  const name = document.getElementById('oneOffName').value.trim();
+  const calories = Number(document.getElementById('oneOffCal').value) || 0;
+  const protein = Number(document.getElementById('oneOffP').value) || 0;
+  const carbs = Number(document.getElementById('oneOffC').value) || 0;
+  const fat = Number(document.getElementById('oneOffF').value) || 0;
+
+  if (!name) { showToast('Give it a name first'); return; }
+
+  const btn = document.getElementById('saveOneOff');
+  btn.textContent = 'Logging…';
+  btn.disabled = true;
+  try {
+    await apiPost({
+      action: 'addLogEntry',
+      date: currentDate,
+      food: name,
+      quantity: 1,
+      calories, protein, carbs, fat,
+    });
+    document.getElementById('oneOffOverlay').classList.remove('open');
+    await loadEntriesForDate(currentDate);
+    showToast(`Logged ${name}`);
+  } catch (err) {
+    showToast('Could not log — try again');
+  } finally {
+    btn.textContent = 'Log it';
+    btn.disabled = false;
+  }
+});
+
 // ---------- Search ----------
 document.getElementById('searchInput').addEventListener('input', renderFoodList);
 
 // ---------- Date navigation ----------
 function refreshDateUI() {
-  document.getElementById('dateLabel').textContent = formatDateLabel(currentDate);
+  const label = formatDateLabel(currentDate);
+  document.getElementById('dateLabel').textContent = label;
+  document.getElementById('loggedSectionLabel').textContent = label === 'Today' ? 'Logged Today' : `Logged — ${label}`;
   loadEntriesForDate(currentDate);
 }
 document.getElementById('prevDay').addEventListener('click', () => {
