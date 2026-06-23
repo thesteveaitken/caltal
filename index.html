@@ -329,25 +329,37 @@
   .fav-toggle {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 11px;
     padding: 12px 14px;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border);
     border-radius: var(--radius-sm);
     margin-bottom: 18px;
     cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
   }
   .fav-toggle .check {
-    width: 20px; height: 20px;
-    border-radius: 6px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
     border: 1.5px solid var(--text-faint);
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
+    font-size: 13px;
     flex-shrink: 0;
+    color: transparent;
+    background: transparent;
+    transition: all 0.15s ease;
   }
-  .fav-toggle.on .check { background: var(--accent); border-color: var(--accent); color: #1a1206; }
-  .fav-toggle.on { border-color: var(--accent-dim); }
-  .fav-toggle .ftext { font-size: 14px; color: var(--text); }
+  .fav-toggle.on {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .fav-toggle.on .check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #1a1206;
+  }
+  .fav-toggle .ftext { font-size: 14px; color: var(--text-dim); font-weight: 500; }
+  .fav-toggle.on .ftext { color: var(--text); font-weight: 600; }
 
   .sheet-close-x {
     position: absolute;
@@ -522,8 +534,8 @@
     </div>
 
     <div class="fav-toggle" id="favToggle">
-      <div class="check">✓</div>
-      <div class="ftext">Mark as favourite</div>
+      <div class="check">★</div>
+      <div class="ftext" id="favToggleText">Mark as favourite</div>
     </div>
 
     <button class="btn-primary" id="saveNewFood">Save food</button>
@@ -809,6 +821,7 @@ document.getElementById('addNewFoodLink').addEventListener('click', () => {
   document.getElementById('newFoodF').value = '';
   newFoodFavourite = false;
   document.getElementById('favToggle').classList.remove('on');
+  document.getElementById('favToggleText').textContent = 'Mark as favourite';
   document.getElementById('addFoodOverlay').classList.add('open');
 });
 document.getElementById('closeAddFood').addEventListener('click', () => {
@@ -817,6 +830,9 @@ document.getElementById('closeAddFood').addEventListener('click', () => {
 document.getElementById('favToggle').addEventListener('click', () => {
   newFoodFavourite = !newFoodFavourite;
   document.getElementById('favToggle').classList.toggle('on', newFoodFavourite);
+  document.getElementById('favToggleText').textContent = newFoodFavourite
+    ? 'Favourite — will appear at the top'
+    : 'Mark as favourite';
 });
 
 document.getElementById('saveNewFood').addEventListener('click', async () => {
