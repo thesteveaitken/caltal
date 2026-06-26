@@ -139,7 +139,9 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 12px 8px 12px 14px;
+    cursor: pointer;
   }
+  .entry:active { border-color: var(--accent); }
   .entry-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .entry-name { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entry-sub { font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
@@ -617,8 +619,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyHEclIIadV2wkWKXINHpp2
 let foods = [];           // saved foods list, favourites first (from backend)
 let currentDate = todayStr();
 let entries = [];         // today's (or viewed day's) log entries
-let activeFood = null;    // food currently in the "log it" sheet
+let activeFood = null;    // per-unit values for the food currently in the log/edit sheet
 let pendingQty = 1;
+let editingRowIndex = null; // null = adding a new entry; set = editing an existing log row
 
 // ---------- Helpers ----------
 function todayStr() {
@@ -768,6 +771,14 @@ function renderEntries() {
     </div>
   `).join('');
 
+  list.querySelectorAll('.entry').forEach(el => {
+    el.addEventListener('click', () => {
+      const rowIndex = Number(el.dataset.row);
+      const entry = entries.find(e => e.rowIndex === rowIndex);
+      if (entry) openEditSheet(entry);
+    });
+  });
+
   list.querySelectorAll('.entry-del').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
       ev.stopPropagation();
@@ -816,13 +827,35 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ---------- Log quantity sheet ----------
+// ---------- Log quantity sheet (shared between adding and editing) ----------
 function openLogSheet(foodName) {
   activeFood = foods.find(f => f.name === foodName);
   if (!activeFood) return;
+  editingRowIndex = null;
   pendingQty = 1;
   document.getElementById('logSheetTitle').textContent = activeFood.name;
   document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
+  document.getElementById('confirmLog').textContent = 'Log it';
+  updateQtyDisplay();
+  document.getElementById('logSheetOverlay').classList.add('open');
+}
+
+function openEditSheet(entry) {
+  // Derive per-unit values from the stored totals, so the same +/- quantity
+  // control can scale this entry just like a fresh log action would.
+  const qty = entry.quantity || 1;
+  activeFood = {
+    name: entry.food,
+    calories: entry.calories / qty,
+    protein: entry.protein / qty,
+    carbs: entry.carbs / qty,
+    fat: entry.fat / qty,
+  };
+  editingRowIndex = entry.rowIndex;
+  pendingQty = qty;
+  document.getElementById('logSheetTitle').textContent = entry.food;
+  document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
+  document.getElementById('confirmLog').textContent = 'Save changes';
   updateQtyDisplay();
   document.getElementById('logSheetOverlay').classList.add('open');
 }
@@ -845,32 +878,47 @@ document.getElementById('qtyPlus').addEventListener('click', () => {
 });
 document.getElementById('closeLogSheet').addEventListener('click', () => {
   document.getElementById('logSheetOverlay').classList.remove('open');
+  editingRowIndex = null;
 });
 
 document.getElementById('confirmLog').addEventListener('click', async () => {
   const btn = document.getElementById('confirmLog');
-  btn.textContent = 'Logging…';
+  const isEdit = editingRowIndex !== null;
+  btn.textContent = isEdit ? 'Saving…' : 'Logging…';
   btn.disabled = true;
   try {
-    await apiPost({
-      action: 'addLogEntry',
-      date: currentDate,
-      food: activeFood.name,
-      quantity: pendingQty,
-      calories: round1(activeFood.calories * pendingQty),
-      protein: round1(activeFood.protein * pendingQty),
-      carbs: round1(activeFood.carbs * pendingQty),
-      fat: round1(activeFood.fat * pendingQty),
-    });
+    if (isEdit) {
+      await apiPost({
+        action: 'editLogEntry',
+        rowIndex: editingRowIndex,
+        quantity: pendingQty,
+        calories: round1(activeFood.calories * pendingQty),
+        protein: round1(activeFood.protein * pendingQty),
+        carbs: round1(activeFood.carbs * pendingQty),
+        fat: round1(activeFood.fat * pendingQty),
+      });
+    } else {
+      await apiPost({
+        action: 'addLogEntry',
+        date: currentDate,
+        food: activeFood.name,
+        quantity: pendingQty,
+        calories: round1(activeFood.calories * pendingQty),
+        protein: round1(activeFood.protein * pendingQty),
+        carbs: round1(activeFood.carbs * pendingQty),
+        fat: round1(activeFood.fat * pendingQty),
+      });
+    }
     document.getElementById('logSheetOverlay').classList.remove('open');
     document.getElementById('searchInput').value = '';
     renderFoodList();
     await loadEntriesForDate(currentDate);
-    showToast(`Logged ${activeFood.name}`);
+    showToast(isEdit ? 'Changes saved' : `Logged ${activeFood.name}`);
+    editingRowIndex = null;
   } catch (err) {
-    showToast('Could not log — try again');
+    showToast(isEdit ? 'Could not save — try again' : 'Could not log — try again');
   } finally {
-    btn.textContent = 'Log it';
+    btn.textContent = isEdit ? 'Save changes' : 'Log it';
     btn.disabled = false;
   }
 });
