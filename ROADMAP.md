@@ -32,6 +32,17 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 - Supplements (for example 10g creatine) are 0-calorie foods that are favourited. No schema change.
 - Skipped on purpose: fibre, sugar, sodium (data entry cost), steps, sleep, mood.
 
+**Status (2026-11-08):** the database side is done. `schema.sql` and `seed_drinks.sql` have been run in Supabase and committed. The app code does not use any of the new columns yet, so the live site is unchanged.
+
+**Next: app changes for 2a, in this order.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
+1. **Eaten-at time on the log sheet.** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
+2. **Water quick-add.** A one-tap button on Today that logs "Water (250 ml)" (a standard food, already seeded) with `eaten_at` = now. Check that the log insert copies `alcohol` and `fluid_ml` from the food, times quantity, the same way the macros are totalled.
+3. **Alcohol and fluid fields** on the add/edit food form (private foods). Existing private foods such as "Coffee with milk" have 0 fluid until edited by hand.
+4. **Goals setting.** A simple form for calorie and protein targets (one row in `goals`, upsert on `user_id`), probably reachable from the header menu. Then use the goals as the denominators for the totals bars.
+5. Optional: show fluid and alcohol totals for the day on Today.
+
+Checks after each step: load the app, log an entry, and confirm the row in the Supabase table editor has the expected columns. Remember the supabase-js rule about calling other methods inside `onAuthStateChange`.
+
 ### 2b. Trends page (replaces History)
 - A Day / Week / Month toggle. Tapping a day opens it in Today.
 - **Day:** cumulative intake through the day (step line) with an average-day line overlaid. Uses `eaten_at`.
