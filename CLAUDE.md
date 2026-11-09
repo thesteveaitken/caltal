@@ -16,6 +16,8 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 - **Favourites are per user** (`favourites` table) and can point at standard or private foods.
 - Nutrition is **per serving, as described in the food name** ("1 cup cooked rice"). There are no units or gram fields.
 - `log_entries` store **totals** (per-serving x quantity) plus a `food_name` snapshot, so editing or deleting a food never changes history. `food_id` is null for one-offs. Quantity steps by 0.5, minimum 0.5.
+- Foods and entries also carry `alcohol` (standard drinks) and `fluid_ml` (alcohol counts 0 fluid). Entries have a nullable `eaten_at` (when it was eaten; `created_at` is only insert time, and imported history is null). Supplements like creatine are just 0-calorie foods. Values for standard drinks are in `supabase/seed_drinks.sql`.
+- `goals` holds one row per user (calorie and protein targets), own-row RLS.
 - History comes from the `daily_totals` view. It has no rows for days with no entries, so empty days are naturally skipped.
 - Security lives in RLS, not in the client. Any new table needs RLS enabled and policies written before it is used.
 

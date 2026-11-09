@@ -40,6 +40,12 @@ create table if not exists public.foods (
   created_at timestamptz not null default now()
 );
 
+-- Extra per-serving amounts (added after launch, so added with alter).
+--   alcohol  = standard drinks per serving
+--   fluid_ml = millilitres of fluid per serving (water, coffee, juice...; alcohol stays 0)
+alter table public.foods add column if not exists alcohol  numeric not null default 0 check (alcohol  >= 0);
+alter table public.foods add column if not exists fluid_ml numeric not null default 0 check (fluid_ml >= 0);
+
 -- One name per owner (case-insensitive); standard foods share the "nil" owner.
 -- A private food may share a name with a standard food.
 create unique index if not exists foods_owner_name_key
@@ -101,6 +107,12 @@ create table if not exists public.log_entries (
   fat        numeric not null default 0,
   created_at timestamptz not null default now()
 );
+-- Totals for the extra amounts (per-serving x quantity), like the macros.
+-- eaten_at is when the food was actually eaten (created_at is only insert time).
+-- It is null for imported history; time-of-day charts skip null rows.
+alter table public.log_entries add column if not exists alcohol  numeric not null default 0;
+alter table public.log_entries add column if not exists fluid_ml numeric not null default 0;
+alter table public.log_entries add column if not exists eaten_at timestamptz;
 create index if not exists log_entries_user_date_idx on public.log_entries (user_id, date);
 
 alter table public.log_entries enable row level security;
@@ -111,7 +123,23 @@ create policy "log_entries: own rows" on public.log_entries
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- ---------- Goals (per user, one row) ----------
+create table if not exists public.goals (
+  user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  calories   numeric check (calories > 0),
+  protein    numeric check (protein  > 0),
+  updated_at timestamptz not null default now()
+);
+alter table public.goals enable row level security;
+
+drop policy if exists "goals: own row" on public.goals;
+create policy "goals: own row" on public.goals
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
 -- ---------- Daily totals (History view) ----------
+-- New columns must be added at the END of the select list (create or replace view).
 -- security_invoker makes the view respect the caller's RLS on log_entries.
 create or replace view public.daily_totals
 with (security_invoker = true) as
@@ -121,7 +149,9 @@ with (security_invoker = true) as
          sum(protein)  as protein,
          sum(carbs)    as carbs,
          sum(fat)      as fat,
-         count(*)      as entries
+         count(*)      as entries,
+         sum(alcohol)  as alcohol,
+         sum(fluid_ml) as fluid_ml
   from public.log_entries
   group by user_id, date;
 
