@@ -1,0 +1,207 @@
+-- =========================================================
+-- CalTal — standard food list (visible to every user)
+-- Run after schema.sql in the SQL Editor. Safe to re-run: rows whose
+-- name already exists as a standard food are skipped.
+--
+-- Values are per serving, as described in the name, and are approximate
+-- (derived from USDA FoodData Central reference values, rounded).
+-- Columns: name, calories, protein g, carbs g, fat g
+-- REVIEW BEFORE RUNNING — edit freely; it's just data.
+-- =========================================================
+
+insert into public.foods (owner_id, name, calories, protein, carbs, fat)
+select null, v.name, v.calories, v.protein, v.carbs, v.fat
+from (values
+  -- ---------- Eggs, meat, fish, plant protein ----------
+  ('1 large egg',                          72,  6.3,  0.4,  4.8),
+  ('1 large egg white',                    17,  3.6,  0.2,  0.1),
+  ('100g chicken breast, cooked',         165, 31.0,  0.0,  3.6),
+  ('100g chicken thigh, cooked',          209, 26.0,  0.0, 10.9),
+  ('100g turkey breast, roasted',         135, 30.0,  0.0,  1.0),
+  ('2oz deli turkey',                      60, 10.0,  2.0,  1.0),
+  ('100g ground beef 90/10, cooked',      217, 26.0,  0.0, 11.7),
+  ('100g ground beef 80/20, cooked',      254, 26.0,  0.0, 17.0),
+  ('6oz sirloin steak, cooked',           310, 51.0,  0.0, 11.0),
+  ('100g pork tenderloin, cooked',        143, 26.0,  0.0,  3.5),
+  ('1 slice bacon, cooked',                43,  3.0,  0.1,  3.3),
+  ('2 pork breakfast sausage links',      150,  8.5,  0.6, 12.4),
+  ('1 beef hot dog',                      180,  7.0,  2.0, 16.0),
+  ('100g salmon, cooked',                 206, 22.0,  0.0, 12.4),
+  ('100g tuna, canned in water',          116, 25.5,  0.0,  0.8),
+  ('100g shrimp, cooked',                  99, 24.0,  0.2,  0.3),
+  ('100g cod, cooked',                    105, 23.0,  0.0,  0.9),
+  ('100g tilapia, cooked',                128, 26.0,  0.0,  2.7),
+  ('100g firm tofu',                      144, 17.3,  2.8,  8.7),
+  ('100g tempeh',                         192, 20.0,  7.6, 10.8),
+  ('1 scoop whey protein (30g)',          120, 24.0,  3.0,  1.5),
+
+  -- ---------- Dairy & alternatives ----------
+  ('1 cup whole milk',                    149,  7.7, 11.7,  7.9),
+  ('1 cup 2% milk',                       122,  8.1, 11.7,  4.8),
+  ('1 cup skim milk',                      83,  8.3, 12.2,  0.2),
+  ('1 cup unsweetened almond milk',        30,  1.0,  1.0,  2.5),
+  ('1 cup oat milk',                      120,  3.0, 16.0,  5.0),
+  ('170g nonfat plain Greek yogurt',      100, 17.3,  6.1,  0.7),
+  ('170g 2% plain Greek yogurt',          120, 17.0,  6.0,  3.3),
+  ('1 cup whole milk plain yogurt',       149,  8.5, 11.4,  8.0),
+  ('1/2 cup 2% cottage cheese',            92, 11.9,  5.4,  2.6),
+  ('1oz cheddar cheese',                  114,  7.0,  0.4,  9.4),
+  ('1oz part-skim mozzarella',             72,  6.9,  0.8,  4.5),
+  ('1 string cheese',                      80,  7.0,  1.0,  6.0),
+  ('1 tbsp grated parmesan',               21,  1.4,  0.7,  1.4),
+  ('2 tbsp cream cheese',                  99,  1.7,  1.6,  9.8),
+  ('2 tbsp sour cream',                    48,  0.6,  1.1,  4.7),
+  ('1 tbsp butter',                       102,  0.1,  0.0, 11.5),
+  ('1 tbsp heavy cream',                   51,  0.4,  0.4,  5.4),
+  ('1 tbsp half & half',                   20,  0.5,  0.6,  1.7),
+  ('1/2 cup vanilla ice cream',           137,  2.3, 15.6,  7.3),
+
+  -- ---------- Grains, bread, starches ----------
+  ('1 cup cooked white rice',             205,  4.3, 44.5,  0.4),
+  ('1 cup cooked brown rice',             218,  4.5, 45.8,  1.6),
+  ('1 cup cooked quinoa',                 222,  8.1, 39.4,  3.6),
+  ('1 cup cooked pasta',                  221,  8.1, 43.2,  1.3),
+  ('1 cup cooked egg noodles',            221,  7.3, 40.3,  3.3),
+  ('1 cup cooked couscous',               176,  6.0, 36.5,  0.3),
+  ('1/2 cup dry rolled oats',             150,  5.0, 27.0,  3.0),
+  ('1 cup cooked oatmeal (water)',        166,  5.9, 28.0,  3.6),
+  ('1/4 cup granola',                     140,  3.5, 19.0,  6.0),
+  ('1 cup Cheerios-style oat cereal',     100,  3.6, 20.0,  2.0),
+  ('1 slice white bread',                  75,  2.6, 14.0,  1.0),
+  ('1 slice whole wheat bread',            81,  4.0, 13.8,  1.1),
+  ('1 slice sourdough bread',             135,  5.5, 26.0,  0.9),
+  ('1 plain bagel',                       270, 10.5, 53.0,  1.7),
+  ('1 English muffin',                    134,  4.4, 26.0,  1.0),
+  ('1 hamburger bun',                     120,  4.0, 21.0,  2.0),
+  ('1 croissant',                         231,  4.7, 26.0, 12.0),
+  ('1 flour tortilla (8")',               146,  4.0, 24.3,  3.6),
+  ('1 corn tortilla (6")',                 52,  1.4, 10.7,  0.7),
+  ('1 pancake (6")',                      175,  5.0, 22.0,  7.5),
+  ('1 frozen waffle',                      95,  2.2, 15.0,  3.0),
+  ('1 medium baked potato',               161,  4.3, 36.6,  0.2),
+  ('1 medium baked sweet potato',         103,  2.3, 23.6,  0.2),
+
+  -- ---------- Beans & legumes ----------
+  ('1 cup cooked black beans',            227, 15.2, 40.8,  0.9),
+  ('1 cup cooked chickpeas',              269, 14.5, 45.0,  4.2),
+  ('1 cup cooked lentils',                230, 17.9, 39.9,  0.8),
+  ('1/2 cup refried beans',               110,  6.0, 18.0,  1.5),
+  ('2 tbsp hummus',                        60,  2.0,  4.0,  4.0),
+
+  -- ---------- Fruit ----------
+  ('1 medium banana',                     105,  1.3, 27.0,  0.4),
+  ('1 medium apple',                       95,  0.5, 25.0,  0.3),
+  ('1 medium orange',                      62,  1.2, 15.4,  0.2),
+  ('1 clementine',                         35,  0.6,  8.9,  0.1),
+  ('1 medium pear',                       101,  0.6, 27.1,  0.2),
+  ('1 medium peach',                       59,  1.4, 14.3,  0.4),
+  ('1 kiwi',                               42,  0.8, 10.1,  0.4),
+  ('1 cup strawberries',                   49,  1.0, 11.7,  0.5),
+  ('1 cup blueberries',                    84,  1.1, 21.4,  0.5),
+  ('1 cup raspberries',                    64,  1.5, 14.7,  0.8),
+  ('1 cup grapes',                        104,  1.1, 27.3,  0.2),
+  ('1 cup cherries',                       87,  1.5, 22.0,  0.3),
+  ('1 cup watermelon',                     46,  0.9, 11.5,  0.2),
+  ('1 cup cantaloupe',                     54,  1.3, 13.0,  0.3),
+  ('1 cup pineapple',                      82,  0.9, 21.6,  0.2),
+  ('1 cup mango',                          99,  1.4, 24.7,  0.6),
+  ('1/2 avocado',                         115,  1.4,  6.0, 10.5),
+  ('1 Medjool date',                       66,  0.4, 18.0,  0.0),
+  ('2 tbsp raisins',                       54,  0.6, 14.3,  0.1),
+
+  -- ---------- Vegetables ----------
+  ('1 cup broccoli, cooked',               55,  3.7, 11.2,  0.6),
+  ('1 cup cauliflower, cooked',            29,  2.3,  5.1,  0.6),
+  ('1 cup green beans, cooked',            44,  2.4,  9.9,  0.4),
+  ('1 cup Brussels sprouts, cooked',       56,  4.0, 11.0,  0.8),
+  ('1 cup asparagus, cooked',              40,  4.3,  7.4,  0.4),
+  ('1 cup zucchini, cooked',               27,  2.0,  4.8,  0.7),
+  ('1 cup kale, cooked',                   36,  2.5,  7.3,  0.5),
+  ('1 cup spinach, raw',                    7,  0.9,  1.1,  0.1),
+  ('1 cup spinach, cooked',                41,  5.3,  6.8,  0.5),
+  ('1 cup romaine lettuce',                 8,  0.6,  1.5,  0.1),
+  ('1 cup mixed salad greens',              9,  0.8,  1.5,  0.1),
+  ('1 cup shredded cabbage',               22,  1.1,  5.2,  0.1),
+  ('1 cup green peas, cooked',            134,  8.6, 25.0,  0.4),
+  ('1 medium ear sweet corn',              99,  3.5, 21.6,  1.5),
+  ('1 medium carrot',                      25,  0.6,  5.8,  0.1),
+  ('1 cup baby carrots',                   45,  0.8, 10.6,  0.2),
+  ('1 cup celery',                         14,  0.7,  3.0,  0.2),
+  ('1 cup cucumber slices',                16,  0.7,  3.8,  0.1),
+  ('1 medium tomato',                      22,  1.1,  4.8,  0.2),
+  ('1 cup cherry tomatoes',                27,  1.3,  5.8,  0.3),
+  ('1 medium red bell pepper',             37,  1.2,  7.2,  0.4),
+  ('1 cup mushrooms, raw',                 15,  2.2,  2.3,  0.2),
+  ('1/2 cup chopped onion',                32,  0.9,  7.5,  0.1),
+
+  -- ---------- Nuts, seeds, oils, spreads ----------
+  ('1oz almonds',                         164,  6.0,  6.1, 14.2),
+  ('1oz walnuts',                         185,  4.3,  3.9, 18.5),
+  ('1oz cashews',                         157,  5.2,  8.6, 12.4),
+  ('1oz peanuts, dry roasted',            166,  6.7,  6.1, 14.1),
+  ('1oz pistachios',                      159,  5.7,  7.7, 12.8),
+  ('2 tbsp peanut butter',                190,  7.0,  7.0, 16.0),
+  ('2 tbsp almond butter',                196,  6.7,  6.0, 17.8),
+  ('1 tbsp chia seeds',                    58,  2.0,  5.1,  3.7),
+  ('1 tbsp ground flaxseed',               37,  1.3,  2.0,  3.0),
+  ('1 tbsp olive oil',                    119,  0.0,  0.0, 13.5),
+  ('1 tbsp coconut oil',                  121,  0.0,  0.0, 13.5),
+  ('1 tbsp mayonnaise',                    94,  0.1,  0.1, 10.3),
+
+  -- ---------- Sauces, condiments, sweeteners ----------
+  ('2 tbsp ranch dressing',               129,  0.4,  1.8, 13.4),
+  ('2 tbsp balsamic vinaigrette',          90,  0.0,  3.0,  9.0),
+  ('1 tbsp ketchup',                       20,  0.2,  5.0,  0.0),
+  ('1 tbsp BBQ sauce',                     29,  0.1,  7.0,  0.1),
+  ('2 tbsp salsa',                         10,  0.5,  2.0,  0.0),
+  ('1 tbsp soy sauce',                      9,  1.3,  0.8,  0.1),
+  ('1 tsp mustard',                         3,  0.2,  0.3,  0.2),
+  ('1 tbsp honey',                         64,  0.1, 17.3,  0.0),
+  ('1 tbsp maple syrup',                   52,  0.0, 13.4,  0.0),
+  ('1 tbsp jam',                           56,  0.1, 13.8,  0.0),
+  ('1 tsp sugar',                          16,  0.0,  4.2,  0.0),
+
+  -- ---------- Snacks & sweets ----------
+  ('1oz potato chips',                    155,  2.0, 15.0, 10.0),
+  ('1oz tortilla chips',                  138,  2.0, 18.0,  7.0),
+  ('1oz pretzels',                        108,  2.9, 22.7,  0.8),
+  ('1 cup air-popped popcorn',             31,  1.0,  6.2,  0.4),
+  ('2 plain rice cakes',                   70,  1.4, 14.7,  0.6),
+  ('1oz dark chocolate (70-85%)',         170,  2.2, 13.0, 12.1),
+  ('1oz milk chocolate',                  150,  2.1, 16.8,  8.4),
+  ('1 chocolate chip cookie',              78,  0.9,  9.3,  4.5),
+  ('1 glazed donut',                      240,  3.8, 27.0, 13.0),
+
+  -- ---------- Common meals ----------
+  ('1 slice cheese pizza (14")',          285, 12.2, 35.7, 10.4),
+  ('1 slice pepperoni pizza (14")',       313, 13.0, 35.5, 13.2),
+  ('1 cheeseburger (fast food)',          300, 15.0, 33.0, 12.0),
+  ('Medium fries (fast food)',            365,  4.0, 48.0, 17.0),
+  ('1 PB&J sandwich',                     396, 12.3, 48.8, 18.0),
+  ('1 cup chicken noodle soup',            62,  3.2,  7.3,  2.4),
+  ('1 cup chili with beans',              287, 15.0, 30.0, 14.0),
+
+  -- ---------- Drinks ----------
+  ('1 cup black coffee',                    2,  0.3,  0.0,  0.0),
+  ('1 cup unsweetened tea',                 2,  0.0,  0.7,  0.0),
+  ('12oz latte (2% milk)',                150, 10.0, 15.0,  6.0),
+  ('1 tbsp flavored coffee creamer',       35,  0.0,  5.0,  1.5),
+  ('1 cup orange juice',                  112,  1.7, 25.8,  0.5),
+  ('1 cup apple juice',                   114,  0.2, 28.0,  0.3),
+  ('12oz can cola',                       140,  0.0, 39.0,  0.0),
+  ('20oz sports drink',                   140,  0.0, 34.0,  0.0),
+  ('12oz beer',                           153,  1.6, 12.6,  0.0),
+  ('12oz light beer',                     103,  0.9,  5.8,  0.0),
+  ('5oz glass red wine',                  125,  0.1,  3.8,  0.0),
+  ('5oz glass white wine',                121,  0.1,  3.8,  0.0),
+  ('1.5oz shot of spirits',                97,  0.0,  0.0,  0.0),
+
+  -- ---------- Promoted from my Foods tab ----------
+  ('1 large egg, poached',                 72,  6.0,  0.0,  4.5),
+  ('1 large egg, fried',                   90,  6.0,  0.0,  6.8),
+  ('1 ice cream sandwich',                170,  2.0, 29.0,  5.0),
+  ('1 mandarin orange',                    43,  1.0, 11.0,  0.0),
+  ('12oz non-alcoholic beer',              60,  1.0, 13.0,  0.0),
+  ('16oz tall can beer',                  200,  1.3, 17.0,  0.0)
+) as v(name, calories, protein, carbs, fat)
+on conflict do nothing;

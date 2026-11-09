@@ -436,11 +436,76 @@
   .loading-row { text-align: center; color: var(--text-faint); font-size: 13px; padding: 20px; }
 
   ::-webkit-scrollbar { display: none; }
+
+  /* ---------- Private-food badge & favourite star in log sheet ---------- */
+  .mine-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-dim); border: 1px solid var(--border); border-radius: 6px;
+    padding: 1px 5px; flex-shrink: 0;
+  }
+  .sheet-fav {
+    position: absolute;
+    top: 16px; right: 52px;
+    background: none; border: none;
+    color: var(--text-faint);
+    font-size: 21px;
+    cursor: pointer;
+  }
+  .sheet-fav.on { color: var(--accent); }
+
+  /* ---------- Sign-in screen ---------- */
+  #signin {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 28px 10vh;
+  }
+  #signin .wordmark { font-size: 34px; margin-bottom: 10px; }
+  #signin .wordmark .dot { font-size: 40px; }
+  .signin-tag { color: var(--text-dim); font-size: 15px; margin-bottom: 36px; line-height: 1.45; }
+  .btn-google {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--text); color: #1b1f23;
+    border: none; border-radius: var(--radius-sm);
+    padding: 15px; font-size: 15.5px; font-weight: 700; cursor: pointer;
+  }
+  .btn-google:active { opacity: 0.85; }
+  .btn-google svg { width: 18px; height: 18px; }
+  .signin-note { color: var(--text-faint); font-size: 12.5px; margin-top: 14px; text-align: center; }
+
+  /* ---------- Account (bottom of History) ---------- */
+  .account {
+    margin: 26px 20px 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    font-size: 13px; color: var(--text-dim);
+  }
+  .account-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account button {
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; flex-shrink: 0;
+  }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
-<div id="app">
+<!-- SIGN-IN SCREEN (shown when signed out) -->
+<div id="signin" style="display:none;">
+  <div class="wordmark">CalTal<span class="dot">.</span></div>
+  <div class="signin-tag">Quick, no-fuss calorie and macro logging.</div>
+  <button class="btn-google" id="googleSignIn">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Continue with Google
+  </button>
+  <div class="signin-note" id="signinNote"></div>
+</div>
+
+<div id="app" style="display:none;">
 
   <header>
     <div class="wordmark">CalTal<span class="dot">.</span></div>
@@ -497,11 +562,15 @@
     <div id="historyList">
       <div class="loading-row">Loading…</div>
     </div>
+    <div class="account">
+      <span class="account-email" id="accountEmail"></span>
+      <button id="signOut">Sign out</button>
+    </div>
   </div>
 
 </div>
 
-<div class="tabbar">
+<div class="tabbar" id="tabbar">
   <button class="tab active" id="tabToday"><span class="icon">●</span>Today</button>
   <button class="tab" id="tabHistory"><span class="icon">▤</span>History</button>
 </div>
@@ -510,6 +579,7 @@
 <div class="sheet-overlay" id="logSheetOverlay">
   <div class="sheet">
     <button class="sheet-close-x" id="closeLogSheet">✕</button>
+    <button class="sheet-fav" id="logSheetFav" aria-label="Toggle favourite">☆</button>
     <div class="sheet-title" id="logSheetTitle">Food name</div>
     <div class="sheet-sub" id="logSheetSub">per serving</div>
 
@@ -535,7 +605,7 @@
   <div class="sheet">
     <button class="sheet-close-x" id="closeAddFood">✕</button>
     <div class="sheet-title">New saved food</div>
-    <div class="sheet-sub">Enter it at the size you'll usually log</div>
+    <div class="sheet-sub">Enter it at the size you'll usually log. Only you will see it.</div>
 
     <div class="field-row">
       <label class="field-label">Name</label>
@@ -608,20 +678,27 @@
 <script>
 /* =========================================================
    CalTal — Calorie Tracker
-   Talks directly to a Google Apps Script web app deployed
-   from the companion AppsScript.gs file. No build step —
-   this is the whole app.
+   Talks directly to Supabase (Postgres + Google sign-in).
+   Row-level security in supabase/schema.sql decides what each
+   user can see, so the publishable key below is safe to publish.
+   No build step — this is the whole app.
    ========================================================= */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxYhgp7jDzMGdfmPwAE6Ee-4TaUz2eBbAIpSx1e1F03LvNew3ZR64DbEcFUqW3JTDeC3w/exec';
+// Supabase dashboard → Project Settings → API
+const SUPABASE_URL = 'https://virurqttoukgzrpdsizs.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2oFe8xFGmgV7wRaBVDX47w_yLOgi7ms'; // sb_publishable_...
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 // ---------- State ----------
-let foods = [];           // saved foods list, favourites first (from backend)
+let user = null;          // signed-in Supabase user
+let foods = [];           // standard + own foods, favourites first
 let currentDate = todayStr();
 let entries = [];         // today's (or viewed day's) log entries
 let activeFood = null;    // per-unit values for the food currently in the log/edit sheet
 let pendingQty = 1;
-let editingRowIndex = null; // null = adding a new entry; set = editing an existing log row
+let editingId = null;     // null = adding a new entry; set = id of the log entry being edited
+let entriesRequest = 0;   // guards against out-of-order responses when flicking between days
 
 // ---------- Helpers ----------
 function todayStr() {
@@ -657,39 +734,59 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 1800);
 }
 
-// ---------- API ----------
-async function apiGet(params) {
-  const url = `${API_URL}?${new URLSearchParams(params).toString()}`;
-  const res = await fetch(url);
-  return res.json();
+// ---------- Data access ----------
+// Supabase calls resolve to { data, error } rather than throwing; this turns
+// errors into exceptions so the existing try/catch + toast pattern works.
+async function must(query) {
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
 }
 
-async function apiPost(body) {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
-    body: JSON.stringify(body),
-  });
-  return res.json();
+const MACROS = ['calories', 'protein', 'carbs', 'fat'];
+function numeric(row) {
+  // Postgres numeric can arrive as strings; normalise to numbers.
+  for (const k of MACROS.concat('quantity')) if (k in row) row[k] = Number(row[k]) || 0;
+  return row;
 }
 
 // ---------- Loading data ----------
 async function loadFoods() {
   try {
-    foods = await apiGet({ action: 'foods' });
+    const [foodRows, favRows] = await Promise.all([
+      must(sb.from('foods').select('id, owner_id, name, calories, protein, carbs, fat')),
+      must(sb.from('favourites').select('food_id')),
+    ]);
+    const favIds = new Set(favRows.map(f => f.food_id));
+    foods = foodRows.map(f => ({
+      ...numeric(f),
+      favourite: favIds.has(f.id),
+      mine: f.owner_id !== null,
+    }));
+    // Favourites first, then alphabetical (same ordering the sheet backend used)
+    foods.sort((a, b) => (b.favourite - a.favourite) || a.name.localeCompare(b.name));
     renderFoodList();
   } catch (err) {
+    console.error(err);
     document.getElementById('foodList').innerHTML = '<div class="loading-row">Could not load foods. Check your connection.</div>';
   }
 }
 
 async function loadEntriesForDate(date) {
+  const req = ++entriesRequest;
   document.getElementById('entryList').innerHTML = '<div class="loading-row">Loading…</div>';
   try {
-    entries = await apiGet({ action: 'log', date });
+    const rows = await must(sb.from('log_entries')
+      .select('id, date, food_id, food_name, quantity, calories, protein, carbs, fat, created_at')
+      .eq('date', date)
+      .order('created_at'));
+    if (req !== entriesRequest) return; // a newer day was requested meanwhile
+    entries = rows.map(numeric);
     renderEntries();
     renderTotals();
   } catch (err) {
+    console.error(err);
+    if (req !== entriesRequest) return;
     document.getElementById('entryList').innerHTML = '<div class="loading-row">Could not load entries.</div>';
   }
 }
@@ -698,18 +795,14 @@ async function loadHistory() {
   const list = document.getElementById('historyList');
   list.innerHTML = '<div class="loading-row">Loading…</div>';
   try {
-    const dates = await apiGet({ action: 'dates' });
-    if (!dates.length) {
+    const days = await must(sb.from('daily_totals')
+      .select('date, calories')
+      .order('date', { ascending: false }));
+    if (!days.length) {
       list.innerHTML = '<div class="empty-state">No history yet — entries you log will show up here.</div>';
       return;
     }
-    // Fetch totals for each date (sequential is fine for personal use / small history)
-    const rows = [];
-    for (const d of dates) {
-      const dayEntries = await apiGet({ action: 'log', date: d });
-      const cal = dayEntries.reduce((s, e) => s + e.calories, 0);
-      rows.push({ date: d, cal });
-    }
+    const rows = days.map(d => ({ date: d.date, cal: Number(d.calories) || 0 }));
     list.innerHTML = rows.map(r => `
       <div class="hist-day" data-date="${r.date}">
         <span class="hist-date">${formatDateLabel(r.date)}</span>
@@ -724,6 +817,7 @@ async function loadHistory() {
       });
     });
   } catch (err) {
+    console.error(err);
     list.innerHTML = '<div class="loading-row">Could not load history.</div>';
   }
 }
@@ -755,9 +849,9 @@ function renderEntries() {
     return;
   }
   list.innerHTML = entries.map(e => `
-    <div class="entry" data-row="${e.rowIndex}">
+    <div class="entry" data-id="${e.id}">
       <div class="entry-main">
-        <span class="entry-name">${escapeHtml(e.food)}</span>
+        <span class="entry-name">${escapeHtml(e.food_name)}</span>
         <span class="entry-sub">
           <span class="qty">${e.quantity}×</span>
           <span class="sep">·</span>
@@ -767,14 +861,13 @@ function renderEntries() {
         </span>
       </div>
       <span class="entry-cal">${Math.round(e.calories)}</span>
-      <button class="entry-del" data-row="${e.rowIndex}">✕</button>
+      <button class="entry-del" data-id="${e.id}">✕</button>
     </div>
   `).join('');
 
   list.querySelectorAll('.entry').forEach(el => {
     el.addEventListener('click', () => {
-      const rowIndex = Number(el.dataset.row);
-      const entry = entries.find(e => e.rowIndex === rowIndex);
+      const entry = entries.find(e => e.id === el.dataset.id);
       if (entry) openEditSheet(entry);
     });
   });
@@ -782,13 +875,15 @@ function renderEntries() {
   list.querySelectorAll('.entry-del').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
       ev.stopPropagation();
-      const rowIndex = Number(btn.dataset.row);
-      btn.closest('.entry').style.opacity = '0.4';
+      const row = btn.closest('.entry');
+      row.style.opacity = '0.4';
       try {
-        await apiPost({ action: 'deleteLogEntry', rowIndex });
+        await must(sb.from('log_entries').delete().eq('id', btn.dataset.id));
         await loadEntriesForDate(currentDate);
         showToast('Removed');
       } catch (err) {
+        console.error(err);
+        row.style.opacity = '';
         showToast('Could not remove — try again');
       }
     });
@@ -807,17 +902,18 @@ function renderFoodList() {
   }
 
   list.innerHTML = filtered.map(f => `
-    <div class="food-item" data-name="${escapeHtml(f.name)}">
+    <div class="food-item" data-id="${f.id}">
       <div class="food-main">
         ${f.favourite ? '<span class="star">★</span>' : ''}
         <span class="food-name">${escapeHtml(f.name)}</span>
+        ${f.mine ? '<span class="mine-badge">Mine</span>' : ''}
       </div>
       <span class="food-cal">${Math.round(f.calories)} cal</span>
     </div>
   `).join('');
 
   list.querySelectorAll('.food-item').forEach(el => {
-    el.addEventListener('click', () => openLogSheet(el.dataset.name));
+    el.addEventListener('click', () => openLogSheet(el.dataset.id));
   });
 }
 
@@ -828,11 +924,12 @@ function escapeHtml(str) {
 }
 
 // ---------- Log quantity sheet (shared between adding and editing) ----------
-function openLogSheet(foodName) {
-  activeFood = foods.find(f => f.name === foodName);
+function openLogSheet(foodId) {
+  activeFood = foods.find(f => f.id === foodId);
   if (!activeFood) return;
-  editingRowIndex = null;
+  editingId = null;
   pendingQty = 1;
+  updateFavButton();
   document.getElementById('logSheetTitle').textContent = activeFood.name;
   document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
   document.getElementById('confirmLog').textContent = 'Log it';
@@ -845,15 +942,17 @@ function openEditSheet(entry) {
   // control can scale this entry just like a fresh log action would.
   const qty = entry.quantity || 1;
   activeFood = {
-    name: entry.food,
+    id: entry.food_id,
+    name: entry.food_name,
     calories: entry.calories / qty,
     protein: entry.protein / qty,
     carbs: entry.carbs / qty,
     fat: entry.fat / qty,
   };
-  editingRowIndex = entry.rowIndex;
+  editingId = entry.id;
   pendingQty = qty;
-  document.getElementById('logSheetTitle').textContent = entry.food;
+  updateFavButton();
+  document.getElementById('logSheetTitle').textContent = entry.food_name;
   document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
   document.getElementById('confirmLog').textContent = 'Save changes';
   updateQtyDisplay();
@@ -878,44 +977,75 @@ document.getElementById('qtyPlus').addEventListener('click', () => {
 });
 document.getElementById('closeLogSheet').addEventListener('click', () => {
   document.getElementById('logSheetOverlay').classList.remove('open');
-  editingRowIndex = null;
+  editingId = null;
 });
+
+// ---------- Favourite star in the log sheet (works for standard and own foods) ----------
+function updateFavButton() {
+  const btn = document.getElementById('logSheetFav');
+  const food = activeFood && activeFood.id ? foods.find(f => f.id === activeFood.id) : null;
+  btn.style.display = food ? '' : 'none'; // hidden for one-offs / deleted foods
+  btn.classList.toggle('on', !!(food && food.favourite));
+  btn.textContent = food && food.favourite ? '★' : '☆';
+}
+
+document.getElementById('logSheetFav').addEventListener('click', async () => {
+  const food = foods.find(f => f.id === activeFood?.id);
+  if (!food) return;
+  const makeFav = !food.favourite;
+  food.favourite = makeFav;
+  updateFavButton();
+  try {
+    if (makeFav) {
+      await must(sb.from('favourites').upsert({ user_id: user.id, food_id: food.id }, { ignoreDuplicates: true }));
+    } else {
+      await must(sb.from('favourites').delete().eq('food_id', food.id));
+    }
+    foods.sort((a, b) => (b.favourite - a.favourite) || a.name.localeCompare(b.name));
+    renderFoodList();
+    showToast(makeFav ? 'Added to favourites' : 'Removed from favourites');
+  } catch (err) {
+    console.error(err);
+    food.favourite = !makeFav;
+    updateFavButton();
+    showToast('Could not update favourite');
+  }
+});
+
+function scaledMacros() {
+  return {
+    quantity: pendingQty,
+    calories: round1(activeFood.calories * pendingQty),
+    protein: round1(activeFood.protein * pendingQty),
+    carbs: round1(activeFood.carbs * pendingQty),
+    fat: round1(activeFood.fat * pendingQty),
+  };
+}
 
 document.getElementById('confirmLog').addEventListener('click', async () => {
   const btn = document.getElementById('confirmLog');
-  const isEdit = editingRowIndex !== null;
+  const isEdit = editingId !== null;
   btn.textContent = isEdit ? 'Saving…' : 'Logging…';
   btn.disabled = true;
   try {
     if (isEdit) {
-      await apiPost({
-        action: 'editLogEntry',
-        rowIndex: editingRowIndex,
-        quantity: pendingQty,
-        calories: round1(activeFood.calories * pendingQty),
-        protein: round1(activeFood.protein * pendingQty),
-        carbs: round1(activeFood.carbs * pendingQty),
-        fat: round1(activeFood.fat * pendingQty),
-      });
+      await must(sb.from('log_entries').update(scaledMacros()).eq('id', editingId));
     } else {
-      await apiPost({
-        action: 'addLogEntry',
+      await must(sb.from('log_entries').insert({
         date: currentDate,
-        food: activeFood.name,
-        quantity: pendingQty,
-        calories: round1(activeFood.calories * pendingQty),
-        protein: round1(activeFood.protein * pendingQty),
-        carbs: round1(activeFood.carbs * pendingQty),
-        fat: round1(activeFood.fat * pendingQty),
-      });
+        food_id: activeFood.id,
+        food_name: activeFood.name,
+        ...scaledMacros(),
+      }));
     }
     document.getElementById('logSheetOverlay').classList.remove('open');
     document.getElementById('searchInput').value = '';
     renderFoodList();
     await loadEntriesForDate(currentDate);
     showToast(isEdit ? 'Changes saved' : `Logged ${activeFood.name}`);
-    editingRowIndex = null;
+    editingId = null;
   } catch (err) {
+    console.error(err);
     showToast(isEdit ? 'Could not save — try again' : 'Could not log — try again');
   } finally {
     btn.textContent = isEdit ? 'Save changes' : 'Log it';
@@ -961,12 +1091,19 @@ document.getElementById('saveNewFood').addEventListener('click', async () => {
   btn.textContent = 'Saving…';
   btn.disabled = true;
   try {
-    await apiPost({ action: 'addFood', name, calories, protein, carbs, fat, favourite: newFoodFavourite });
+    // New foods are always private to the signed-in user.
+    const [food] = await must(sb.from('foods')
+      .insert({ owner_id: user.id, name, calories, protein, carbs, fat })
+      .select('id'));
+    if (newFoodFavourite) {
+      await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
+    }
     document.getElementById('addFoodOverlay').classList.remove('open');
     await loadFoods();
     showToast('Food saved');
   } catch (err) {
-    showToast('Could not save — try again');
+    console.error(err);
+    showToast(err.code === '23505' ? 'You already have a food with that name' : 'Could not save — try again');
   } finally {
     btn.textContent = 'Save food';
     btn.disabled = false;
@@ -999,17 +1136,18 @@ document.getElementById('saveOneOff').addEventListener('click', async () => {
   btn.textContent = 'Logging…';
   btn.disabled = true;
   try {
-    await apiPost({
-      action: 'addLogEntry',
+    await must(sb.from('log_entries').insert({
       date: currentDate,
-      food: name,
+      food_id: null,
+      food_name: name,
       quantity: 1,
       calories, protein, carbs, fat,
-    });
+    }));
     document.getElementById('oneOffOverlay').classList.remove('open');
     await loadEntriesForDate(currentDate);
     showToast(`Logged ${name}`);
   } catch (err) {
+    console.error(err);
     showToast('Could not log — try again');
   } finally {
     btn.textContent = 'Log it';
@@ -1049,10 +1187,61 @@ function switchView(view) {
 document.getElementById('tabToday').addEventListener('click', () => switchView('today'));
 document.getElementById('tabHistory').addEventListener('click', () => switchView('history'));
 
+// ---------- Auth ----------
+function showSignedOut(note = '') {
+  user = null;
+  foods = []; entries = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('tabbar').style.display = 'none';
+  document.getElementById('signin').style.display = '';
+  document.getElementById('signinNote').textContent = note;
+}
+
+function showSignedIn(sessionUser) {
+  const firstLoad = !user || user.id !== sessionUser.id;
+  user = sessionUser;
+  document.getElementById('signin').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  document.getElementById('tabbar').style.display = '';
+  document.getElementById('accountEmail').textContent = user.email || '';
+  if (firstLoad) {
+    // Token refreshes also fire auth events; only reload data for a new user.
+    currentDate = todayStr();
+    switchView('today');
+    refreshDateUI();
+    loadFoods();
+  }
+}
+
+document.getElementById('googleSignIn').addEventListener('click', async () => {
+  if (SUPABASE_URL.includes('YOUR-PROJECT')) {
+    document.getElementById('signinNote').textContent = 'Supabase isn’t configured yet — set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in index.html.';
+    return;
+  }
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    // Return to wherever the app is served (GitHub Pages or localhost).
+    options: { redirectTo: location.origin + location.pathname },
+  });
+  if (error) document.getElementById('signinNote').textContent = 'Sign-in failed — please try again.';
+});
+
+document.getElementById('signOut').addEventListener('click', async () => {
+  await sb.auth.signOut();
+});
+
+// Fires on load (INITIAL_SESSION), after the Google redirect, on sign-out, and on token refresh.
+// Deferred with setTimeout: supabase-js can deadlock if other Supabase calls
+// are made synchronously inside this callback.
+sb.auth.onAuthStateChange((_event, session) => {
+  setTimeout(() => {
+    if (session?.user) showSignedIn(session.user);
+    else showSignedOut();
+  }, 0);
+});
+
 // ---------- Init ----------
 document.getElementById('dateLabel').textContent = formatDateLabel(currentDate);
-loadFoods();
-loadEntriesForDate(currentDate);
 </script>
 
 </body>

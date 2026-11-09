@@ -1,0 +1,7 @@
+# Secrets for the one-off migration script
+scripts/.env
+.env
+# Sheet exports used for migration (contain personal data)
+*.csv
+promote.txt
+.DS_Store
