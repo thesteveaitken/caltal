@@ -39,5 +39,7 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 
 ## Where things are
 - `index.html`: markup, then CSS, then one `<script>`. State is global variables. Data access goes through the `must()` helper, which turns Supabase `{data, error}` results into exceptions.
+- `caltal-icon.png`: the logo, loaded by the header and sign-in screen (the favicon is inlined separately).
+- **Layout:** mobile-first with a bottom tab bar. At 900px and up (one `@media` block at the end of the CSS) the page widens to 1100px, tabs and Sign out move into the header, and Today becomes two independently scrolling columns. The day switcher (`#dateNav`) is moved between the header and the left column by `placeDateNav()` in the script, so keep it as a single element.
 - `SETUP.md`: full setup walkthrough for a fresh Supabase project.
 - `ROADMAP.md`: planned work.
