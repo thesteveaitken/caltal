@@ -5,3 +5,4 @@ scripts/.env
 *.csv
 promote.txt
 .DS_Store
+AppsScript.gs
