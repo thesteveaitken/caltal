@@ -11,7 +11,7 @@ Found in the public-repo review. These are dashboard steps, not code.
 - [ ] Optional: switch git commits to your GitHub noreply email (GitHub Settings > Emails). The Gmail address is visible on every commit. This only affects new commits.
 - [ ] Optional: add a license if you want others to be able to reuse the code. With none, all rights are reserved.
 
-## 1. Logo and desktop layout
+## 1. Logo and desktop layout (done, pending visual check)
 - Show the logo in the header and on the sign-in screen. `caltal-icon.png` is not in the repo yet and needs committing (or inlining like the favicon).
 - Desktop (about 900px and up): widen the page to roughly 1100px and move the Today/History tabs into the header.
   - Left column: totals and "Logged Today".

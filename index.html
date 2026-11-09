@@ -50,7 +50,7 @@
   header {
     padding: 22px 20px 14px;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
   }
 
@@ -59,10 +59,10 @@
     font-weight: 700;
     letter-spacing: -0.01em;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 7px;
   }
-  .wordmark .dot { color: var(--accent); font-size: 22px; line-height: 0; }
+  .wordmark img { width: 30px; height: 30px; border-radius: 8px; display: block; margin-right: -2px; }
 
   .date-nav {
     display: flex;
@@ -463,8 +463,8 @@
     justify-content: center;
     padding: 0 28px 10vh;
   }
-  #signin .wordmark { font-size: 34px; margin-bottom: 10px; }
-  #signin .wordmark .dot { font-size: 40px; }
+  #signin .wordmark { font-size: 34px; margin-bottom: 10px; gap: 8px; }
+  #signin .wordmark img { width: 56px; height: 56px; border-radius: 14px; margin-right: 0; }
   .signin-tag { color: var(--text-dim); font-size: 15px; margin-bottom: 36px; line-height: 1.45; }
   .btn-google {
     width: 100%;
@@ -489,6 +489,46 @@
     border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
     cursor: pointer; flex-shrink: 0;
   }
+
+  /* ---------- Desktop-only header controls (hidden on mobile) ---------- */
+  .hdr-tabs, .hdr-signout { display: none; }
+
+  /* ---------- Desktop layout ---------- */
+  @media (min-width: 900px) {
+    #app { max-width: 1100px; padding-bottom: 40px; }
+    header { padding: 26px 20px 18px; gap: 24px; }
+    .hdr-tabs { display: flex; gap: 4px; margin-left: auto; }
+    .hdr-tabs button {
+      background: none; border: none; color: var(--text-dim);
+      font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .hdr-tabs button:hover { color: var(--text); }
+    .hdr-tabs button.active { color: var(--accent); background: var(--bg-card); }
+    .hdr-signout {
+      display: block;
+      background: none; border: 1px solid var(--border); color: var(--text-dim);
+      border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+    .hdr-signout:hover { color: var(--text); }
+    .tabbar { display: none !important; }
+    #app { height: 100vh; min-height: 640px; padding-bottom: 20px; }
+    #view-today { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
+    #view-today[style*="none"] { display: none; }
+    #view-history { flex: 1; min-height: 0; overflow-y: auto; }
+    .col-left, .col-right { display: flex; flex-direction: column; min-height: 0; }
+    .date-slot { display: flex; justify-content: flex-end; margin: 0 20px 12px; }
+    .col-left .entry-list, .col-right .food-list { flex: 1; min-height: 0; max-height: none; overflow-y: auto; margin-bottom: 0; }
+    .col-left .entry-list { margin-bottom: 10px; }
+    .col-right .search-wrap { margin-top: 0; }
+    .col-right .section-label { margin-top: 10px; }
+    /* Links sit under the search box so both columns end on a clean, flush list */
+    .col-right .search-wrap { order: 1; margin-bottom: 4px; }
+    .col-right .add-new-row { order: 2; margin: 0 20px 6px; padding: 6px 2px 8px; text-align: left; }
+    .col-right .food-list { order: 3; }
+    #view-history .account { display: none; }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -496,7 +536,7 @@
 
 <!-- SIGN-IN SCREEN (shown when signed out) -->
 <div id="signin" style="display:none;">
-  <div class="wordmark">CalTal<span class="dot">.</span></div>
+  <div class="wordmark"><img src="caltal-icon.png" alt="">CalTal</div>
   <div class="signin-tag">Quick, no-fuss calorie and macro logging.</div>
   <button class="btn-google" id="googleSignIn">
     <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
@@ -508,16 +548,25 @@
 <div id="app" style="display:none;">
 
   <header>
-    <div class="wordmark">CalTal<span class="dot">.</span></div>
+    <div class="wordmark"><img src="caltal-icon.png" alt="">CalTal</div>
+    <div class="hdr-tabs">
+      <button id="hdrToday" class="active">Today</button>
+      <button id="hdrHistory">History</button>
+    </div>
+    <div id="dateSlotHeader">
     <div class="date-nav" id="dateNav">
       <button id="prevDay">‹</button>
       <span class="date-label" id="dateLabel">Today</span>
       <button id="nextDay">›</button>
     </div>
+    </div>
+    <button class="hdr-signout" id="hdrSignOut">Sign out</button>
   </header>
 
   <!-- TODAY VIEW -->
   <div id="view-today">
+   <div class="col-left">
+    <div class="date-slot" id="dateSlotLeft"></div>
     <div class="totals">
       <div class="totals-cal">
         <span class="num" id="totalCal">0</span>
@@ -543,7 +592,9 @@
     <div class="entry-list" id="entryList">
       <div class="loading-row">Loading…</div>
     </div>
+   </div>
 
+   <div class="col-right">
     <div class="section-label">Add food</div>
     <div class="search-wrap">
       <input type="text" class="search-input" id="searchInput" placeholder="Search saved foods…">
@@ -554,6 +605,7 @@
     <div class="add-new-row">
       Can't find it? <a id="addNewFoodLink">Add a new food</a> · <a id="logOneOffLink">Log a one-off</a>
     </div>
+   </div>
   </div>
 
   <!-- HISTORY VIEW -->
@@ -1175,6 +1227,16 @@ document.getElementById('nextDay').addEventListener('click', () => {
   refreshDateUI();
 });
 
+// ---------- Date nav placement ----------
+// Header on mobile; top of the left column on desktop (it only affects that column).
+const desktopMQ = window.matchMedia('(min-width: 900px)');
+function placeDateNav() {
+  const slot = document.getElementById(desktopMQ.matches ? 'dateSlotLeft' : 'dateSlotHeader');
+  slot.appendChild(document.getElementById('dateNav'));
+}
+desktopMQ.addEventListener('change', placeDateNav);
+placeDateNav();
+
 // ---------- Tabs ----------
 function switchView(view) {
   document.getElementById('view-today').style.display = view === 'today' ? '' : 'none';
@@ -1182,10 +1244,14 @@ function switchView(view) {
   document.getElementById('dateNav').style.display = view === 'today' ? 'flex' : 'none';
   document.getElementById('tabToday').classList.toggle('active', view === 'today');
   document.getElementById('tabHistory').classList.toggle('active', view === 'history');
+  document.getElementById('hdrToday').classList.toggle('active', view === 'today');
+  document.getElementById('hdrHistory').classList.toggle('active', view === 'history');
   if (view === 'history') loadHistory();
 }
 document.getElementById('tabToday').addEventListener('click', () => switchView('today'));
 document.getElementById('tabHistory').addEventListener('click', () => switchView('history'));
+document.getElementById('hdrToday').addEventListener('click', () => switchView('today'));
+document.getElementById('hdrHistory').addEventListener('click', () => switchView('history'));
 
 // ---------- Auth ----------
 function showSignedOut(note = '') {
@@ -1226,9 +1292,11 @@ document.getElementById('googleSignIn').addEventListener('click', async () => {
   if (error) document.getElementById('signinNote').textContent = 'Sign-in failed — please try again.';
 });
 
-document.getElementById('signOut').addEventListener('click', async () => {
-  await sb.auth.signOut();
-});
+for (const id of ['signOut', 'hdrSignOut']) {
+  document.getElementById(id).addEventListener('click', async () => {
+    await sb.auth.signOut();
+  });
+}
 
 // Fires on load (INITIAL_SESSION), after the Google redirect, on sign-out, and on token refresh.
 // Deferred with setTimeout: supabase-js can deadlock if other Supabase calls
