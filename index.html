@@ -419,6 +419,10 @@
     outline: none;
   }
   .field-input:focus { border-color: var(--accent); }
+  .more-toggle { background: none; border: none; color: var(--text-dim); font: inherit; font-size: 13px; padding: 4px 0; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .more-toggle:hover { color: var(--text); }
+  .more-chev { display: inline-block; transition: transform .15s; font-size: 16px; line-height: 1; }
+  .more-toggle.open .more-chev { transform: rotate(90deg); }
   .field-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
   .fav-toggle {
@@ -784,6 +788,24 @@
       <div>
         <label class="field-label">Fat g</label>
         <input type="number" class="field-input" id="newFoodF" placeholder="0" inputmode="decimal">
+      </div>
+    </div>
+
+    <button type="button" class="more-toggle" id="moreToggle" aria-expanded="false">
+      <span class="more-chev">›</span> Drinks &amp; supplements
+    </button>
+    <div class="field-row field-grid" id="moreFields" style="display:none">
+      <div>
+        <label class="field-label">Fluid ml</label>
+        <input type="number" class="field-input" id="newFoodFluid" placeholder="0" inputmode="decimal">
+      </div>
+      <div>
+        <label class="field-label">Alcohol (std)</label>
+        <input type="number" class="field-input" id="newFoodAlc" placeholder="0" inputmode="decimal">
+      </div>
+      <div>
+        <label class="field-label">Creatine g</label>
+        <input type="number" class="field-input" id="newFoodCr" placeholder="0" inputmode="decimal">
       </div>
     </div>
 
@@ -1545,12 +1567,24 @@ document.getElementById('confirmLog').addEventListener('click', async () => {
 // ---------- Add new food sheet ----------
 let newFoodFavourite = false;
 
+function setMoreOpen(open) {
+  document.getElementById('moreFields').style.display = open ? '' : 'none';
+  const t = document.getElementById('moreToggle');
+  t.classList.toggle('open', open);
+  t.setAttribute('aria-expanded', open);
+}
+document.getElementById('moreToggle').addEventListener('click', () => {
+  setMoreOpen(document.getElementById('moreFields').style.display === 'none');
+});
+
 document.getElementById('addNewFoodLink').addEventListener('click', () => {
   document.getElementById('newFoodName').value = document.getElementById('searchInput').value.trim();
   document.getElementById('newFoodCal').value = '';
   document.getElementById('newFoodP').value = '';
   document.getElementById('newFoodC').value = '';
   document.getElementById('newFoodF').value = '';
+  ['newFoodFluid', 'newFoodAlc', 'newFoodCr'].forEach(id => { document.getElementById(id).value = ''; });
+  setMoreOpen(false);
   newFoodFavourite = false;
   document.getElementById('favToggle').classList.remove('on');
   document.getElementById('favToggleText').textContent = 'Mark as favourite';
@@ -1573,6 +1607,9 @@ document.getElementById('saveNewFood').addEventListener('click', async () => {
   const protein = Number(document.getElementById('newFoodP').value) || 0;
   const carbs = Number(document.getElementById('newFoodC').value) || 0;
   const fat = Number(document.getElementById('newFoodF').value) || 0;
+  const fluid_ml = Number(document.getElementById('newFoodFluid').value) || 0;
+  const alcohol = Number(document.getElementById('newFoodAlc').value) || 0;
+  const creatine_g = Number(document.getElementById('newFoodCr').value) || 0;
 
   if (!name) { showToast('Give it a name first'); return; }
 
@@ -1582,7 +1619,7 @@ document.getElementById('saveNewFood').addEventListener('click', async () => {
   try {
     // New foods are always private to the signed-in user.
     const [food] = await must(sb.from('foods')
-      .insert({ owner_id: user.id, name, calories, protein, carbs, fat })
+      .insert({ owner_id: user.id, name, calories, protein, carbs, fat, fluid_ml, alcohol, creatine_g })
       .select('id'));
     if (newFoodFavourite) {
       await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
