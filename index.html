@@ -20,6 +20,8 @@
     --protein: #5FA8D3;
     --carbs: #8FBC6A;
     --fat: #D38FA8;
+    --fluid: #5FC3C3;
+    --creatine: #A58FD3;
     --danger: #C75C5C;
     --radius: 14px;
     --radius-sm: 9px;
@@ -95,7 +97,18 @@
   .totals-cal .num { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
   .totals-cal .unit { font-size: 14px; color: var(--text-dim); font-weight: 500; }
 
-  .macro-row { display: flex; gap: 18px; }
+  .totals-cal .cal-left { margin-left: auto; font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .totals-cal .cal-left.over { color: var(--danger); }
+  .cal-bar { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; margin: -2px 0 24px; }
+  .cal-bar-fill { height: 100%; width: 0%; border-radius: 2px; background: var(--text-dim); transition: width 0.3s ease, background 0.3s ease; }
+  .cal-bar-fill.warn { background: var(--accent); }
+  .cal-bar-fill.over { background: var(--danger); }
+  .macro-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .extras-row { margin-top: 16px; }
+  .macro-w .macro-bar-fill { background: var(--fluid); }
+  .macro-w.nogoal .macro-bar-bg { visibility: hidden; }
+  .macro-cr .macro-bar-fill { background: var(--creatine); }
+  .macro.done .macro-label b::after { content: " ✓"; color: var(--carbs); }
   .macro {
     flex: 1;
     display: flex;
@@ -348,7 +361,7 @@
   }
 
   .field-row { margin-bottom: 14px; }
-  .water-row { margin: -4px 20px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .water-row { margin: -4px 20px 18px; display: flex; align-items: center; gap: 12px; }
   .btn-water {
     background: var(--bg-card); border: 1px solid var(--border); color: var(--protein);
     border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
@@ -356,8 +369,19 @@
   .btn-water span { color: var(--text-dim); font-weight: 500; margin-left: 4px; }
   .btn-water:active { border-color: var(--protein); }
   .btn-water:disabled { opacity: 0.5; }
-  .water-total { font-size: 13px; color: var(--text-dim); }
-  .water-total b { color: var(--text); font-weight: 600; margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .goal-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .goal-row:last-of-type { border-bottom: none; margin-bottom: 8px; }
+  .goal-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .goal-name small { display: block; font-size: 12px; font-weight: 400; color: var(--text-faint); margin-top: 1px; }
+  .goal-row .goal-input { width: 88px; flex: none; text-align: right; padding: 9px 10px; }
+  .goal-row .goal-input:disabled { opacity: 0.35; }
+  .goal-unit { width: 26px; flex: none; font-size: 13px; color: var(--text-dim); }
+  .switch { position: relative; width: 40px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; inset: 0; cursor: pointer; z-index: 1; }
+  .switch span { position: absolute; inset: 0; background: var(--border); border-radius: 12px; transition: background 0.15s; }
+  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: transform 0.15s; }
+  .switch input:checked + span { background: var(--accent); }
+  .switch input:checked + span::after { transform: translateX(16px); }
   .time-row { margin: 0 0 18px; }
   .time-row { text-align: center; }
   .time-stepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
@@ -514,21 +538,35 @@
   .btn-google svg { width: 18px; height: 18px; }
   .signin-note { color: var(--text-faint); font-size: 12.5px; margin-top: 14px; text-align: center; }
 
-  /* ---------- Account (bottom of History) ---------- */
-  .account {
-    margin: 26px 20px 0;
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    font-size: 13px; color: var(--text-dim);
+  /* ---------- Profile menu (header) ---------- */
+  #dateSlotHeader { margin-left: auto; }
+  .profile { position: relative; margin-left: 12px; flex-shrink: 0; }
+  .profile-btn {
+    width: 36px; height: 36px; border-radius: 50%; padding: 0; overflow: hidden;
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim);
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
   }
-  .account-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .account button {
-    background: none; border: 1px solid var(--border); color: var(--text-dim);
-    border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
-    cursor: pointer; flex-shrink: 0;
+  .profile-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .profile-btn:hover { border-color: var(--text-faint); }
+  .profile-menu {
+    position: absolute; right: 0; top: 44px; min-width: 210px; z-index: 40;
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45); padding: 6px;
   }
+  .profile-email {
+    padding: 8px 10px 10px; font-size: 12.5px; color: var(--text-dim);
+    border-bottom: 1px solid var(--border); margin-bottom: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .profile-item {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    color: var(--text); font-size: 14.5px; font-weight: 500; padding: 10px; border-radius: 7px; cursor: pointer;
+  }
+  .profile-item:hover, .profile-item:active { background: var(--bg-card); }
 
   /* ---------- Desktop-only header controls (hidden on mobile) ---------- */
-  .hdr-tabs, .hdr-signout { display: none; }
+  .hdr-tabs { display: none; }
 
   /* ---------- Desktop layout ---------- */
   @media (min-width: 900px) {
@@ -542,13 +580,6 @@
     }
     .hdr-tabs button:hover { color: var(--text); }
     .hdr-tabs button.active { color: var(--accent); background: var(--bg-card); }
-    .hdr-signout {
-      display: block;
-      background: none; border: 1px solid var(--border); color: var(--text-dim);
-      border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
-      cursor: pointer;
-    }
-    .hdr-signout:hover { color: var(--text); }
     .tabbar { display: none !important; }
     #app { height: 100vh; min-height: 640px; padding-bottom: 20px; }
     #view-today { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
@@ -564,7 +595,6 @@
     .col-right .search-wrap { order: 1; margin-bottom: 4px; }
     .col-right .add-new-row { order: 2; margin: 0 20px 6px; padding: 6px 2px 8px; text-align: left; }
     .col-right .food-list { order: 3; }
-    #view-history .account { display: none; }
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -597,7 +627,14 @@
       <button id="nextDay">›</button>
     </div>
     </div>
-    <button class="hdr-signout" id="hdrSignOut">Sign out</button>
+    <div class="profile" id="profile">
+      <button class="profile-btn" id="profileBtn" aria-label="Account menu" aria-haspopup="true"><span id="profileInitial">?</span></button>
+      <div class="profile-menu" id="profileMenu" style="display:none;">
+        <div class="profile-email" id="profileEmail"></div>
+        <button class="profile-item" id="menuGoals">Goals</button>
+        <button class="profile-item" id="menuSignOut">Sign out</button>
+      </div>
+    </div>
   </header>
 
   <!-- TODAY VIEW -->
@@ -608,7 +645,9 @@
       <div class="totals-cal">
         <span class="num" id="totalCal">0</span>
         <span class="unit">calories</span>
+        <span class="cal-left" id="calLeft"></span>
       </div>
+      <div class="cal-bar" id="calBarWrap"><div class="cal-bar-fill" id="calBar"></div></div>
       <div class="macro-row">
         <div class="macro macro-p">
           <div class="macro-bar-bg"><div class="macro-bar-fill" id="barP" style="width:0%"></div></div>
@@ -623,11 +662,20 @@
           <div class="macro-label"><span>Fat</span><b id="valF">0g</b></div>
         </div>
       </div>
+      <div class="macro-row extras-row">
+        <div class="macro macro-w" id="fluidBox">
+          <div class="macro-bar-bg" id="fluidBarBg"><div class="macro-bar-fill" id="barW" style="width:0%"></div></div>
+          <div class="macro-label"><span>Fluids</span><b id="valFluid">0 L</b></div>
+        </div>
+        <div class="macro macro-cr" id="creatineBox" style="display:none;">
+          <div class="macro-bar-bg"><div class="macro-bar-fill" id="barCr" style="width:0%"></div></div>
+          <div class="macro-label"><span>Creatine</span><b id="valCr">0g</b></div>
+        </div>
+      </div>
     </div>
 
     <div class="water-row">
       <button class="btn-water" id="addWater">+ Water <span>250 ml</span></button>
-      <div class="water-total">Fluids <b id="valFluid">0 ml</b></div>
     </div>
 
     <div class="section-label" id="loggedSectionLabel">Logged Today</div>
@@ -655,10 +703,6 @@
     <div class="section-label">Past days</div>
     <div id="historyList">
       <div class="loading-row">Loading…</div>
-    </div>
-    <div class="account">
-      <span class="account-email" id="accountEmail"></span>
-      <button id="signOut">Sign out</button>
     </div>
   </div>
 
@@ -776,6 +820,17 @@
   </div>
 </div>
 
+<!-- GOALS SHEET -->
+<div class="sheet-overlay" id="goalsOverlay">
+  <div class="sheet">
+    <button class="sheet-close-x" id="closeGoals">✕</button>
+    <div class="sheet-title">Daily goals</div>
+    <div class="sheet-sub">Switch a goal off to hide it from your summary.</div>
+    <div id="goalRows"></div>
+    <button class="btn-primary" id="saveGoals">Save goals</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -847,7 +902,7 @@ async function must(query) {
 }
 
 const MACROS = ['calories', 'protein', 'carbs', 'fat'];
-const EXTRAS = ['alcohol', 'fluid_ml']; // standard drinks, millilitres of fluid
+const EXTRAS = ['alcohol', 'fluid_ml', 'creatine_g']; // standard drinks, millilitres of fluid
 function numeric(row) {
   // Postgres numeric can arrive as strings; normalise to numbers.
   for (const k of MACROS.concat(EXTRAS, 'quantity')) if (k in row) row[k] = Number(row[k]) || 0;
@@ -858,7 +913,7 @@ function numeric(row) {
 async function loadFoods() {
   try {
     const [foodRows, favRows] = await Promise.all([
-      must(sb.from('foods').select('id, owner_id, name, calories, protein, carbs, fat, alcohol, fluid_ml')),
+      must(sb.from('foods').select('id, owner_id, name, calories, protein, carbs, fat, alcohol, fluid_ml, creatine_g')),
       must(sb.from('favourites').select('food_id')),
     ]);
     const favIds = new Set(favRows.map(f => f.food_id));
@@ -881,7 +936,7 @@ async function loadEntriesForDate(date) {
   document.getElementById('entryList').innerHTML = '<div class="loading-row">Loading…</div>';
   try {
     const rows = await must(sb.from('log_entries')
-      .select('id, date, food_id, food_name, quantity, calories, protein, carbs, fat, alcohol, fluid_ml, eaten_at, created_at')
+      .select('id, date, food_id, food_name, quantity, calories, protein, carbs, fat, alcohol, fluid_ml, creatine_g, eaten_at, created_at')
       .eq('date', date)
       .order('eaten_at', { nullsFirst: true })  // untimed (older) entries first
       .order('created_at'));
@@ -928,25 +983,141 @@ async function loadHistory() {
 }
 
 // ---------- Rendering: totals ----------
-function renderTotals() {
-  const totals = entries.reduce((acc, e) => {
-    acc.cal += e.calories; acc.p += e.protein; acc.c += e.carbs; acc.f += e.fat;
-    return acc;
-  }, { cal: 0, p: 0, c: 0, f: 0 });
+// ---------- Goals ----------
+// A null goal means "off": it is hidden from the summary. Creatine defaults to off.
+const DEFAULT_GOALS = { calories: 2200, protein: 150, fluid_ml: 3000, creatine_g: null };
+let goals = { ...DEFAULT_GOALS };
 
-  document.getElementById('totalCal').textContent = Math.round(totals.cal);
-  document.getElementById('valP').textContent = round1(totals.p) + 'g';
-  document.getElementById('valC').textContent = round1(totals.c) + 'g';
-  document.getElementById('valF').textContent = round1(totals.f) + 'g';
-  const fluid = entries.reduce((sum, e) => sum + (e.fluid_ml || 0), 0);
-  document.getElementById('valFluid').textContent = Math.round(fluid).toLocaleString() + ' ml';
-
-  // Bars are relative to each other just to give a sense of proportion (no fixed goal yet)
-  const maxMacro = Math.max(totals.p, totals.c, totals.f, 1);
-  document.getElementById('barP').style.width = (totals.p / maxMacro * 100) + '%';
-  document.getElementById('barC').style.width = (totals.c / maxMacro * 100) + '%';
-  document.getElementById('barF').style.width = (totals.f / maxMacro * 100) + '%';
+async function loadGoals() {
+  try {
+    const row = await must(sb.from('goals').select('calories, protein, fluid_ml, creatine_g').maybeSingle());
+    goals = row ? {
+      calories: row.calories === null ? null : Number(row.calories),
+      protein: row.protein === null ? null : Number(row.protein),
+      fluid_ml: row.fluid_ml === null ? null : Number(row.fluid_ml),
+      creatine_g: row.creatine_g === null ? null : Number(row.creatine_g),
+    } : { ...DEFAULT_GOALS };
+  } catch (err) {
+    console.error(err);
+    goals = { ...DEFAULT_GOALS };
+  }
+  renderTotals();
 }
+
+function renderTotals() {
+  const t = entries.reduce((a, e) => {
+    a.cal += e.calories; a.p += e.protein; a.c += e.carbs; a.f += e.fat;
+    a.fluid += e.fluid_ml || 0; a.cr += e.creatine_g || 0;
+    return a;
+  }, { cal: 0, p: 0, c: 0, f: 0, fluid: 0, cr: 0 });
+  const pct = (v, goal) => Math.min(100, goal > 0 ? v / goal * 100 : 0) + '%';
+
+  // Calories: ceiling. Neutral, amber from 90%, red once over.
+  document.getElementById('totalCal').textContent = Math.round(t.cal);
+  const left = document.getElementById('calLeft');
+  const calWrap = document.getElementById('calBarWrap');
+  const calBar = document.getElementById('calBar');
+  if (goals.calories) {
+    const remaining = Math.round(goals.calories - t.cal);
+    left.textContent = remaining >= 0 ? `${remaining.toLocaleString()} left` : `${(-remaining).toLocaleString()} over`;
+    left.classList.toggle('over', remaining < 0);
+    calWrap.style.display = '';
+    calBar.style.width = pct(t.cal, goals.calories);
+    const ratio = t.cal / goals.calories;
+    calBar.classList.toggle('warn', ratio >= 0.9 && ratio <= 1);
+    calBar.classList.toggle('over', ratio > 1);
+  } else {
+    left.textContent = '';
+    calWrap.style.display = 'none';
+  }
+
+  // Protein: a floor when it has a goal. Carbs and fat have no goals, so their bars show
+  // their share of the day's calories (4 / 4 / 9 per gram).
+  document.getElementById('valP').textContent = round1(t.p) + 'g';
+  document.getElementById('valC').textContent = round1(t.c) + 'g';
+  document.getElementById('valF').textContent = round1(t.f) + 'g';
+  const share = (grams, kcalPerG) => t.cal > 0 ? Math.min(100, grams * kcalPerG / t.cal * 100) + '%' : '0%';
+  document.getElementById('barP').style.width = goals.protein ? pct(t.p, goals.protein) : share(t.p, 4);
+  document.getElementById('barC').style.width = share(t.c, 4);
+  document.getElementById('barF').style.width = share(t.f, 9);
+  document.querySelector('.macro-p').classList.toggle('done', !!goals.protein && t.p >= goals.protein);
+
+  // Fluids (litres), a floor
+  document.getElementById('valFluid').textContent = (Math.round(t.fluid / 10) / 100) + ' L';
+  document.getElementById('fluidBox').classList.toggle('nogoal', !goals.fluid_ml);
+  document.getElementById('fluidBox').classList.toggle('done', !!goals.fluid_ml && t.fluid >= goals.fluid_ml);
+  document.getElementById('barW').style.width = goals.fluid_ml ? pct(t.fluid, goals.fluid_ml) : '0%';
+
+  // Creatine: bar is empty until logged, then full with a check. Only shown with a creatine goal.
+  const crBox = document.getElementById('creatineBox');
+  crBox.style.display = goals.creatine_g ? '' : 'none';
+  const crDone = !!goals.creatine_g && t.cr >= goals.creatine_g;
+  crBox.classList.toggle('done', crDone);
+  document.getElementById('barCr').style.width = goals.creatine_g ? pct(t.cr, goals.creatine_g) : '0%';
+  document.getElementById('valCr').textContent = round1(t.cr) + 'g';
+}
+
+// Goals sheet
+const GOAL_DEFS = [
+  { key: 'calories',   label: 'Calories', note: 'daily limit', unit: 'cal', scale: 1,    step: 50 },
+  { key: 'protein',    label: 'Protein',  note: 'daily goal',  unit: 'g',   scale: 1,    step: 5 },
+  { key: 'fluid_ml',   label: 'Fluids',   note: 'daily goal',  unit: 'L',   scale: 1000, step: 0.1 },
+  { key: 'creatine_g', label: 'Creatine', note: 'daily goal',  unit: 'g',   scale: 1,    step: 1 },
+];
+function openGoals() {
+  document.getElementById('goalRows').innerHTML = GOAL_DEFS.map(d => `
+    <div class="goal-row">
+      <label class="switch"><input type="checkbox" id="goalOn_${d.key}" ${goals[d.key] ? 'checked' : ''}><span></span></label>
+      <div class="goal-name">${d.label}<small>${d.note}</small></div>
+      <input type="number" class="field-input goal-input" id="goalVal_${d.key}" inputmode="decimal" step="${d.step}" min="0"
+             value="${goals[d.key] ? goals[d.key] / d.scale : ''}" ${goals[d.key] ? '' : 'disabled'}>
+      <span class="goal-unit">${d.unit}</span>
+    </div>`).join('');
+  for (const d of GOAL_DEFS) {
+    document.getElementById('goalOn_' + d.key).addEventListener('change', (ev) => {
+      const input = document.getElementById('goalVal_' + d.key);
+      input.disabled = !ev.target.checked;
+      if (ev.target.checked && !input.value) input.value = (DEFAULT_GOALS[d.key] ?? (d.key === 'creatine_g' ? 10 : 0)) / d.scale;
+    });
+  }
+  document.getElementById('goalsOverlay').classList.add('open');
+}
+document.getElementById('closeGoals').addEventListener('click', () => document.getElementById('goalsOverlay').classList.remove('open'));
+document.getElementById('saveGoals').addEventListener('click', async () => {
+  const next = {};
+  for (const d of GOAL_DEFS) {
+    const on = document.getElementById('goalOn_' + d.key).checked;
+    const v = Number(document.getElementById('goalVal_' + d.key).value);
+    if (on && !(v > 0)) { showToast(`Enter a number for ${d.label.toLowerCase()}`); return; }
+    next[d.key] = on ? Math.round(v * d.scale * 100) / 100 : null;
+  }
+  const btn = document.getElementById('saveGoals');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await must(sb.from('goals').upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() }));
+    goals = next;
+    renderTotals();
+    document.getElementById('goalsOverlay').classList.remove('open');
+    showToast('Goals saved');
+  } catch (err) {
+    console.error(err);
+    showToast('Could not save — try again');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save goals';
+  }
+});
+
+// Profile menu
+const profileMenu = document.getElementById('profileMenu');
+document.getElementById('profileBtn').addEventListener('click', (ev) => {
+  ev.stopPropagation();
+  profileMenu.style.display = profileMenu.style.display === 'none' ? '' : 'none';
+});
+document.addEventListener('click', (ev) => {
+  if (!ev.target.closest('#profile')) profileMenu.style.display = 'none';
+});
+document.getElementById('menuGoals').addEventListener('click', () => { profileMenu.style.display = 'none'; openGoals(); });
+document.getElementById('menuSignOut').addEventListener('click', async () => { profileMenu.style.display = 'none'; await sb.auth.signOut(); });
 
 // ---------- Rendering: today's entries ----------
 function renderEntries() {
@@ -992,7 +1163,7 @@ function renderEntries() {
         await must(sb.from('log_entries').insert({
           date: e.date, food_id: e.food_id, food_name: e.food_name, quantity: e.quantity,
           calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat,
-          alcohol: e.alcohol, fluid_ml: e.fluid_ml,
+          alcohol: e.alcohol, fluid_ml: e.fluid_ml, creatine_g: e.creatine_g,
           eaten_at: e.date === todayStr() ? eatenAtFor(e.date, nowHHMM()) : e.eaten_at,
         }));
         await loadEntriesForDate(currentDate);
@@ -1138,6 +1309,7 @@ function openEditSheet(entry) {
     fat: entry.fat / qty,
     alcohol: entry.alcohol / qty,
     fluid_ml: entry.fluid_ml / qty,
+    creatine_g: entry.creatine_g / qty,
   };
   editingId = entry.id;
   pendingQty = qty;
@@ -1212,6 +1384,7 @@ function scaledMacros() {
     fat: round1(activeFood.fat * pendingQty),
     alcohol: round1((activeFood.alcohol || 0) * pendingQty),
     fluid_ml: Math.round((activeFood.fluid_ml || 0) * pendingQty),
+    creatine_g: round1((activeFood.creatine_g || 0) * pendingQty),
     eaten_at: eatenAtFor(editingId ? entries.find(e => e.id === editingId).date : currentDate,
                          document.getElementById('logTime').value),
   };
@@ -1401,6 +1574,8 @@ document.getElementById('hdrHistory').addEventListener('click', () => switchView
 function showSignedOut(note = '') {
   user = null;
   foods = []; entries = [];
+  goals = { ...DEFAULT_GOALS };
+  document.getElementById('profileMenu').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   document.getElementById('tabbar').style.display = 'none';
   document.getElementById('signin').style.display = '';
@@ -1413,13 +1588,20 @@ function showSignedIn(sessionUser) {
   document.getElementById('signin').style.display = 'none';
   document.getElementById('app').style.display = '';
   document.getElementById('tabbar').style.display = '';
-  document.getElementById('accountEmail').textContent = user.email || '';
+  document.getElementById('profileEmail').textContent = user.email || '';
+  const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+  const initial = (user.user_metadata?.full_name || user.email || '?').trim().charAt(0).toUpperCase();
+  const btn = document.getElementById('profileBtn');
+  btn.innerHTML = avatar
+    ? `<img src="${escapeHtml(avatar)}" alt="" referrerpolicy="no-referrer">`
+    : `<span>${escapeHtml(initial)}</span>`;
   if (firstLoad) {
     // Token refreshes also fire auth events; only reload data for a new user.
     currentDate = todayStr();
     switchView('today');
     refreshDateUI();
     loadFoods();
+    loadGoals();
   }
 }
 
@@ -1435,12 +1617,6 @@ document.getElementById('googleSignIn').addEventListener('click', async () => {
   });
   if (error) document.getElementById('signinNote').textContent = 'Sign-in failed — please try again.';
 });
-
-for (const id of ['signOut', 'hdrSignOut']) {
-  document.getElementById(id).addEventListener('click', async () => {
-    await sb.auth.signOut();
-  });
-}
 
 // Fires on load (INITIAL_SESSION), after the Google redirect, on sign-out, and on token refresh.
 // Deferred with setTimeout: supabase-js can deadlock if other Supabase calls

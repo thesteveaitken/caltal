@@ -38,20 +38,22 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 1. **(Done) Eaten-at time on the log sheet.** Time is picked with a stepper: `(−) [editable time] (+)` in 30 minute steps. Defaults to now when logging today and blank for past days (stored as null). Each entry has a copy-icon button ("log again") that copies it as a new row at the current time. One-off cleanup: `supabase/backfill_eaten_at.sql` (run). Entries show the time. One-offs get the current time when logged for today. Also done: entries now copy `alcohol` and `fluid_ml` from the food. **Original spec:** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
 2. **(Done) Water quick-add.** A "+ Water 250 ml" pill under the totals logs the standard "Water (250 ml)" food at the current time, and a "Fluids" total for the viewed day sits beside it. (Log-again already covers repeat servings; group water rows in the list later if they clutter.) A one-tap button on Today that logs "Water (250 ml)" (a standard food, already seeded) with `eaten_at` = now. Check that the log insert copies `alcohol` and `fluid_ml` from the food, times quantity, the same way the macros are totalled.
 3. **Alcohol and fluid fields** on the add/edit food form (private foods). Existing private foods such as "Coffee with milk" have 0 fluid until edited by hand.
-4. **Goals setting.** A simple form for calorie and protein targets (one row in `goals`, upsert on `user_id`), probably reachable from the header menu. Then use the goals as the denominators for the totals bars.
-5. Optional: show fluid and alcohol totals for the day on Today.
+4. **(Built, see 2a-bis) Goals setting.** A simple form for calorie and protein targets (one row in `goals`, upsert on `user_id`), probably reachable from the header menu. Then use the goals as the denominators for the totals bars.
+5. (Done, fluids only) Daily summary totals. Alcohol is left for the Trends page.
 
 Checks after each step: load the app, log an entry, and confirm the row in the Supabase table editor has the expected columns. Remember the supabase-js rule about calling other methods inside `onAuthStateChange`.
 
-### 2a-bis. Daily summary and goals design (agreed 2026-11-10)
-- **Goals:** calories 2,200 (a ceiling), protein 150 g, fluids 3,000 ml, creatine 10 g. No carb or fat goals. The app falls back to these defaults when a user has no `goals` row.
+### 2a-bis. Daily summary and goals design (agreed 2026-11-10; built, needs a test)
+Built: header profile menu (photo or initial; email, Goals, Sign out), Goals sheet (on/off switch plus value per goal; off stores null), summary bars as designed below.
+- **Goals:** calories 2,200 (a ceiling), protein 150 g, fluids 3,000 ml, creatine 10 g. No carb or fat goals. The app falls back to calories 2,200, protein 150 and fluids 3,000 when a user has no `goals` row; creatine defaults to off (null = off, hidden from the summary). Set yours to 10 g in the goals form.
 - **Schema:** `creatine_g` on `foods` and `log_entries`; `fluid_ml` and `creatine_g` on `goals`; `creatine_g` added to `daily_totals` (in `schema.sql`; `supabase/seed_supplements.sql` adds "Creatine (10 g)" and "Creatine (5 g)"). Both have been run.
 - **Summary shows little text; bars carry progress.** Goal numbers are not shown in the summary, only in the goals form.
   - Calories: big number plus a small "N left". The bar warns amber then red past the ceiling.
   - Protein: grams, bar filling toward 150. Carbs and fat: grams only, bars as a share of the day's calories (no goals).
   - Fluids: litres ("1.25 L"), bar toward 3 L, "done" look once reached. This replaces the "Fluids" text beside the water button; the button stays.
-  - Creatine: a small check that fills in once logged (a bar if preferred).
-  - Alcohol: only shown on days it is above 0, as a ceiling.
+  - Creatine: same bar style as the others, shows the logged grams ("10g"), with a check once the goal is reached.
+  - Layout: two rows on the same three columns (Protein/Carbs/Fat, then Fluids/Creatine). Calorie bar is 4px like the rest.
+  - Alcohol is NOT on the daily summary: it is a trend over time, so it belongs on the Trends page.
 - **Later:** a pace tick on each bar (where you'd be by this time of day), using a waking-hours window.
 
 ### 2b. Trends page (replaces History)
