@@ -25,7 +25,7 @@ Design agreed in conversation. Do the schema and logging first, then the charts.
 ### 2a. Schema and logging
 Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the SQL editor.
 - `log_entries.eaten_at timestamptz` (nullable). Defaults to now in the log sheet and is editable for backfilling. Imported history stays null; the day view ignores null rows. (`created_at` is insert time, so it can't be used.)
-- `foods.alcohol` and `log_entries.alcohol`: standard drinks per serving. Values for seeded drinks are in `supabase/seed_drinks.sql` (written, not yet run).
+- `foods.alcohol` and `log_entries.alcohol`: standard drinks per serving. Values for seeded drinks are in `supabase/seed_drinks.sql` (run).
 - `foods.fluid_ml` and `log_entries.fluid_ml`: plain water is a 0-calorie food ("Water (250 ml)"). Coffee, Gatorade and juice get their own values; alcohol stays 0. Drinks with no value count as 0. Add a quick-add for water.
 - Goals: one row per user with calorie and protein targets (RLS, own row only).
 - Extend `daily_totals` with alcohol and fluid.
