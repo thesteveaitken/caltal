@@ -16,10 +16,10 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 - **Favourites are per user** (`favourites` table) and can point at standard or private foods.
 - Nutrition is **per serving, as described in the food name** ("1 cup cooked rice"). There are no units or gram fields.
 - `log_entries` store **totals** (per-serving x quantity) plus a `food_name` snapshot, so editing or deleting a food never changes history. `food_id` is null for one-offs. Quantity steps by 0.5, minimum 0.5.
-- Foods and entries also carry `alcohol` (standard drinks) and `fluid_ml` (alcohol counts 0 fluid). Entries have a nullable `eaten_at` (when it was eaten; `created_at` is only insert time, and imported history is null). Supplements like creatine are just 0-calorie foods. Values for standard drinks are in `supabase/seed_drinks.sql`.
+- Foods and entries also carry `alcohol` (standard drinks), `fluid_ml` and `creatine_g` (alcohol counts 0 fluid). Entries have a nullable `eaten_at` (when it was eaten; `created_at` is only insert time, and imported history is null). Supplements like creatine are just 0-calorie foods. Values for standard drinks are in `supabase/seed_drinks.sql`.
 - The log sheet has a "Time eaten" stepper (native time input plus round -/+ buttons, 30 min steps). It is blank by default on past days (saved as null). Each entry row has a copy-icon "log again" button that inserts a copy stamped with the current time.
 - `supabase/backfill_eaten_at.sql` is a one-off that sets `eaten_at` from `created_at` for older entries logged the same (US Eastern) day. The sheet import put the sheet's Timestamp into `created_at`, with noon as a placeholder when it had none.
-- `goals` holds one row per user (calorie and protein targets), own-row RLS.
+- `goals` holds one row per user (calories as a ceiling, protein, fluid_ml, creatine_g), own-row RLS. The app falls back to defaults (2200 / 150 / 3000 / 10) when there is no row. Standard supplement foods are in `supabase/seed_supplements.sql`.
 - History comes from the `daily_totals` view. It has no rows for days with no entries, so empty days are naturally skipped.
 - Security lives in RLS, not in the client. Any new table needs RLS enabled and policies written before it is used.
 

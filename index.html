@@ -348,6 +348,16 @@
   }
 
   .field-row { margin-bottom: 14px; }
+  .water-row { margin: -4px 20px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .btn-water {
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--protein);
+    border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn-water span { color: var(--text-dim); font-weight: 500; margin-left: 4px; }
+  .btn-water:active { border-color: var(--protein); }
+  .btn-water:disabled { opacity: 0.5; }
+  .water-total { font-size: 13px; color: var(--text-dim); }
+  .water-total b { color: var(--text); font-weight: 600; margin-left: 4px; font-variant-numeric: tabular-nums; }
   .time-row { margin: 0 0 18px; }
   .time-row { text-align: center; }
   .time-stepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
@@ -613,6 +623,11 @@
           <div class="macro-label"><span>Fat</span><b id="valF">0g</b></div>
         </div>
       </div>
+    </div>
+
+    <div class="water-row">
+      <button class="btn-water" id="addWater">+ Water <span>250 ml</span></button>
+      <div class="water-total">Fluids <b id="valFluid">0 ml</b></div>
     </div>
 
     <div class="section-label" id="loggedSectionLabel">Logged Today</div>
@@ -923,6 +938,8 @@ function renderTotals() {
   document.getElementById('valP').textContent = round1(totals.p) + 'g';
   document.getElementById('valC').textContent = round1(totals.c) + 'g';
   document.getElementById('valF').textContent = round1(totals.f) + 'g';
+  const fluid = entries.reduce((sum, e) => sum + (e.fluid_ml || 0), 0);
+  document.getElementById('valFluid').textContent = Math.round(fluid).toLocaleString() + ' ml';
 
   // Bars are relative to each other just to give a sense of proportion (no fixed goal yet)
   const maxMacro = Math.max(totals.p, totals.c, totals.f, 1);
@@ -1038,6 +1055,29 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+// ---------- Water quick-add ----------
+// Logs the standard "Water (250 ml)" food as a new entry stamped with the current time.
+document.getElementById('addWater').addEventListener('click', async () => {
+  const water = foods.find(f => f.owner_id === null && f.name === 'Water (250 ml)');
+  if (!water) { showToast('Water food not found — run seed_drinks.sql'); return; }
+  const btn = document.getElementById('addWater');
+  btn.disabled = true;
+  try {
+    await must(sb.from('log_entries').insert({
+      date: currentDate, food_id: water.id, food_name: water.name, quantity: 1,
+      calories: 0, protein: 0, carbs: 0, fat: 0, alcohol: 0, fluid_ml: water.fluid_ml,
+      eaten_at: currentDate === todayStr() ? eatenAtFor(currentDate, nowHHMM()) : null,
+    }));
+    await loadEntriesForDate(currentDate);
+    showToast('Logged 250 ml water');
+  } catch (err) {
+    console.error(err);
+    showToast('Could not log — try again');
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // ---------- Eaten-at time ----------
 function nowHHMM() {

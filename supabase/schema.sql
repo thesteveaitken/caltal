@@ -45,6 +45,8 @@ create table if not exists public.foods (
 --   fluid_ml = millilitres of fluid per serving (water, coffee, juice...; alcohol stays 0)
 alter table public.foods add column if not exists alcohol  numeric not null default 0 check (alcohol  >= 0);
 alter table public.foods add column if not exists fluid_ml numeric not null default 0 check (fluid_ml >= 0);
+-- creatine_g = grams of creatine per serving (for the daily creatine check)
+alter table public.foods add column if not exists creatine_g numeric not null default 0 check (creatine_g >= 0);
 
 -- One name per owner (case-insensitive); standard foods share the "nil" owner.
 -- A private food may share a name with a standard food.
@@ -113,6 +115,7 @@ create table if not exists public.log_entries (
 alter table public.log_entries add column if not exists alcohol  numeric not null default 0;
 alter table public.log_entries add column if not exists fluid_ml numeric not null default 0;
 alter table public.log_entries add column if not exists eaten_at timestamptz;
+alter table public.log_entries add column if not exists creatine_g numeric not null default 0;
 create index if not exists log_entries_user_date_idx on public.log_entries (user_id, date);
 
 alter table public.log_entries enable row level security;
@@ -128,8 +131,13 @@ create table if not exists public.goals (
   user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
   calories   numeric check (calories > 0),
   protein    numeric check (protein  > 0),
+  fluid_ml   numeric check (fluid_ml > 0),
+  creatine_g numeric check (creatine_g > 0),
   updated_at timestamptz not null default now()
 );
+-- Tables that already exist (goals was created before these two columns):
+alter table public.goals add column if not exists fluid_ml   numeric check (fluid_ml   > 0);
+alter table public.goals add column if not exists creatine_g numeric check (creatine_g > 0);
 alter table public.goals enable row level security;
 
 drop policy if exists "goals: own row" on public.goals;
@@ -151,7 +159,8 @@ with (security_invoker = true) as
          sum(fat)      as fat,
          count(*)      as entries,
          sum(alcohol)  as alcohol,
-         sum(fluid_ml) as fluid_ml
+         sum(fluid_ml) as fluid_ml,
+         sum(creatine_g) as creatine_g
   from public.log_entries
   group by user_id, date;
 
