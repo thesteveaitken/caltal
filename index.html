@@ -370,6 +370,8 @@
     border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  .quick-add-slot { background: none; border: 1px dashed var(--text-faint); color: var(--text-faint); font-weight: 500; }
+  .quick-add-slot:hover, .quick-add-slot:active { border-color: var(--accent); color: var(--accent); }
   .quick-btn:active { border-color: var(--accent); color: var(--accent); }
   .quick-btn:disabled { opacity: 0.5; }
   .quick-row { display: grid; grid-template-columns: 1fr 112px; gap: 8px; margin-bottom: 10px; }
@@ -564,6 +566,7 @@
     border-bottom: 1px solid var(--border); margin-bottom: 4px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  .profile-sep { height: 1px; background: var(--border); margin: 4px 0; }
   .profile-item {
     display: block; width: 100%; text-align: left; background: none; border: none;
     color: var(--text); font-size: 14.5px; font-weight: 500; padding: 10px; border-radius: 7px; cursor: pointer;
@@ -638,6 +641,8 @@
       <div class="profile-menu" id="profileMenu" style="display:none;">
         <div class="profile-email" id="profileEmail"></div>
         <button class="profile-item" id="menuGoals">Goals</button>
+        <button class="profile-item" id="menuQuick">Quick-add buttons</button>
+        <div class="profile-sep"></div>
         <button class="profile-item" id="menuSignOut">Sign out</button>
       </div>
     </div>
@@ -698,7 +703,7 @@
       <div class="loading-row">Loading…</div>
     </div>
     <div class="add-new-row">
-      Can't find it? <a id="addNewFoodLink">Add a new food</a> · <a id="logOneOffLink">Log a one-off</a> · <a id="editQuick">Edit quick buttons</a>
+      Can't find it? <a id="addNewFoodLink">Add a new food</a> · <a id="logOneOffLink">Log a one-off</a>
     </div>
    </div>
   </div>
@@ -1134,6 +1139,7 @@ document.addEventListener('click', (ev) => {
   if (!ev.target.closest('#profile')) profileMenu.style.display = 'none';
 });
 document.getElementById('menuGoals').addEventListener('click', () => { profileMenu.style.display = 'none'; openGoals(); });
+document.getElementById('menuQuick').addEventListener('click', () => { profileMenu.style.display = 'none'; openQuickEdit(); });
 document.getElementById('menuSignOut').addEventListener('click', async () => { profileMenu.style.display = 'none'; await sb.auth.signOut(); });
 
 // ---------- Rendering: today's entries ----------
@@ -1274,7 +1280,11 @@ function renderQuickAdds() {
   grid.innerHTML = items.map(q =>
     `<button class="quick-btn" data-food="${q.food_id}" title="${escapeHtml(foods.find(f => f.id === q.food_id).name)}">${escapeHtml(q.label)}</button>`
   ).join('');
-  grid.querySelectorAll('.quick-btn').forEach(btn => btn.addEventListener('click', () => quickLog(btn)));
+  // Dotted "+ Add" cells complete a partly filled row (never start a new one), so editing is discoverable.
+  const spare = items.length % 3 === 0 ? 0 : 3 - (items.length % 3);
+  grid.insertAdjacentHTML('beforeend', '<button class="quick-btn quick-add-slot" data-add="1">+ Add</button>'.repeat(spare));
+  grid.querySelectorAll('.quick-btn[data-food]').forEach(btn => btn.addEventListener('click', () => quickLog(btn)));
+  grid.querySelectorAll('.quick-add-slot').forEach(btn => btn.addEventListener('click', () => openQuickEdit(true)));
   updateQuickVisibility();
 }
 
@@ -1306,7 +1316,7 @@ async function quickLog(btn) {
   }
 }
 
-function openQuickEdit() {
+function openQuickEdit(focusEmpty = false) {
   const current = effectiveQuickAdds();
   const options = foods.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
   let html = '';
@@ -1330,8 +1340,11 @@ function openQuickEdit() {
     });
   }
   document.getElementById('quickOverlay').classList.add('open');
+  if (focusEmpty === true) {
+    const firstEmpty = [...document.querySelectorAll('#quickRows select')].find(sel => !sel.value);
+    if (firstEmpty) firstEmpty.focus();
+  }
 }
-document.getElementById('editQuick').addEventListener('click', openQuickEdit);
 document.getElementById('closeQuick').addEventListener('click', () => document.getElementById('quickOverlay').classList.remove('open'));
 document.getElementById('saveQuick').addEventListener('click', async () => {
   const rows = [], emptySlots = [];

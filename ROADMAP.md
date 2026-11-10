@@ -57,7 +57,7 @@ Built: header profile menu (photo or initial; email, Goals, Sign out), Goals she
 - **Later:** a pace tick on each bar (where you'd be by this time of day), using a waking-hours window.
 
 ### 2a-ter. Configurable quick-add buttons (built 2026-11-10; needs `schema.sql` run and a test)
-**Decided:** 6 slots (3 x 2, 34px tall buttons), 10-character labels, grid directly under the search box (search stays first), with no heading; the "Edit quick buttons" link lives in the "Can't find it?" line. Water (250 ml) is a virtual default for slot 0 until the user saves buttons (clearing every slot brings that default back). The old water-row is removed.
+**Decided:** 6 slots (3 x 2, 34px tall buttons), 10-character labels, grid directly under the search box (search stays first), with no heading. Editing: a "Quick-add buttons" item in the avatar menu, plus dotted "+ Add" cells that complete a partly filled row (shown at 1, 2, 4 or 5 buttons) and open the editor on the first empty slot. Water (250 ml) is a virtual default for slot 0 until the user saves buttons (clearing every slot brings that default back). The old water-row is removed.
 Problem: the water button sits under the summary and pushes "Logged Today" down, especially now that the summary has grown. Idea: move it to the right column, as one of several user-configurable quick-add buttons.
 - **Where:** top of the right column, above or below the search box, as a small grid of compact buttons (3 columns, up to 2 rows). The water button moves out of the left column.
 - **Search:** typing in the search box hides the quick-add buttons so the results get the space.
