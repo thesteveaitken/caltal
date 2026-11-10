@@ -147,6 +147,7 @@
   .entry-sub { font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
   .entry-sub .qty { color: var(--text-dim); }
   .entry-sub .sep { color: var(--border); }
+  .entry-sub .time { color: var(--text-faint); }
   .entry-sub .m-p { color: var(--protein); }
   .entry-sub .m-c { color: var(--carbs); }
   .entry-sub .m-f { color: var(--fat); }
@@ -160,6 +161,14 @@
     margin-right: 4px;
     flex-shrink: 0;
   }
+  .entry-again {
+    background: none; border: none; color: var(--text-dim);
+    cursor: pointer;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; border-radius: 50%;
+  }
+  .entry-again:active { color: var(--accent); background: rgba(232,162,61,0.12); }
   .entry-del {
     background: none; border: none; color: var(--text-faint);
     font-size: 16px; cursor: pointer;
@@ -339,6 +348,24 @@
   }
 
   .field-row { margin-bottom: 14px; }
+  .time-row { margin: 0 0 18px; }
+  .time-row { text-align: center; }
+  .time-stepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .time-stepper .field-input {
+    width: 140px; flex: none; text-align: center;
+    font-size: 15px; font-weight: 600; color: var(--text-dim);
+    padding: 8px 6px;
+  }
+  /* No clock icon: type on desktop, use +/-; phones show their native time picker. */
+  .time-stepper input[type="time"]::-webkit-calendar-picker-indicator { display: none; }
+  .time-stepper input[type="time"]::-webkit-date-and-time-value { text-align: center; }
+  .step-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim);
+    font-size: 17px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-btn:active { color: var(--accent); border-color: var(--accent); }
   .field-label { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block; }
   .field-input {
     width: 100%;
@@ -641,6 +668,15 @@
       <button class="qty-btn" id="qtyPlus">+</button>
     </div>
 
+    <div class="time-row">
+      <div class="field-label">Time eaten</div>
+      <div class="time-stepper">
+        <button type="button" class="step-btn" id="timeMinus" aria-label="30 minutes earlier">−</button>
+        <input type="time" class="field-input" id="logTime">
+        <button type="button" class="step-btn" id="timePlus" aria-label="30 minutes later">+</button>
+      </div>
+    </div>
+
     <div class="sheet-macros">
       <div class="sheet-macro"><div class="v" id="prevCal">0</div><div class="l">Cal</div></div>
       <div class="sheet-macro"><div class="v" id="prevP">0g</div><div class="l">Protein</div></div>
@@ -796,9 +832,10 @@ async function must(query) {
 }
 
 const MACROS = ['calories', 'protein', 'carbs', 'fat'];
+const EXTRAS = ['alcohol', 'fluid_ml']; // standard drinks, millilitres of fluid
 function numeric(row) {
   // Postgres numeric can arrive as strings; normalise to numbers.
-  for (const k of MACROS.concat('quantity')) if (k in row) row[k] = Number(row[k]) || 0;
+  for (const k of MACROS.concat(EXTRAS, 'quantity')) if (k in row) row[k] = Number(row[k]) || 0;
   return row;
 }
 
@@ -806,7 +843,7 @@ function numeric(row) {
 async function loadFoods() {
   try {
     const [foodRows, favRows] = await Promise.all([
-      must(sb.from('foods').select('id, owner_id, name, calories, protein, carbs, fat')),
+      must(sb.from('foods').select('id, owner_id, name, calories, protein, carbs, fat, alcohol, fluid_ml')),
       must(sb.from('favourites').select('food_id')),
     ]);
     const favIds = new Set(favRows.map(f => f.food_id));
@@ -829,8 +866,9 @@ async function loadEntriesForDate(date) {
   document.getElementById('entryList').innerHTML = '<div class="loading-row">Loading…</div>';
   try {
     const rows = await must(sb.from('log_entries')
-      .select('id, date, food_id, food_name, quantity, calories, protein, carbs, fat, created_at')
+      .select('id, date, food_id, food_name, quantity, calories, protein, carbs, fat, alcohol, fluid_ml, eaten_at, created_at')
       .eq('date', date)
+      .order('eaten_at', { nullsFirst: true })  // untimed (older) entries first
       .order('created_at'));
     if (req !== entriesRequest) return; // a newer day was requested meanwhile
     entries = rows.map(numeric);
@@ -906,6 +944,7 @@ function renderEntries() {
         <span class="entry-name">${escapeHtml(e.food_name)}</span>
         <span class="entry-sub">
           <span class="qty">${e.quantity}×</span>
+          ${e.eaten_at ? `<span class="time">${formatTime(e.eaten_at)}</span>` : ''}
           <span class="sep">·</span>
           <span class="m-p">P${round1(e.protein)}</span>
           <span class="m-c">C${round1(e.carbs)}</span>
@@ -913,6 +952,7 @@ function renderEntries() {
         </span>
       </div>
       <span class="entry-cal">${Math.round(e.calories)}</span>
+      <button class="entry-again" data-id="${e.id}" aria-label="Log again" title="Log again"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></button>
       <button class="entry-del" data-id="${e.id}">✕</button>
     </div>
   `).join('');
@@ -921,6 +961,30 @@ function renderEntries() {
     el.addEventListener('click', () => {
       const entry = entries.find(e => e.id === el.dataset.id);
       if (entry) openEditSheet(entry);
+    });
+  });
+
+  // "Log again": copy the entry as a new row stamped with the current time (original time on past days).
+  list.querySelectorAll('.entry-again').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const e = entries.find(x => x.id === btn.dataset.id);
+      if (!e) return;
+      btn.disabled = true;
+      try {
+        await must(sb.from('log_entries').insert({
+          date: e.date, food_id: e.food_id, food_name: e.food_name, quantity: e.quantity,
+          calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat,
+          alcohol: e.alcohol, fluid_ml: e.fluid_ml,
+          eaten_at: e.date === todayStr() ? eatenAtFor(e.date, nowHHMM()) : e.eaten_at,
+        }));
+        await loadEntriesForDate(currentDate);
+        showToast(`Logged ${e.food_name} again`);
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false;
+        showToast('Could not log — try again');
+      }
     });
   });
 
@@ -975,6 +1039,36 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ---------- Eaten-at time ----------
+function nowHHMM() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+function formatTime(iso) {
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+function hhmmFromIso(iso) {
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+// Combine the viewed date with an HH:MM (local time) into an ISO timestamp; blank = null.
+function eatenAtFor(date, hhmm) {
+  return hhmm ? new Date(`${date}T${hhmm}`).toISOString() : null;
+}
+
+// Time stepper in the log sheet: type a time, or nudge it by 30 minutes.
+function setLogTime(hhmm) { document.getElementById('logTime').value = hhmm; }
+function stepLogTime(deltaMin) {
+  const input = document.getElementById('logTime');
+  // From blank, start at the current time (today) or noon (past days).
+  const base = input.value || (currentDate === todayStr() ? nowHHMM() : '12:00');
+  const [h, m] = base.split(':').map(Number);
+  const total = Math.min(23 * 60 + 59, Math.max(0, h * 60 + m + deltaMin)); // stay within the day
+  setLogTime(String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0'));
+}
+document.getElementById('timeMinus').addEventListener('click', () => stepLogTime(-30));
+document.getElementById('timePlus').addEventListener('click', () => stepLogTime(30));
+
 // ---------- Log quantity sheet (shared between adding and editing) ----------
 function openLogSheet(foodId) {
   activeFood = foods.find(f => f.id === foodId);
@@ -985,6 +1079,8 @@ function openLogSheet(foodId) {
   document.getElementById('logSheetTitle').textContent = activeFood.name;
   document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
   document.getElementById('confirmLog').textContent = 'Log it';
+  // Default to now when logging today; for past days leave it blank (stored as no time).
+  setLogTime(currentDate === todayStr() ? nowHHMM() : '');
   updateQtyDisplay();
   document.getElementById('logSheetOverlay').classList.add('open');
 }
@@ -1000,6 +1096,8 @@ function openEditSheet(entry) {
     protein: entry.protein / qty,
     carbs: entry.carbs / qty,
     fat: entry.fat / qty,
+    alcohol: entry.alcohol / qty,
+    fluid_ml: entry.fluid_ml / qty,
   };
   editingId = entry.id;
   pendingQty = qty;
@@ -1007,6 +1105,7 @@ function openEditSheet(entry) {
   document.getElementById('logSheetTitle').textContent = entry.food_name;
   document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
   document.getElementById('confirmLog').textContent = 'Save changes';
+  setLogTime(entry.eaten_at ? hhmmFromIso(entry.eaten_at) : '');
   updateQtyDisplay();
   document.getElementById('logSheetOverlay').classList.add('open');
 }
@@ -1071,6 +1170,10 @@ function scaledMacros() {
     protein: round1(activeFood.protein * pendingQty),
     carbs: round1(activeFood.carbs * pendingQty),
     fat: round1(activeFood.fat * pendingQty),
+    alcohol: round1((activeFood.alcohol || 0) * pendingQty),
+    fluid_ml: Math.round((activeFood.fluid_ml || 0) * pendingQty),
+    eaten_at: eatenAtFor(editingId ? entries.find(e => e.id === editingId).date : currentDate,
+                         document.getElementById('logTime').value),
   };
 }
 
@@ -1194,6 +1297,7 @@ document.getElementById('saveOneOff').addEventListener('click', async () => {
       food_name: name,
       quantity: 1,
       calories, protein, carbs, fat,
+      eaten_at: eatenAtFor(currentDate, currentDate === todayStr() ? nowHHMM() : ''),
     }));
     document.getElementById('oneOffOverlay').classList.remove('open');
     await loadEntriesForDate(currentDate);
