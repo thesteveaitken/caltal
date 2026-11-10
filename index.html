@@ -460,14 +460,21 @@
   .fav-toggle .ftext { font-size: 14px; color: var(--text-dim); font-weight: 500; }
   .fav-toggle.on .ftext { color: var(--text); font-weight: 600; }
 
-  .sheet-close-x {
+  /* Corner icons share a 40px hit area (glyphs stay small and dim). */
+  .sheet-close-x, .sheet-fav, .sheet-edit {
     position: absolute;
-    top: 18px; right: 18px;
-    background: none; border: none;
+    top: 8px;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0;
     color: var(--text-faint);
-    font-size: 20px;
     cursor: pointer;
   }
+  .sheet-close-x { right: 8px; font-size: 20px; }
+  .sheet-edit { right: 88px; }
+  .sheet-edit:hover { color: var(--text); }
+  .sheet-edit svg { width: 17px; height: 17px; }
+  #logSheetTitle { padding-right: 120px; }
 
   /* ---------- History list ---------- */
   .hist-day {
@@ -515,14 +522,7 @@
     color: var(--text-dim); border: 1px solid var(--border); border-radius: 6px;
     padding: 1px 5px; flex-shrink: 0;
   }
-  .sheet-fav {
-    position: absolute;
-    top: 16px; right: 52px;
-    background: none; border: none;
-    color: var(--text-faint);
-    font-size: 21px;
-    cursor: pointer;
-  }
+  .sheet-fav { right: 48px; font-size: 21px; }
   .sheet-fav.on { color: var(--accent); }
 
   /* ---------- Sign-in screen ---------- */
@@ -731,6 +731,7 @@
 <div class="sheet-overlay" id="logSheetOverlay">
   <div class="sheet">
     <button class="sheet-close-x" id="closeLogSheet">✕</button>
+    <button class="sheet-edit" id="editFoodLink" style="display:none" aria-label="Edit food" title="Edit food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
     <button class="sheet-fav" id="logSheetFav" aria-label="Toggle favourite">☆</button>
     <div class="sheet-title" id="logSheetTitle">Food name</div>
     <div class="sheet-sub" id="logSheetSub">per serving</div>
@@ -765,8 +766,8 @@
 <div class="sheet-overlay" id="addFoodOverlay">
   <div class="sheet">
     <button class="sheet-close-x" id="closeAddFood">✕</button>
-    <div class="sheet-title">New saved food</div>
-    <div class="sheet-sub">Enter it at the size you'll usually log. Only you will see it.</div>
+    <div class="sheet-title" id="foodSheetTitle">New saved food</div>
+    <div class="sheet-sub" id="foodSheetSub">Enter it at the size you'll usually log. Only you will see it.</div>
 
     <div class="field-row">
       <label class="field-label">Name</label>
@@ -1433,6 +1434,7 @@ function openLogSheet(foodId) {
   document.getElementById('logSheetTitle').textContent = activeFood.name;
   document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
   document.getElementById('confirmLog').textContent = 'Log it';
+  document.getElementById('editFoodLink').style.display = activeFood.mine ? '' : 'none';
   // Default to now when logging today; for past days leave it blank (stored as no time).
   setLogTime(currentDate === todayStr() ? nowHHMM() : '');
   updateQtyDisplay();
@@ -1460,6 +1462,7 @@ function openEditSheet(entry) {
   document.getElementById('logSheetTitle').textContent = entry.food_name;
   document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
   document.getElementById('confirmLog').textContent = 'Save changes';
+  document.getElementById('editFoodLink').style.display = 'none';
   setLogTime(entry.eaten_at ? hhmmFromIso(entry.eaten_at) : '');
   updateQtyDisplay();
   document.getElementById('logSheetOverlay').classList.add('open');
@@ -1566,6 +1569,16 @@ document.getElementById('confirmLog').addEventListener('click', async () => {
 
 // ---------- Add new food sheet ----------
 let newFoodFavourite = false;
+let editingFoodId = null; // set while the food sheet is editing an existing food
+
+function setFoodSheetMode(editing) {
+  document.getElementById('foodSheetTitle').textContent = editing ? 'Edit food' : 'New saved food';
+  document.getElementById('foodSheetSub').textContent = editing
+    ? 'Changes apply to future logs. Entries you already logged keep their values.'
+    : "Enter it at the size you'll usually log. Only you will see it.";
+  document.getElementById('favToggle').style.display = editing ? 'none' : '';
+  document.getElementById('saveNewFood').textContent = editing ? 'Save changes' : 'Save food';
+}
 
 function setMoreOpen(open) {
   document.getElementById('moreFields').style.display = open ? '' : 'none';
@@ -1578,6 +1591,8 @@ document.getElementById('moreToggle').addEventListener('click', () => {
 });
 
 document.getElementById('addNewFoodLink').addEventListener('click', () => {
+  editingFoodId = null;
+  setFoodSheetMode(false);
   document.getElementById('newFoodName').value = document.getElementById('searchInput').value.trim();
   document.getElementById('newFoodCal').value = '';
   document.getElementById('newFoodP').value = '';
@@ -1588,6 +1603,19 @@ document.getElementById('addNewFoodLink').addEventListener('click', () => {
   newFoodFavourite = false;
   document.getElementById('favToggle').classList.remove('on');
   document.getElementById('favToggleText').textContent = 'Mark as favourite';
+  document.getElementById('addFoodOverlay').classList.add('open');
+});
+document.getElementById('editFoodLink').addEventListener('click', () => {
+  if (!activeFood || !activeFood.mine) return;
+  const f = activeFood;
+  editingFoodId = f.id;
+  setFoodSheetMode(true);
+  const set = (id, v) => { document.getElementById(id).value = v ? v : ''; };
+  document.getElementById('newFoodName').value = f.name;
+  set('newFoodCal', f.calories); set('newFoodP', f.protein); set('newFoodC', f.carbs); set('newFoodF', f.fat);
+  set('newFoodFluid', f.fluid_ml); set('newFoodAlc', f.alcohol); set('newFoodCr', f.creatine_g);
+  setMoreOpen(!!(f.fluid_ml || f.alcohol || f.creatine_g));
+  document.getElementById('logSheetOverlay').classList.remove('open');
   document.getElementById('addFoodOverlay').classList.add('open');
 });
 document.getElementById('closeAddFood').addEventListener('click', () => {
@@ -1617,21 +1645,26 @@ document.getElementById('saveNewFood').addEventListener('click', async () => {
   btn.textContent = 'Saving…';
   btn.disabled = true;
   try {
-    // New foods are always private to the signed-in user.
-    const [food] = await must(sb.from('foods')
-      .insert({ owner_id: user.id, name, calories, protein, carbs, fat, fluid_ml, alcohol, creatine_g })
-      .select('id'));
-    if (newFoodFavourite) {
-      await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
+    const values = { name, calories, protein, carbs, fat, fluid_ml, alcohol, creatine_g };
+    if (editingFoodId) {
+      await must(sb.from('foods').update(values).eq('id', editingFoodId).select('id'));
+    } else {
+      // New foods are always private to the signed-in user.
+      const [food] = await must(sb.from('foods')
+        .insert({ owner_id: user.id, ...values })
+        .select('id'));
+      if (newFoodFavourite) {
+        await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
+      }
     }
     document.getElementById('addFoodOverlay').classList.remove('open');
     await loadFoods();
-    showToast('Food saved');
+    showToast(editingFoodId ? 'Food updated' : 'Food saved');
   } catch (err) {
     console.error(err);
     showToast(err.code === '23505' ? 'You already have a food with that name' : 'Could not save — try again');
   } finally {
-    btn.textContent = 'Save food';
+    btn.textContent = editingFoodId ? 'Save changes' : 'Save food';
     btn.disabled = false;
   }
 });

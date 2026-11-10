@@ -12,7 +12,7 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 
 ## Data model decisions
 - `foods.owner_id IS NULL` is a **standard food**, readable by every signed-in user. Otherwise the food is private to its owner.
-- Only user ids in the `admins` table can write standard foods. Anything added in the app is always private (the new-food form takes fluid ml, alcohol and creatine g too, in a collapsed "Drinks & supplements" section; there is no edit-food screen yet). There is no admin UI: maintain standard foods with SQL or the Supabase table editor.
+- Only user ids in the `admins` table can write standard foods. Anything added in the app is always private (the new-food form takes fluid ml, alcohol and creatine g too, in a collapsed "Drinks & supplements" section; a pencil icon in the log sheet corner reopens that form for the user's own foods, and past entries keep their snapshot values). There is no admin UI: maintain standard foods with SQL or the Supabase table editor.
 - **Favourites are per user** (`favourites` table) and can point at standard or private foods.
 - Nutrition is **per serving, as described in the food name** ("1 cup cooked rice"). There are no units or gram fields.
 - `log_entries` store **totals** (per-serving x quantity) plus a `food_name` snapshot, so editing or deleting a food never changes history. `food_id` is null for one-offs. Quantity steps by 0.5, minimum 0.5.
