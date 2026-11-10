@@ -32,7 +32,7 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 - Supplements (for example 10g creatine) are 0-calorie foods that are favourited. No schema change.
 - Skipped on purpose: fibre, sugar, sodium (data entry cost), steps, sleep, mood.
 
-**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. **Pick up at 2a-ter (quick-add buttons)**, then step 3 below, then item 2b (Trends page).
+**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. **Pick up at step 3 below** (after testing 2a-ter), then item 2b (Trends page).
 
 **App changes for 2a.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
 1. **(Done) Eaten-at time on the log sheet.** Time is picked with a stepper: `(−) [editable time] (+)` in 30 minute steps. Defaults to now when logging today and blank for past days (stored as null). Each entry has a copy-icon button ("log again") that copies it as a new row at the current time. One-off cleanup: `supabase/backfill_eaten_at.sql` (run). Entries show the time. One-offs get the current time when logged for today. Also done: entries now copy `alcohol` and `fluid_ml` from the food. **Original spec:** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
@@ -56,17 +56,18 @@ Built: header profile menu (photo or initial; email, Goals, Sign out), Goals she
   - Alcohol is NOT on the daily summary: it is a trend over time, so it belongs on the Trends page.
 - **Later:** a pace tick on each bar (where you'd be by this time of day), using a waking-hours window.
 
-### 2a-ter. Configurable quick-add buttons (NEXT, requested 2026-11-10)
+### 2a-ter. Configurable quick-add buttons (built 2026-11-10; needs `schema.sql` run and a test)
+**Decided:** 6 slots (3 x 2, 34px tall buttons), 10-character labels, grid directly under the search box (search stays first), with no heading; the "Edit quick buttons" link lives in the "Can't find it?" line. Water (250 ml) is a virtual default for slot 0 until the user saves buttons (clearing every slot brings that default back). The old water-row is removed.
 Problem: the water button sits under the summary and pushes "Logged Today" down, especially now that the summary has grown. Idea: move it to the right column, as one of several user-configurable quick-add buttons.
 - **Where:** top of the right column, above or below the search box, as a small grid of compact buttons (3 columns, up to 2 rows). The water button moves out of the left column.
 - **Search:** typing in the search box hides the quick-add buttons so the results get the space.
 - **Configurable:** each button points at a food (standard or the user's own) and has a short label, character limited (about 10) so buttons stay small. Example: the food "1 large chicken breast" with the label "Chkn Brst".
 - **Tap = log 1 serving at the current time**, the same as the water button does today (on a past day, no time). Toast confirms.
-- **Count:** 6 slots (3 x 2), with unused slots hidden. Open: is 3 enough, or do you want 6?
+- **Count:** 6 slots (3 x 2), with unused slots hidden.
 - **Defaults:** a new user gets "Water" (the 250 ml water food) in slot 1; the rest are empty.
 - **Editing:** an "Edit" link or a pencil next to the grid opens a small sheet: pick a slot, choose a food from the food list, type the label, save. A way to clear a slot.
 - **Storage (proposed):** a new `quick_adds` table: `user_id`, `slot` (0-5), `food_id` (references foods, on delete cascade), `label` (max 12 chars), primary key `(user_id, slot)`. Own-row RLS, written in `schema.sql` before the app uses it. Deleting a food removes its button.
-- **Mobile:** the right column becomes the "Add food" section under "Logged Today", so the buttons would sit below the log. Open: is that acceptable, or should the grid stay near the top on mobile?
+- **Mobile:** the right column becomes the "Add food" section under "Logged Today", so the buttons would sit below the log. On mobile the grid sits at the top of the Add food section.
 - **Also:** update `CLAUDE.md` (data model and "where things are") and remove the old water-row code.
 
 ### 2b. Trends page (replaces History)

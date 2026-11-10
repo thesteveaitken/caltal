@@ -146,6 +146,23 @@ create policy "goals: own row" on public.goals
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- ---------- Quick-add buttons (per user, up to 6 slots) ----------
+-- Each slot points at a food and has a short label. Deleting the food removes the button.
+create table if not exists public.quick_adds (
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  slot    smallint not null check (slot between 0 and 5),
+  food_id uuid not null references public.foods (id) on delete cascade,
+  label   text not null check (length(trim(label)) between 1 and 12),
+  primary key (user_id, slot)
+);
+alter table public.quick_adds enable row level security;
+
+drop policy if exists "quick_adds: own rows" on public.quick_adds;
+create policy "quick_adds: own rows" on public.quick_adds
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
 -- ---------- Daily totals (History view) ----------
 -- New columns must be added at the END of the select list (create or replace view).
 -- security_invoker makes the view respect the caller's RLS on log_entries.
