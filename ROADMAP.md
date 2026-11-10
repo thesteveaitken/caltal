@@ -32,18 +32,18 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 - Supplements (for example 10g creatine) are 0-calorie foods that are favourited. No schema change.
 - Skipped on purpose: fibre, sugar, sodium (data entry cost), steps, sleep, mood.
 
-**Status (2026-11-08):** the database side is done. `schema.sql` and `seed_drinks.sql` have been run in Supabase and committed. The app code does not use any of the new columns yet, so the live site is unchanged.
+**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. **Pick up at step 3 below**, then item 2b (Trends page).
 
-**Next: app changes for 2a, in this order.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
+**App changes for 2a.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
 1. **(Done) Eaten-at time on the log sheet.** Time is picked with a stepper: `(−) [editable time] (+)` in 30 minute steps. Defaults to now when logging today and blank for past days (stored as null). Each entry has a copy-icon button ("log again") that copies it as a new row at the current time. One-off cleanup: `supabase/backfill_eaten_at.sql` (run). Entries show the time. One-offs get the current time when logged for today. Also done: entries now copy `alcohol` and `fluid_ml` from the food. **Original spec:** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
-2. **(Done) Water quick-add.** A "+ Water 250 ml" pill under the totals logs the standard "Water (250 ml)" food at the current time, and a "Fluids" total for the viewed day sits beside it. (Log-again already covers repeat servings; group water rows in the list later if they clutter.) A one-tap button on Today that logs "Water (250 ml)" (a standard food, already seeded) with `eaten_at` = now. Check that the log insert copies `alcohol` and `fluid_ml` from the food, times quantity, the same way the macros are totalled.
-3. **Alcohol and fluid fields** on the add/edit food form (private foods). Existing private foods such as "Coffee with milk" have 0 fluid until edited by hand.
+2. **(Done) Water quick-add.** A "+ Water 250 ml" pill under the totals logs the standard "Water (250 ml)" food at the current time, and the day's fluids show in the summary. (Log-again already covers repeat servings; group water rows in the list later if they clutter.) A one-tap button on Today that logs "Water (250 ml)" (a standard food, already seeded) with `eaten_at` = now. Check that the log insert copies `alcohol` and `fluid_ml` from the food, times quantity, the same way the macros are totalled.
+3. **(Next) Alcohol, fluid and creatine fields** on the add/edit food form (private foods; also needed for creatine and for private drinks to count toward Fluids). Existing private foods such as "Coffee with milk" have 0 fluid until edited by hand.
 4. **(Built, see 2a-bis) Goals setting.** A simple form for calorie and protein targets (one row in `goals`, upsert on `user_id`), probably reachable from the header menu. Then use the goals as the denominators for the totals bars.
 5. (Done, fluids only) Daily summary totals. Alcohol is left for the Trends page.
 
 Checks after each step: load the app, log an entry, and confirm the row in the Supabase table editor has the expected columns. Remember the supabase-js rule about calling other methods inside `onAuthStateChange`.
 
-### 2a-bis. Daily summary and goals design (agreed 2026-11-10; built, needs a test)
+### 2a-bis. Daily summary and goals design (agreed and built 2026-11-10)
 Built: header profile menu (photo or initial; email, Goals, Sign out), Goals sheet (on/off switch plus value per goal; off stores null), summary bars as designed below.
 - **Goals:** calories 2,200 (a ceiling), protein 150 g, fluids 3,000 ml, creatine 10 g. No carb or fat goals. The app falls back to calories 2,200, protein 150 and fluids 3,000 when a user has no `goals` row; creatine defaults to off (null = off, hidden from the summary). Set yours to 10 g in the goals form.
 - **Schema:** `creatine_g` on `foods` and `log_entries`; `fluid_ml` and `creatine_g` on `goals`; `creatine_g` added to `daily_totals` (in `schema.sql`; `supabase/seed_supplements.sql` adds "Creatine (10 g)" and "Creatine (5 g)"). Both have been run.
