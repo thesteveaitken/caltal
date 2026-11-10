@@ -22,6 +22,7 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 - `supabase/backfill_eaten_at.sql` is a one-off that sets `eaten_at` from `created_at` for older entries logged the same (US Eastern) day. The sheet import put the sheet's Timestamp into `created_at`, with noon as a placeholder when it had none.
 - `quick_adds` holds up to 6 buttons per user (slot 0-5, food_id, label up to 12 chars), own-row RLS; deleting a food removes its button. With no rows the app shows a virtual "Water" button. One tap logs one serving.
 - `goals` holds one row per user (calories as a ceiling, protein, fluid_ml, creatine_g), own-row RLS. A null goal means off (hidden from the summary). With no row the app uses 2200 / 150 / 3000 and creatine off. Standard supplement foods are in `supabase/seed_supplements.sql`.
+- The Trends tab (calories and protein cards so far; more planned in ROADMAP) and the Past days list both read the `daily_totals` view; charts are inline SVG drawn by `drawTrendChart()`, not a library.
 - History comes from the `daily_totals` view. It has no rows for days with no entries, so empty days are naturally skipped.
 - Security lives in RLS, not in the client. Any new table needs RLS enabled and policies written before it is used.
 

@@ -32,7 +32,7 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 - Supplements (for example 10g creatine) are 0-calorie foods that are favourited. No schema change.
 - Skipped on purpose: fibre, sugar, sodium (data entry cost), steps, sleep, mood.
 
-**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. Step 3 is built. Next: an edit-food screen (optional), then item 2b (Trends page).
+**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. Step 3 and the edit-food pencil are done. Trends step 1 is built (see 2b); step 2 is next.
 
 **App changes for 2a.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
 1. **(Done) Eaten-at time on the log sheet.** Time is picked with a stepper: `(−) [editable time] (+)` in 30 minute steps. Defaults to now when logging today and blank for past days (stored as null). Each entry has a copy-icon button ("log again") that copies it as a new row at the current time. One-off cleanup: `supabase/backfill_eaten_at.sql` (run). Entries show the time. One-offs get the current time when logged for today. Also done: entries now copy `alcohol` and `fluid_ml` from the food. **Original spec:** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
@@ -70,12 +70,14 @@ Problem: the water button sits under the summary and pushes "Logged Today" down,
 - **Mobile:** the right column becomes the "Add food" section under "Logged Today", so the buttons would sit below the log. On mobile the grid sits at the top of the Add food section.
 - **Also:** update `CLAUDE.md` (data model and "where things are") and remove the old water-row code.
 
-### 2b. Trends page (replaces History)
-- A Day / Week / Month toggle. Tapping a day opens it in Today.
-- **Day:** cumulative intake through the day (step line) with an average-day line overlaid. Uses `eaten_at`.
-- **Week and month:** daily calories and macros, a 7-day rolling average and a goal line. Days with no entries are gaps, not zeros. Draw a partly logged day (such as today) hollow so it doesn't skew the trend.
-- Below the main chart: fluids and alcohol as small charts on the same time axis.
-- Library: a pinned Chart.js from a CDN, to keep the no-build rule.
+### 2b. Trends page (replaces History; design agreed 2026-11-10)
+Inspired by the Garmin/Apple Health style. Charts are hand-drawn inline SVG (no chart library), mobile-first, two columns of cards on desktop.
+- **Controls:** a `7d | 4w` toggle and a "‹ Nov 4 – 10 ›" row that steps back by one window. A Day view (1d) comes later, once `eaten_at` has enough data.
+- **One rule for every chart:** bars are coloured by whether the day met its goal. Calories: success is under the ceiling (amber if over). Protein, fluids, creatine: success is at or above the goal (slate when missed). Goal line is always drawn. Each card has stat tiles: average daily and "days under/at goal". Days with no calories logged are gaps (a water-only day is not a tracked day). Today is in progress: drawn with a grey ghost up to the goal, and left out of the averages and counts. A 7-day average line sits over calories and protein.
+- **Tap a bar** to select a day: the readout shows its value with an "Open day" link into Today. The "Past days" list stays under the charts for now.
+- **Step 1 (built, needs a test):** Trends tab (replaces History), toggle, range arrows, calories and protein cards.
+- **Step 2 (next):** fluids (bars + 3 L line + average), one stacked carbs and fat chart (no goal, no colouring), creatine as a daily dot strip (all or nothing, "N of M days"), weekly alcohol totals (always the last 8 calendar weeks, current week hollow; no guideline line for now, maybe an optional weekly limit in Goals later), and decide what to do with the Past days list.
+- Data: `daily_totals` has everything, no schema change. The later Day view reads `log_entries` directly.
 
 ## 3. Guest mode
 - A signed-out user can log foods. Entries live in `localStorage`, not memory, because Google sign-in redirects away and back and reloads the page.

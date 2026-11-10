@@ -16,6 +16,8 @@
     --text-dim: #8A9099;
     --text-faint: #565C64;
     --accent: #E8A23D;
+    --good: #5BB98B;
+    --miss: #6B7C93;
     --accent-dim: #5C4422;
     --protein: #5FA8D3;
     --carbs: #8FBC6A;
@@ -476,6 +478,34 @@
   .sheet-edit svg { width: 17px; height: 17px; }
   #logSheetTitle { padding-right: 120px; }
 
+  /* ---------- Trends ---------- */
+  .seg { display: flex; margin: 0 20px 12px; max-width: 320px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
+  .seg button { flex: 1; background: none; border: none; color: var(--text-dim); font: inherit; font-size: 14px; font-weight: 600; padding: 7px 0; border-radius: 7px; cursor: pointer; }
+  .seg button.active { background: var(--bg-elevated); color: var(--text); }
+  .trend-nav { display: flex; align-items: center; justify-content: space-between; margin: 0 20px 14px; max-width: 320px; }
+  .trend-nav button { width: 34px; height: 34px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; }
+  .trend-nav button:disabled { opacity: 0.3; cursor: default; }
+  .trend-nav .range { font-size: 15px; font-weight: 700; }
+  .trend-card { margin: 0 20px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 14px 12px; }
+  .trend-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .trend-title { font-size: 14px; font-weight: 700; }
+  .trend-legend { font-size: 11px; color: var(--text-faint); }
+  .trend-readout { font-size: 12.5px; color: var(--text-dim); min-height: 18px; margin: 6px 0 4px; }
+  .trend-readout b { color: var(--text); }
+  .trend-readout a { color: var(--accent); font-weight: 600; cursor: pointer; margin-left: 8px; }
+  .trend-chart svg { display: block; }
+  .trend-stats { display: flex; gap: 28px; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; }
+  .stat-n { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-l { font-size: 12px; color: var(--text-dim); }
+  .tb-good { fill: var(--good); } .tb-miss { fill: var(--miss); } .tb-over { fill: var(--accent); }
+  .tb-ghost { fill: #343b44; } .tb-sel { stroke: var(--text); stroke-width: 1.5; }
+  .tg-line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 4 3; }
+  .ta-line { fill: none; stroke: var(--text); stroke-width: 1.5; opacity: 0.75; stroke-linejoin: round; }
+  .t-grid { stroke: var(--border); stroke-width: 1; }
+  .t-ax { fill: var(--text-faint); font-size: 10px; }
+  .t-goal-label { fill: var(--text-dim); font-size: 10px; stroke: var(--bg-card); stroke-width: 3px; paint-order: stroke; }
+  .tb-hit { fill: transparent; cursor: pointer; }
+
   /* ---------- History list ---------- */
   .hist-day {
     margin: 0 20px 8px;
@@ -596,7 +626,8 @@
     #app { height: 100vh; min-height: 640px; padding-bottom: 20px; }
     #view-today { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
     #view-today[style*="none"] { display: none; }
-    #view-history { flex: 1; min-height: 0; overflow-y: auto; }
+    #view-trends { flex: 1; min-height: 0; overflow-y: auto; }
+    .trend-grid { display: grid; grid-template-columns: 1fr 1fr; }
     .col-left, .col-right { display: flex; flex-direction: column; min-height: 0; }
     .date-slot { display: flex; justify-content: flex-end; margin: 0 20px 12px; }
     .col-left .entry-list, .col-right .food-list { flex: 1; min-height: 0; max-height: none; overflow-y: auto; margin-bottom: 0; }
@@ -631,7 +662,7 @@
     <div class="wordmark"><img src="caltal-icon.png" alt="">CalTal</div>
     <div class="hdr-tabs">
       <button id="hdrToday" class="active">Today</button>
-      <button id="hdrHistory">History</button>
+      <button id="hdrTrends">Trends</button>
     </div>
     <div id="dateSlotHeader">
     <div class="date-nav" id="dateNav">
@@ -712,8 +743,18 @@
    </div>
   </div>
 
-  <!-- HISTORY VIEW -->
-  <div id="view-history" style="display:none;">
+  <!-- TRENDS VIEW -->
+  <div id="view-trends" style="display:none;">
+    <div class="seg" id="trendSeg">
+      <button data-days="7" class="active">7d</button>
+      <button data-days="28">4w</button>
+    </div>
+    <div class="trend-nav">
+      <button id="trendPrev" aria-label="Earlier">‹</button>
+      <span class="range" id="trendRange"></span>
+      <button id="trendNext" aria-label="Later">›</button>
+    </div>
+    <div class="trend-grid" id="trendCards"></div>
     <div class="section-label">Past days</div>
     <div id="historyList">
       <div class="loading-row">Loading…</div>
@@ -724,7 +765,7 @@
 
 <div class="tabbar" id="tabbar">
   <button class="tab active" id="tabToday"><span class="icon">●</span>Today</button>
-  <button class="tab" id="tabHistory"><span class="icon">▤</span>History</button>
+  <button class="tab" id="tabTrends"><span class="icon">↗</span>Trends</button>
 </div>
 
 <!-- LOG QUANTITY SHEET -->
@@ -1745,21 +1786,228 @@ function placeDateNav() {
 desktopMQ.addEventListener('change', placeDateNav);
 placeDateNav();
 
+
+// ---------- Trends ----------
+// Bar charts drawn as inline SVG (no chart library). Window = last 7 or 28 days ending at
+// trendEnd. Days with no calories logged are gaps. Today is "in progress": it is drawn with a
+// ghost up to the goal and is left out of the averages and success counts.
+let trendDays = 7;
+let trendEnd = null;
+let trendSel = null;
+let trendRows = new Map();
+let trendReq = 0;
+
+const TREND_CARDS = [
+  { key: 'calories', title: 'Calories', goalKey: 'calories', dir: 'ceil',  unit: 'cal', tile: 'Days under goal' },
+  { key: 'protein',  title: 'Protein',  goalKey: 'protein',  dir: 'floor', unit: 'g',   tile: 'Days at goal' },
+];
+
+function fmtNum(n) { return Math.round(n).toLocaleString(); }
+function fmtAxis(v) { return v >= 1000 ? (Math.round(v / 100) / 10) + 'k' : String(Math.round(v)); }
+
+function trendWindow() {
+  if (!trendEnd) trendEnd = todayStr();
+  const days = [];
+  for (let i = trendDays - 1; i >= 0; i--) days.push(addDays(trendEnd, -i));
+  return days;
+}
+
+function trendRangeLabel(days) {
+  const a = new Date(days[0] + 'T00:00:00'), b = new Date(days[days.length - 1] + 'T00:00:00');
+  const yr = a.getFullYear() !== new Date().getFullYear() || b.getFullYear() !== new Date().getFullYear();
+  const md = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const sameMonth = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  const end = sameMonth ? String(b.getDate()) : md(b);
+  return `${md(a)} – ${end}${yr ? ', ' + b.getFullYear() : ''}`;
+}
+
+async function loadTrends() {
+  const days = trendWindow();
+  const req = ++trendReq;
+  document.getElementById('trendRange').textContent = trendRangeLabel(days);
+  document.getElementById('trendNext').disabled = trendEnd >= todayStr();
+  try {
+    // 6 extra days before the window so the 7-day average is complete on the first bar.
+    const rows = await must(sb.from('daily_totals')
+      .select('date, calories, protein')
+      .gte('date', addDays(days[0], -6)).lte('date', days[days.length - 1])
+      .order('date'));
+    if (req !== trendReq) return;
+    trendRows = new Map(rows.map(r => [r.date, numeric(r)]));
+  } catch (err) {
+    console.error(err);
+    if (req !== trendReq) return;
+    trendRows = new Map();
+    showToast('Could not load trends');
+  }
+  renderTrends();
+}
+
+// A day counts only if calories were logged (a water-only day is not a tracked day).
+function trendValue(date, key) {
+  const r = trendRows.get(date);
+  return r && r.calories > 0 ? r[key] : null;
+}
+
+function renderTrends() {
+  const days = trendWindow();
+  const today = todayStr();
+  const box = document.getElementById('trendCards');
+  box.innerHTML = TREND_CARDS.map((cfg, i) => `
+    <div class="trend-card" data-card="${i}">
+      <div class="trend-head"><span class="trend-title">${cfg.title}</span>
+        <span class="trend-legend">${cfg.key === 'calories' || cfg.key === 'protein' ? '— 7-day avg' : ''}${goals[cfg.goalKey] ? '&nbsp; - - goal' : ''}</span></div>
+      <div class="trend-readout"></div>
+      <div class="trend-chart"></div>
+      <div class="trend-stats"></div>
+    </div>`).join('');
+
+  box.querySelectorAll('.trend-card').forEach(card => {
+    const cfg = TREND_CARDS[Number(card.dataset.card)];
+    const goal = goals[cfg.goalKey] || null;
+    const vals = days.map(d => trendValue(d, cfg.key));
+
+    // Rolling 7-day average over completed, tracked days.
+    const avgs = days.map(d => {
+      let sum = 0, n = 0;
+      for (let k = 0; k < 7; k++) {
+        const dd = addDays(d, -k);
+        if (dd === today) continue;
+        const v = trendValue(dd, cfg.key);
+        if (v !== null) { sum += v; n++; }
+      }
+      return n ? sum / n : null;
+    });
+
+    drawTrendChart(card.querySelector('.trend-chart'), cfg, days, vals, avgs, goal, today);
+
+    // Readout for the selected day
+    const ro = card.querySelector('.trend-readout');
+    if (trendSel && days.includes(trendSel)) {
+      const v = vals[days.indexOf(trendSel)];
+      const label = new Date(trendSel + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      ro.innerHTML = `<b>${label}</b> · ${v === null ? 'no entries' : fmtNum(v) + ' ' + cfg.unit}<a data-open="${trendSel}">Open day ›</a>`;
+    } else {
+      ro.textContent = 'Tap a bar for details';
+    }
+
+    // Stat tiles (completed tracked days only)
+    const done = vals.map((v, i) => (v !== null && days[i] !== today) ? v : null).filter(v => v !== null);
+    const avg = done.length ? done.reduce((a, b) => a + b, 0) / done.length : null;
+    const ok = done.filter(v => cfg.dir === 'ceil' ? v <= goal : v >= goal).length;
+    card.querySelector('.trend-stats').innerHTML =
+      `<div><div class="stat-n">${avg === null ? '—' : fmtNum(avg)}</div><div class="stat-l">Avg daily${cfg.unit === 'g' ? ' (g)' : ''}</div></div>` +
+      (goal ? `<div><div class="stat-n">${done.length ? ok + ' of ' + done.length : '—'}</div><div class="stat-l">${cfg.tile}</div></div>` : '');
+  });
+}
+
+function drawTrendChart(el, cfg, days, vals, avgs, goal, today) {
+  const W = Math.max(240, el.clientWidth || 320), H = 180;
+  const m = { l: 34, r: 6, t: 10, b: 30 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const n = days.length, slot = pw / n, bw = Math.min(26, slot * 0.6);
+
+  const top = Math.max(goal || 0, ...vals.map(v => v || 0), ...avgs.map(v => v || 0), 1);
+  const raw = top / 4, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
+  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+  const yMax = Math.ceil(top * 1.05 / step) * step;
+  const y = v => m.t + ph * (1 - v / yMax);
+  const cx = i => m.l + slot * i + slot / 2;
+
+  let g = '';
+  for (let v = 0; v <= yMax + 0.001; v += step) {
+    g += `<line class="t-grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`;
+    g += `<text class="t-ax" x="${m.l - 6}" y="${y(v) + 3.5}" text-anchor="end">${fmtAxis(v)}</text>`;
+  }
+
+  vals.forEach((v, i) => {
+    const isToday = days[i] === today;
+    if (v === null) return;
+    const x = cx(i) - bw / 2, h = Math.max(2, ph * v / yMax), rx = Math.min(5, bw / 2);
+    if (isToday && goal && v < goal) {
+      g += `<rect class="tb-ghost" x="${x}" y="${y(goal)}" width="${bw}" height="${ph * goal / yMax}" rx="${rx}"/>`;
+    }
+    let cls;
+    if (!goal) cls = 'tb-miss';
+    else if (cfg.dir === 'ceil') cls = v > goal ? 'tb-over' : (isToday ? 'tb-miss' : 'tb-good');
+    else cls = v >= goal ? 'tb-good' : 'tb-miss';
+    g += `<rect class="${cls}${days[i] === trendSel ? ' tb-sel' : ''}" x="${x}" y="${y(v)}" width="${bw}" height="${h}" rx="${rx}"/>`;
+  });
+
+  if (goal) {
+    g += `<line class="tg-line" x1="${m.l}" x2="${W - m.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
+  }
+
+  const pts = avgs.map((v, i) => v === null ? null : `${cx(i)},${y(v)}`).filter(Boolean);
+  if (pts.length > 1) g += `<polyline class="ta-line" points="${pts.join(' ')}"/>`;
+
+  // Dots under each bar, with dates at the ends
+  const fmtD = d => { const [, mo, da] = d.split('-'); return `${Number(mo)}/${da}`; };
+  days.forEach((d, i) => {
+    const sel = d === trendSel;
+    g += `<circle cx="${cx(i)}" cy="${m.t + ph + 12}" r="${sel ? 3.5 : 2}" fill="${sel ? 'var(--text)' : 'var(--text-faint)'}"/>`;
+  });
+  g += `<text class="t-ax" x="${cx(0)}" y="${H - 3}" text-anchor="middle">${fmtD(days[0])}</text>`;
+  g += `<text class="t-ax" x="${cx(n - 1)}" y="${H - 3}" text-anchor="middle">${fmtD(days[n - 1])}</text>`;
+
+  // Full-height tap areas
+  days.forEach((d, i) => {
+    g += `<rect class="tb-hit" data-date="${d}" x="${m.l + slot * i}" y="0" width="${slot}" height="${H}"/>`;
+  });
+
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title} by day">${g}</svg>`;
+}
+
+document.getElementById('trendCards').addEventListener('click', ev => {
+  const open = ev.target.closest('[data-open]');
+  if (open) {
+    currentDate = open.dataset.open;
+    switchView('today');
+    refreshDateUI();
+    return;
+  }
+  const hit = ev.target.closest('.tb-hit');
+  if (hit) {
+    trendSel = trendSel === hit.dataset.date ? null : hit.dataset.date;
+    renderTrends();
+  }
+});
+document.querySelectorAll('#trendSeg button').forEach(b => b.addEventListener('click', () => {
+  trendDays = Number(b.dataset.days);
+  document.querySelectorAll('#trendSeg button').forEach(x => x.classList.toggle('active', x === b));
+  trendSel = null;
+  loadTrends();
+}));
+document.getElementById('trendPrev').addEventListener('click', () => { trendEnd = addDays(trendWindow()[trendDays - 1], -trendDays); trendSel = null; loadTrends(); });
+document.getElementById('trendNext').addEventListener('click', () => {
+  const next = addDays(trendWindow()[trendDays - 1], trendDays);
+  trendEnd = next > todayStr() ? todayStr() : next;
+  trendSel = null;
+  loadTrends();
+});
+let trendResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(trendResizeTimer);
+  trendResizeTimer = setTimeout(() => {
+    if (document.getElementById('view-trends').style.display !== 'none') renderTrends();
+  }, 150);
+});
+
 // ---------- Tabs ----------
 function switchView(view) {
   document.getElementById('view-today').style.display = view === 'today' ? '' : 'none';
-  document.getElementById('view-history').style.display = view === 'history' ? '' : 'none';
+  document.getElementById('view-trends').style.display = view === 'trends' ? '' : 'none';
   document.getElementById('dateNav').style.display = view === 'today' ? 'flex' : 'none';
   document.getElementById('tabToday').classList.toggle('active', view === 'today');
-  document.getElementById('tabHistory').classList.toggle('active', view === 'history');
+  document.getElementById('tabTrends').classList.toggle('active', view === 'trends');
   document.getElementById('hdrToday').classList.toggle('active', view === 'today');
-  document.getElementById('hdrHistory').classList.toggle('active', view === 'history');
-  if (view === 'history') loadHistory();
+  document.getElementById('hdrTrends').classList.toggle('active', view === 'trends');
+  if (view === 'trends') { loadTrends(); loadHistory(); }
 }
 document.getElementById('tabToday').addEventListener('click', () => switchView('today'));
-document.getElementById('tabHistory').addEventListener('click', () => switchView('history'));
+document.getElementById('tabTrends').addEventListener('click', () => switchView('trends'));
 document.getElementById('hdrToday').addEventListener('click', () => switchView('today'));
-document.getElementById('hdrHistory').addEventListener('click', () => switchView('history'));
+document.getElementById('hdrTrends').addEventListener('click', () => switchView('trends'));
 
 // ---------- Auth ----------
 function showSignedOut(note = '') {
