@@ -45,7 +45,7 @@ Checks after each step: load the app, log an entry, and confirm the row in the S
 
 ### 2a-bis. Daily summary and goals design (agreed and built 2026-11-10)
 Built: header profile menu (photo or initial; email, Goals, Sign out), Goals sheet (on/off switch plus value per goal; off stores null), summary bars as designed below.
-- **Goals:** calories 2,200 (a ceiling), protein 150 g, fluids 3,000 ml, creatine 10 g. No carb or fat goals. The app falls back to calories 2,200, protein 150 and fluids 3,000 when a user has no `goals` row; creatine defaults to off (null = off, hidden from the summary). Set yours to 10 g in the goals form.
+- **Goals:** calories 2,200 (a ceiling), protein 150 g, fluids 3,000 ml, creatine 10 g. No carb or fat goals. Changed 2026-11-11: a user with no `goals` row gets only a neutral 2,000 calorie ceiling; protein, fluids and creatine are off until switched on in the Goals sheet (starting values 100 g, 2.5 L, 5 g). Off means: fluids and creatine disappear from the summary, protein keeps its bar as a share of calories, and in Trends creatine's card disappears while fluids' chart stays without a goal line.
 - **Schema:** `creatine_g` on `foods` and `log_entries`; `fluid_ml` and `creatine_g` on `goals`; `creatine_g` added to `daily_totals` (in `schema.sql`; `supabase/seed_supplements.sql` adds "Creatine (10 g)" and "Creatine (5 g)"). Both have been run.
 - **Summary shows little text; bars carry progress.** Goal numbers are not shown in the summary, only in the goals form.
   - Calories: big number plus a small "N left". The bar warns amber then red past the ceiling.
@@ -55,6 +55,14 @@ Built: header profile menu (photo or initial; email, Goals, Sign out), Goals she
   - Layout: two rows on the same three columns (Protein/Carbs/Fat, then Fluids/Creatine). Calorie bar is 4px like the rest.
   - Alcohol is NOT on the daily summary: it is a trend over time, so it belongs on the Trends page.
 - **Later:** a pace tick on each bar (where you'd be by this time of day), using a waking-hours window.
+
+### 2a-quater. Goals helper (planned, not started)
+A collapsed "Help me choose" section in the Goals sheet for people who are unsure. Inputs: age, sex, height, weight, activity level, and a goal (lose, maintain or gain). It calculates in the browser (nothing stored or sent) and fills the goal boxes, which stay editable.
+- **Calories:** estimated daily needs (Mifflin-St Jeor times an activity factor), adjusted a little for the chosen goal, with a sensible lower limit.
+- **Protein:** about 1.6 g per kg of body weight. **Fluids:** about 30-35 ml per kg.
+- **Creatine:** no suggestion (typical doses are 3-5 g a day; it is a personal choice).
+- **Wording:** an estimate, not medical advice; point people with medical conditions or under 18 to a professional. Add short hint text under each goal (for example "Most adults aim for 2-3 L a day").
+- Later, the weight could come from weight tracking (section 4).
 
 ### 2a-ter. Configurable quick-add buttons (built 2026-11-10; needs `schema.sql` run and a test)
 **Decided:** 6 slots (3 x 2, 34px tall buttons), 10-character labels, grid directly under the search box (search stays first), with no heading. Editing: a "Quick-add buttons" item in the avatar menu, plus dotted "+ Add" cells that complete a partly filled row (shown at 1, 2, 4 or 5 buttons) and open the editor on the first empty slot. Water (250 ml) is a virtual default for slot 0 until the user saves buttons (clearing every slot brings that default back). The old water-row is removed.

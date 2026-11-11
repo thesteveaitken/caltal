@@ -109,7 +109,6 @@
   .macro-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
   .extras-row { margin-top: 16px; }
   .macro-w .macro-bar-fill { background: var(--fluid); }
-  .macro-w.nogoal .macro-bar-bg { visibility: hidden; }
   .macro-cr .macro-bar-fill { background: var(--creatine); }
   .macro.done .macro-label b::after { content: " ✓"; color: var(--carbs); }
   .macro {
@@ -1250,7 +1249,10 @@ async function loadEntriesForDate(date) {
 // ---------- Rendering: totals ----------
 // ---------- Goals ----------
 // A null goal means "off": it is hidden from the summary. Creatine defaults to off.
-const DEFAULT_GOALS = { calories: 2200, protein: 150, fluid_ml: 3000, creatine_g: null };
+// Someone with no saved goals gets only a neutral calorie ceiling; everything else is off until they turn it on.
+const DEFAULT_GOALS = { calories: 2000, protein: null, fluid_ml: null, creatine_g: null };
+// Starting values offered when a goal is switched on in the Goals sheet.
+const GOAL_STARTERS = { calories: 2000, protein: 100, fluid_ml: 2500, creatine_g: 5 };
 let goals = { ...DEFAULT_GOALS };
 
 async function loadGoals() {
@@ -1307,10 +1309,11 @@ function renderTotals() {
   document.getElementById('barF').style.width = share(t.f, 9);
   document.querySelector('.macro-p').classList.toggle('done', !!goals.protein && t.p >= goals.protein);
 
-  // Fluids (litres), a floor
+  // Fluids (litres), a floor. Like creatine, the box is only shown with a goal.
+  const fluidBox = document.getElementById('fluidBox');
+  fluidBox.style.display = goals.fluid_ml ? '' : 'none';
   document.getElementById('valFluid').textContent = (Math.round(t.fluid / 10) / 100) + ' L';
-  document.getElementById('fluidBox').classList.toggle('nogoal', !goals.fluid_ml);
-  document.getElementById('fluidBox').classList.toggle('done', !!goals.fluid_ml && t.fluid >= goals.fluid_ml);
+  fluidBox.classList.toggle('done', !!goals.fluid_ml && t.fluid >= goals.fluid_ml);
   document.getElementById('barW').style.width = goals.fluid_ml ? pct(t.fluid, goals.fluid_ml) : '0%';
 
   // Creatine: bar is empty until logged, then full with a check. Only shown with a creatine goal.
@@ -1320,6 +1323,7 @@ function renderTotals() {
   crBox.classList.toggle('done', crDone);
   document.getElementById('barCr').style.width = goals.creatine_g ? pct(t.cr, goals.creatine_g) : '0%';
   document.getElementById('valCr').textContent = round1(t.cr) + 'g';
+  document.querySelector('.extras-row').style.display = (goals.fluid_ml || goals.creatine_g) ? '' : 'none';
 }
 
 // Goals sheet
@@ -1342,7 +1346,7 @@ function openGoals() {
     document.getElementById('goalOn_' + d.key).addEventListener('change', (ev) => {
       const input = document.getElementById('goalVal_' + d.key);
       input.disabled = !ev.target.checked;
-      if (ev.target.checked && !input.value) input.value = (DEFAULT_GOALS[d.key] ?? (d.key === 'creatine_g' ? 10 : 0)) / d.scale;
+      if (ev.target.checked && !input.value) input.value = GOAL_STARTERS[d.key] / d.scale;
     });
   }
   document.getElementById('goalsOverlay').classList.add('open');
