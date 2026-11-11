@@ -1139,6 +1139,71 @@ function makeLocalClient() {
   return { from: t => new Query(t) };
 }
 
+
+// Copy the guest's local data into the account that just signed in. Ids are kept so a repeat
+// after a partial failure changes nothing. Guest foods whose name matches one the account
+// already has attach to that food. Goals and quick-adds are copied only if the account has none.
+// The local copy is deleted only after everything uploaded; on any error it stays for next time.
+let merging = false;
+async function mergeGuestData(authUser) {
+  if (merging) return;
+  let store = null;
+  try { store = JSON.parse(localStorage.getItem(GUEST_STORE_KEY)); } catch (e) { return; }
+  if (!store) return;
+  const g = t => (Array.isArray(store[t]) ? store[t] : []);
+  if (![g('foods'), g('favourites'), g('log_entries'), g('goals'), g('quick_adds')].some(a => a.length)) return;
+  merging = true;
+  try {
+    const uid = authUser.id;
+    // Foods: map guest ids to account ids
+    const mine = await must(supa.from('foods').select('id, name').eq('owner_id', uid));
+    const standardIds = (await must(supa.from('foods').select('id').is('owner_id', null))).map(f => f.id);
+    const byName = new Map(mine.map(f => [f.name.toLowerCase(), f.id]));
+    const idMap = new Map();
+    const newFoods = [];
+    for (const f of g('foods')) {
+      const existing = byName.get(f.name.toLowerCase());
+      if (existing) { idMap.set(f.id, existing); continue; }
+      idMap.set(f.id, f.id);
+      newFoods.push({ id: f.id, owner_id: uid, name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+        alcohol: f.alcohol, fluid_ml: f.fluid_ml, creatine_g: f.creatine_g, created_at: f.created_at });
+    }
+    if (newFoods.length) await must(supa.from('foods').upsert(newFoods, { onConflict: 'id', ignoreDuplicates: true }));
+    const valid = new Set([...standardIds, ...mine.map(f => f.id), ...newFoods.map(f => f.id)]);
+    const mapFood = id => { const m = idMap.get(id) || id; return valid.has(m) ? m : null; };
+
+    const favs = g('favourites').map(f => ({ user_id: uid, food_id: mapFood(f.food_id) })).filter(f => f.food_id);
+    if (favs.length) await must(supa.from('favourites').upsert(favs, { onConflict: 'user_id,food_id', ignoreDuplicates: true }));
+
+    const rows = g('log_entries').map(e => ({
+      id: e.id, user_id: uid, date: e.date, food_id: mapFood(e.food_id), food_name: e.food_name, quantity: e.quantity,
+      calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat, alcohol: e.alcohol, fluid_ml: e.fluid_ml,
+      creatine_g: e.creatine_g, eaten_at: e.eaten_at, created_at: e.created_at,
+    }));
+    for (let i = 0; i < rows.length; i += 200) {
+      await must(supa.from('log_entries').upsert(rows.slice(i, i + 200), { onConflict: 'id', ignoreDuplicates: true }));
+    }
+
+    const goalRow = g('goals')[0];
+    if (goalRow && !(await must(supa.from('goals').select('user_id').maybeSingle()))) {
+      const { user_id, ...rest } = goalRow;
+      await must(supa.from('goals').upsert({ user_id: uid, ...rest }));
+    }
+    const quick = g('quick_adds').map(q => ({ user_id: uid, slot: q.slot, food_id: mapFood(q.food_id), label: q.label })).filter(q => q.food_id);
+    if (quick.length && !(await must(supa.from('quick_adds').select('slot'))).length) {
+      await must(supa.from('quick_adds').upsert(quick));
+    }
+
+    localStorage.removeItem(GUEST_STORE_KEY);
+    showToast(rows.length ? `Added ${rows.length} guest ${rows.length === 1 ? 'entry' : 'entries'} to your account` : 'Guest data added to your account');
+  } catch (err) {
+    console.error('Guest merge failed', err);
+    showToast('Could not copy guest data. It is still on this device.');
+  } finally {
+    merging = false;
+  }
+}
+
 // ---------- Loading data ----------
 async function loadFoods() {
   try {
@@ -2336,11 +2401,14 @@ function showApp(sessionUser, isGuest) {
     trendCreatineStart = null;
     document.getElementById('profileMenu').style.display = 'none';
     currentDate = todayStr();
-    switchView('today');
-    refreshDateUI();
-    loadFoods();
-    loadGoals();
-    loadQuickAdds();
+    (async () => {
+      if (!guest) await mergeGuestData(user); // no-op unless a guest left local data behind
+      switchView('today');
+      refreshDateUI();
+      loadFoods();
+      loadGoals();
+      loadQuickAdds();
+    })();
   }
 }
 
