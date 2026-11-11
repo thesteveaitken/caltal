@@ -24,6 +24,7 @@
     --fat: #D38FA8;
     --fluid: #5FC3C3;
     --creatine: #A58FD3;
+    --alcohol: #D9915F;
     --danger: #C75C5C;
     --radius: 14px;
     --radius-sm: 9px;
@@ -492,6 +493,10 @@
   .trend-legend { font-size: 11px; color: var(--text-faint); }
   .trend-readout { font-size: 12.5px; color: var(--text-dim); min-height: 18px; margin: 6px 0 4px; }
   .trend-readout b { color: var(--text); }
+  .trend-readout:empty, .trend-stats:empty { display: none; }
+  .trend-legend.lit { color: var(--text-dim); font-size: 12.5px; }
+  .trend-legend a { color: var(--accent); font-weight: 600; cursor: pointer; margin-left: 6px; }
+  .trend-card.compact .trend-chart { margin-top: 8px; }
   .trend-readout a { color: var(--accent); font-weight: 600; cursor: pointer; margin-left: 8px; }
   .trend-chart svg { display: block; }
   .trend-stats { display: flex; gap: 28px; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; }
@@ -499,28 +504,14 @@
   .stat-l { font-size: 12px; color: var(--text-dim); }
   .tb-good { fill: var(--good); } .tb-miss { fill: var(--miss); } .tb-over { fill: var(--accent); }
   .tb-ghost { fill: #343b44; } .tb-sel { stroke: var(--text); stroke-width: 1.5; }
+  .tb-carbs { fill: var(--carbs); } .tb-fat { fill: var(--fat); } .tb-selring { fill: none; stroke: var(--text); stroke-width: 1.5; }
+  .tb-alc { fill: var(--alcohol); } .tb-alc-live { fill: none; stroke: var(--alcohol); stroke-width: 1.5; stroke-dasharray: 3 2; }
   .tg-line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 4 3; }
   .ta-line { fill: none; stroke: var(--text); stroke-width: 1.5; opacity: 0.75; stroke-linejoin: round; }
   .t-grid { stroke: var(--border); stroke-width: 1; }
   .t-ax { fill: var(--text-faint); font-size: 10px; }
   .t-goal-label { fill: var(--text-dim); font-size: 10px; stroke: var(--bg-card); stroke-width: 3px; paint-order: stroke; }
   .tb-hit { fill: transparent; cursor: pointer; }
-
-  /* ---------- History list ---------- */
-  .hist-day {
-    margin: 0 20px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 13px 16px;
-    cursor: pointer;
-  }
-  .hist-day:active { border-color: var(--accent); }
-  .hist-date { font-size: 14px; font-weight: 600; }
-  .hist-cal { font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 
   .toast {
     position: fixed;
@@ -627,7 +618,7 @@
     #view-today { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
     #view-today[style*="none"] { display: none; }
     #view-trends { flex: 1; min-height: 0; overflow-y: auto; }
-    .trend-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .trend-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
     .col-left, .col-right { display: flex; flex-direction: column; min-height: 0; }
     .date-slot { display: flex; justify-content: flex-end; margin: 0 20px 12px; }
     .col-left .entry-list, .col-right .food-list { flex: 1; min-height: 0; max-height: none; overflow-y: auto; margin-bottom: 0; }
@@ -755,10 +746,6 @@
       <button id="trendNext" aria-label="Later">›</button>
     </div>
     <div class="trend-grid" id="trendCards"></div>
-    <div class="section-label">Past days</div>
-    <div id="historyList">
-      <div class="loading-row">Loading…</div>
-    </div>
   </div>
 
 </div>
@@ -1034,37 +1021,6 @@ async function loadEntriesForDate(date) {
     console.error(err);
     if (req !== entriesRequest) return;
     document.getElementById('entryList').innerHTML = '<div class="loading-row">Could not load entries.</div>';
-  }
-}
-
-async function loadHistory() {
-  const list = document.getElementById('historyList');
-  list.innerHTML = '<div class="loading-row">Loading…</div>';
-  try {
-    const days = await must(sb.from('daily_totals')
-      .select('date, calories')
-      .order('date', { ascending: false }));
-    if (!days.length) {
-      list.innerHTML = '<div class="empty-state">No history yet — entries you log will show up here.</div>';
-      return;
-    }
-    const rows = days.map(d => ({ date: d.date, cal: Number(d.calories) || 0 }));
-    list.innerHTML = rows.map(r => `
-      <div class="hist-day" data-date="${r.date}">
-        <span class="hist-date">${formatDateLabel(r.date)}</span>
-        <span class="hist-cal">${Math.round(r.cal)} cal</span>
-      </div>
-    `).join('');
-    list.querySelectorAll('.hist-day').forEach(el => {
-      el.addEventListener('click', () => {
-        currentDate = el.dataset.date;
-        switchView('today');
-        refreshDateUI();
-      });
-    });
-  } catch (err) {
-    console.error(err);
-    list.innerHTML = '<div class="loading-row">Could not load history.</div>';
   }
 }
 
@@ -1789,27 +1745,46 @@ placeDateNav();
 
 // ---------- Trends ----------
 // Bar charts drawn as inline SVG (no chart library). Window = last 7 or 28 days ending at
-// trendEnd. Days with no calories logged are gaps. Today is "in progress": it is drawn with a
-// ghost up to the goal and is left out of the averages and success counts.
+// trendEnd. A day counts only if calories were logged (fluids and creatine also count a day
+// that only has water or creatine). Today is "in progress": drawn with a ghost up to the goal
+// and left out of averages and counts. Alcohol is weekly (last 8 calendar weeks, Mon-Sun).
 let trendDays = 7;
 let trendEnd = null;
-let trendSel = null;
+let trendSel = null;     // selected day (YYYY-MM-DD)
+let trendSelWk = null;   // selected week start for the alcohol chart
 let trendRows = new Map();
 let trendReq = 0;
+let trendCreatineStart = null; // date of the first creatine ever logged; earlier days are not counted as misses
 
 const TREND_CARDS = [
-  { key: 'calories', title: 'Calories', goalKey: 'calories', dir: 'ceil',  unit: 'cal', tile: 'Days under goal' },
-  { key: 'protein',  title: 'Protein',  goalKey: 'protein',  dir: 'floor', unit: 'g',   tile: 'Days at goal' },
+  { id: 'cal', title: 'Calories', key: 'calories', goalKey: 'calories', dir: 'ceil',  unit: 'cal', tile: 'Days under goal', avg: true },
+  { id: 'pro', title: 'Protein',  key: 'protein',  goalKey: 'protein',  dir: 'floor', unit: 'g',   tile: 'Days at goal',    avg: true },
+  { id: 'flu', title: 'Fluids',   key: 'fluid_ml', goalKey: 'fluid_ml', dir: 'floor', unit: 'L', div: 1000, tile: 'Days at goal', avg: true },
+  { id: 'cf',  title: 'Carbs & fat', unit: 'g', stack: [['carbs', 'tb-carbs', 'Carbs'], ['fat', 'tb-fat', 'Fat']] },
+  { id: 'cr',  title: 'Creatine', kind: 'dots', key: 'creatine_g', goalKey: 'creatine_g', unit: 'g' },
+  { id: 'alc', title: 'Alcohol, weekly', kind: 'weekly', key: 'alcohol', unit: 'drinks' },
 ];
 
 function fmtNum(n) { return Math.round(n).toLocaleString(); }
-function fmtAxis(v) { return v >= 1000 ? (Math.round(v / 100) / 10) + 'k' : String(Math.round(v)); }
+function fmtAxis(v) { return v >= 1000 ? (Math.round(v / 100) / 10) + 'k' : String(+v.toFixed(1)); }
+function fmtV(cfg, v) { return (cfg.div ? String(+(v / cfg.div).toFixed(2)) : (cfg.unit === 'drinks' ? String(+v.toFixed(1)) : fmtNum(v))) + ' ' + cfg.unit; }
+function weekStartOf(date) {
+  const dow = (new Date(date + 'T00:00:00').getDay() + 6) % 7; // Monday = 0
+  return addDays(date, -dow);
+}
+const fmtMD = d => { const [, mo, da] = d.split('-'); return `${Number(mo)}/${da}`; };
 
 function trendWindow() {
   if (!trendEnd) trendEnd = todayStr();
   const days = [];
   for (let i = trendDays - 1; i >= 0; i--) days.push(addDays(trendEnd, -i));
   return days;
+}
+function trendWeeks() {
+  const w0 = weekStartOf(trendEnd || todayStr());
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) weeks.push(addDays(w0, -7 * i));
+  return weeks;
 }
 
 function trendRangeLabel(days) {
@@ -1823,17 +1798,24 @@ function trendRangeLabel(days) {
 
 async function loadTrends() {
   const days = trendWindow();
+  const weeks = trendWeeks();
   const req = ++trendReq;
   document.getElementById('trendRange').textContent = trendRangeLabel(days);
   document.getElementById('trendNext').disabled = trendEnd >= todayStr();
+  const from = [addDays(days[0], -6), weeks[0]].sort()[0];
+  const to = [addDays(weeks[7], 6), todayStr()].sort()[0];
   try {
     // 6 extra days before the window so the 7-day average is complete on the first bar.
     const rows = await must(sb.from('daily_totals')
-      .select('date, calories, protein')
-      .gte('date', addDays(days[0], -6)).lte('date', days[days.length - 1])
-      .order('date'));
+      .select('date, calories, protein, carbs, fat, fluid_ml, creatine_g, alcohol')
+      .gte('date', from).lte('date', to).order('date'));
     if (req !== trendReq) return;
     trendRows = new Map(rows.map(r => [r.date, numeric(r)]));
+    if (!trendCreatineStart && goals.creatine_g) {
+      const first = await must(sb.from('log_entries').select('date').gt('creatine_g', 0).order('date').limit(1));
+      if (req !== trendReq) return;
+      trendCreatineStart = first.length ? first[0].date : null;
+    }
   } catch (err) {
     console.error(err);
     if (req !== trendReq) return;
@@ -1843,71 +1825,130 @@ async function loadTrends() {
   renderTrends();
 }
 
-// A day counts only if calories were logged (a water-only day is not a tracked day).
-function trendValue(date, key) {
+// Value for one day, or null when the day is not tracked for this chart.
+function dayVal(cfg, date) {
   const r = trendRows.get(date);
-  return r && r.calories > 0 ? r[key] : null;
+  if (!r) return null;
+  const logged = r.calories > 0;
+  if (cfg.key === 'fluid_ml') return r.fluid_ml > 0 ? r.fluid_ml : null;
+  if (cfg.key === 'creatine_g') return (logged || r.creatine_g > 0) ? r.creatine_g : null;
+  if (!logged) return null;
+  return cfg.stack ? r.carbs + r.fat : r[cfg.key];
 }
 
 function renderTrends() {
   const days = trendWindow();
   const today = todayStr();
+  const cards = TREND_CARDS.filter(c => c.kind !== 'dots' || goals.creatine_g);
   const box = document.getElementById('trendCards');
-  box.innerHTML = TREND_CARDS.map((cfg, i) => `
-    <div class="trend-card" data-card="${i}">
-      <div class="trend-head"><span class="trend-title">${cfg.title}</span>
-        <span class="trend-legend">${cfg.key === 'calories' || cfg.key === 'protein' ? '— 7-day avg' : ''}${goals[cfg.goalKey] ? '&nbsp; - - goal' : ''}</span></div>
+  box.innerHTML = cards.map(cfg => {
+    const goal = cfg.goalKey ? goals[cfg.goalKey] : null;
+    const legend = cfg.stack
+      ? cfg.stack.map(([, , lab], i) => `<span style="color:var(--${cfg.stack[i][0]})">■</span> ${lab}`).join('&nbsp; ')
+      : [cfg.avg ? '— 7-day avg' : '', goal && cfg.kind !== 'dots' ? '- - goal' : ''].filter(Boolean).join('&nbsp; ');
+    return `
+    <div class="trend-card${cfg.kind === 'dots' ? ' compact' : ''}" data-card="${cfg.id}">
+      <div class="trend-head"><span class="trend-title">${cfg.title}</span><span class="trend-legend">${legend}</span></div>
       <div class="trend-readout"></div>
       <div class="trend-chart"></div>
       <div class="trend-stats"></div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   box.querySelectorAll('.trend-card').forEach(card => {
-    const cfg = TREND_CARDS[Number(card.dataset.card)];
-    const goal = goals[cfg.goalKey] || null;
-    const vals = days.map(d => trendValue(d, cfg.key));
+    const cfg = TREND_CARDS.find(c => c.id === card.dataset.card);
+    const goal = cfg.goalKey ? (goals[cfg.goalKey] || null) : null;
+    const chart = card.querySelector('.trend-chart');
+    const ro = card.querySelector('.trend-readout');
+    const stats = card.querySelector('.trend-stats');
+    const tile = (n, l) => `<div><div class="stat-n">${n}</div><div class="stat-l">${l}</div></div>`;
+    const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    const openLink = d => `<a data-open="${d}">Open day ›</a>`;
+    const dayLabel = d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const hint = 'Tap a bar for details';
 
-    // Rolling 7-day average over completed, tracked days.
+    if (cfg.kind === 'weekly') {
+      const weeks = trendWeeks();
+      const items = weeks.map(w => {
+        let sum = 0, logged = false;
+        for (let k = 0; k < 7; k++) {
+          const r = trendRows.get(addDays(w, k));
+          if (r && r.calories > 0) logged = true;
+          if (r) sum += r.alcohol || 0;
+        }
+        return { id: w, val: logged || sum > 0 ? sum : null, live: addDays(w, 6) >= today, lab: fmtMD(w) };
+      });
+      drawTrendChart(chart, cfg, items, null);
+      const sel = items.find(i => i.id === trendSelWk);
+      ro.innerHTML = sel ? `<b>Week of ${dayLabel(sel.id)}</b> · ${sel.val === null ? 'no entries' : fmtV(cfg, sel.val)}` : hint;
+      const done = items.filter(i => i.val !== null && !i.live).map(i => i.val);
+      const last = items[items.length - 1];
+      stats.innerHTML = tile(done.length ? String(+mean(done).toFixed(1)) : '—', 'Avg per week') +
+        tile(last.val === null ? '—' : String(+last.val.toFixed(1)), last.live ? 'This week' : 'Latest week');
+      return;
+    }
+
+    const vals = days.map(d => dayVal(cfg, d));
+
+    if (cfg.kind === 'dots') {
+      // Compact habit strip: no readout/stat rows, the summary lives in the header.
+      const eff = vals.map((v, i) => (trendCreatineStart && days[i] >= trendCreatineStart) ? v : null);
+      drawDotStrip(chart, cfg, days, eff, goal, today);
+      const head = card.querySelector('.trend-legend');
+      const si = days.indexOf(trendSel);
+      const done = eff.filter((v, i) => v !== null && days[i] !== today);
+      if (si >= 0) head.innerHTML = `${dayLabel(trendSel)} · ${eff[si] === null ? 'not tracked' : (eff[si] > 0 ? fmtV(cfg, eff[si]) : 'none')} ${openLink(trendSel)}`;
+      else head.textContent = !trendCreatineStart ? 'No creatine logged yet' : (done.length ? done.filter(v => v >= goal).length + ' of ' + done.length + ' days at goal' : '');
+      head.classList.add('lit');
+      ro.innerHTML = ''; stats.innerHTML = '';
+      return;
+    }
+
+    if (cfg.stack) {
+      const parts = days.map(d => { const r = trendRows.get(d); return vals[days.indexOf(d)] === null ? null : cfg.stack.map(([k]) => r[k]); });
+      const items = days.map((d, i) => ({ id: d, val: vals[i], parts: parts[i], live: d === today }));
+      drawTrendChart(chart, cfg, items, null);
+      const si = days.indexOf(trendSel);
+      ro.innerHTML = si >= 0 ? `<b>${dayLabel(trendSel)}</b> · ${parts[si] ? cfg.stack.map(([, , lab], j) => `${lab} ${fmtNum(parts[si][j])} g`).join(' · ') : 'no entries'}${openLink(trendSel)}` : hint;
+      const done = days.map((d, i) => (parts[i] && d !== today) ? parts[i] : null).filter(Boolean);
+      stats.innerHTML = cfg.stack.map(([, , lab], j) => tile(done.length ? fmtNum(mean(done.map(p => p[j]))) : '—', `Avg ${lab.toLowerCase()} (g)`)).join('');
+      return;
+    }
+
+    // Goal bar charts (calories, protein, fluids)
+    const div = cfg.div || 1;
     const avgs = days.map(d => {
-      let sum = 0, n = 0;
+      const w = [];
       for (let k = 0; k < 7; k++) {
         const dd = addDays(d, -k);
         if (dd === today) continue;
-        const v = trendValue(dd, cfg.key);
-        if (v !== null) { sum += v; n++; }
+        const v = dayVal(cfg, dd);
+        if (v !== null) w.push(v);
       }
-      return n ? sum / n : null;
+      return mean(w);
     });
-
-    drawTrendChart(card.querySelector('.trend-chart'), cfg, days, vals, avgs, goal, today);
-
-    // Readout for the selected day
-    const ro = card.querySelector('.trend-readout');
-    if (trendSel && days.includes(trendSel)) {
-      const v = vals[days.indexOf(trendSel)];
-      const label = new Date(trendSel + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-      ro.innerHTML = `<b>${label}</b> · ${v === null ? 'no entries' : fmtNum(v) + ' ' + cfg.unit}<a data-open="${trendSel}">Open day ›</a>`;
-    } else {
-      ro.textContent = 'Tap a bar for details';
-    }
-
-    // Stat tiles (completed tracked days only)
-    const done = vals.map((v, i) => (v !== null && days[i] !== today) ? v : null).filter(v => v !== null);
-    const avg = done.length ? done.reduce((a, b) => a + b, 0) / done.length : null;
+    const items = days.map((d, i) => ({ id: d, val: vals[i] === null ? null : vals[i] / div, live: d === today, avg: avgs[i] === null ? null : avgs[i] / div }));
+    drawTrendChart(chart, cfg, items, goal ? goal / div : null);
+    const si = days.indexOf(trendSel);
+    ro.innerHTML = si >= 0 ? `<b>${dayLabel(trendSel)}</b> · ${vals[si] === null ? 'no entries' : fmtV(cfg, vals[si])}${openLink(trendSel)}` : hint;
+    const done = vals.filter((v, i) => v !== null && days[i] !== today);
+    const avg = mean(done);
     const ok = done.filter(v => cfg.dir === 'ceil' ? v <= goal : v >= goal).length;
-    card.querySelector('.trend-stats').innerHTML =
-      `<div><div class="stat-n">${avg === null ? '—' : fmtNum(avg)}</div><div class="stat-l">Avg daily${cfg.unit === 'g' ? ' (g)' : ''}</div></div>` +
-      (goal ? `<div><div class="stat-n">${done.length ? ok + ' of ' + done.length : '—'}</div><div class="stat-l">${cfg.tile}</div></div>` : '');
+    stats.innerHTML = tile(avg === null ? '—' : fmtV(cfg, avg), 'Avg daily') +
+      (goal ? tile(done.length ? ok + ' of ' + done.length : '—', cfg.tile) : '');
   });
 }
 
-function drawTrendChart(el, cfg, days, vals, avgs, goal, today) {
+// items: [{ id, val (display units or null), parts?, live?, avg?, lab? }]. goal in display units.
+function drawTrendChart(el, cfg, items, goal) {
+  const weekly = cfg.kind === 'weekly';
   const W = Math.max(240, el.clientWidth || 320), H = 180;
   const m = { l: 34, r: 6, t: 10, b: 30 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
-  const n = days.length, slot = pw / n, bw = Math.min(26, slot * 0.6);
+  const n = items.length, slot = pw / n, bw = Math.min(weekly ? 22 : 26, slot * 0.6);
+  const sel = weekly ? trendSelWk : trendSel;
 
-  const top = Math.max(goal || 0, ...vals.map(v => v || 0), ...avgs.map(v => v || 0), 1);
+  const top = Math.max(goal || 0, ...items.map(i => i.val || 0), ...items.map(i => i.avg || 0), weekly ? 3 : 1e-6);
   const raw = top / 4, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
   const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
   const yMax = Math.ceil(top * 1.05 / step) * step;
@@ -1915,47 +1956,86 @@ function drawTrendChart(el, cfg, days, vals, avgs, goal, today) {
   const cx = i => m.l + slot * i + slot / 2;
 
   let g = '';
-  for (let v = 0; v <= yMax + 0.001; v += step) {
+  for (let v = 0; v <= yMax + step / 1000; v += step) {
     g += `<line class="t-grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`;
     g += `<text class="t-ax" x="${m.l - 6}" y="${y(v) + 3.5}" text-anchor="end">${fmtAxis(v)}</text>`;
   }
 
-  vals.forEach((v, i) => {
-    const isToday = days[i] === today;
-    if (v === null) return;
-    const x = cx(i) - bw / 2, h = Math.max(2, ph * v / yMax), rx = Math.min(5, bw / 2);
-    if (isToday && goal && v < goal) {
+  items.forEach((it, i) => {
+    if (it.val === null) return;
+    const x = cx(i) - bw / 2, rx = Math.min(5, bw / 2), isSel = it.id === sel;
+    if (weekly && it.val === 0) { g += `<text class="t-ax" x="${cx(i)}" y="${y(0) - 4}" text-anchor="middle">0</text>`; return; }
+    const h = Math.max(2, ph * it.val / yMax);
+    if (cfg.stack) {
+      const tot = it.parts.reduce((a, b) => a + b, 0) || 1;
+      let yy = y(0);
+      it.parts.forEach((pv, j) => {
+        const ph2 = h * pv / tot;
+        yy -= ph2;
+        g += `<rect class="${cfg.stack[j][1]}" opacity="${it.live ? 0.6 : 1}" x="${x}" y="${yy}" width="${bw}" height="${Math.max(0, ph2)}" rx="2"/>`;
+      });
+      if (isSel) g += `<rect class="tb-selring" x="${x}" y="${y(it.val)}" width="${bw}" height="${h}" rx="2"/>`;
+      return;
+    }
+    if (weekly) {
+      g += `<rect class="${it.live ? 'tb-alc-live' : 'tb-alc'}${isSel ? ' tb-sel' : ''}" x="${x}" y="${y(it.val)}" width="${bw}" height="${h}" rx="${rx}"/>`;
+      return;
+    }
+    if (it.live && goal && it.val < goal) {
       g += `<rect class="tb-ghost" x="${x}" y="${y(goal)}" width="${bw}" height="${ph * goal / yMax}" rx="${rx}"/>`;
     }
     let cls;
     if (!goal) cls = 'tb-miss';
-    else if (cfg.dir === 'ceil') cls = v > goal ? 'tb-over' : (isToday ? 'tb-miss' : 'tb-good');
-    else cls = v >= goal ? 'tb-good' : 'tb-miss';
-    g += `<rect class="${cls}${days[i] === trendSel ? ' tb-sel' : ''}" x="${x}" y="${y(v)}" width="${bw}" height="${h}" rx="${rx}"/>`;
+    else if (cfg.dir === 'ceil') cls = it.val > goal ? 'tb-over' : (it.live ? 'tb-miss' : 'tb-good');
+    else cls = it.val >= goal ? 'tb-good' : 'tb-miss';
+    g += `<rect class="${cls}${isSel ? ' tb-sel' : ''}" x="${x}" y="${y(it.val)}" width="${bw}" height="${h}" rx="${rx}"/>`;
   });
 
-  if (goal) {
-    g += `<line class="tg-line" x1="${m.l}" x2="${W - m.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
+  if (goal) g += `<line class="tg-line" x1="${m.l}" x2="${W - m.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
+
+  const pts = items.map((it, i) => it.avg == null ? null : `${cx(i)},${y(it.avg)}`).filter(Boolean);
+  if (cfg.avg && pts.length > 1) g += `<polyline class="ta-line" points="${pts.join(' ')}"/>`;
+
+  if (weekly) {
+    items.forEach((it, i) => { g += `<text class="t-ax" x="${cx(i)}" y="${H - 6}" text-anchor="middle">${it.lab}</text>`; });
+  } else {
+    items.forEach((it, i) => {
+      const s = it.id === sel;
+      g += `<circle cx="${cx(i)}" cy="${m.t + ph + 12}" r="${s ? 3.5 : 2}" fill="${s ? 'var(--text)' : 'var(--text-faint)'}"/>`;
+    });
+    g += `<text class="t-ax" x="${cx(0)}" y="${H - 3}" text-anchor="middle">${fmtMD(items[0].id)}</text>`;
+    g += `<text class="t-ax" x="${cx(n - 1)}" y="${H - 3}" text-anchor="middle">${fmtMD(items[n - 1].id)}</text>`;
   }
 
-  const pts = avgs.map((v, i) => v === null ? null : `${cx(i)},${y(v)}`).filter(Boolean);
-  if (pts.length > 1) g += `<polyline class="ta-line" points="${pts.join(' ')}"/>`;
-
-  // Dots under each bar, with dates at the ends
-  const fmtD = d => { const [, mo, da] = d.split('-'); return `${Number(mo)}/${da}`; };
-  days.forEach((d, i) => {
-    const sel = d === trendSel;
-    g += `<circle cx="${cx(i)}" cy="${m.t + ph + 12}" r="${sel ? 3.5 : 2}" fill="${sel ? 'var(--text)' : 'var(--text-faint)'}"/>`;
+  items.forEach((it, i) => {
+    g += `<rect class="tb-hit" ${weekly ? 'data-wk' : 'data-date'}="${it.id}" x="${m.l + slot * i}" y="0" width="${slot}" height="${H}"/>`;
   });
-  g += `<text class="t-ax" x="${cx(0)}" y="${H - 3}" text-anchor="middle">${fmtD(days[0])}</text>`;
-  g += `<text class="t-ax" x="${cx(n - 1)}" y="${H - 3}" text-anchor="middle">${fmtD(days[n - 1])}</text>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title}">${g}</svg>`;
+}
 
-  // Full-height tap areas
+// One dot per day: purple = taken, dim slate = missed, dashed ring = today still to do,
+// tiny dot = not tracked. Weekday letters under the dots in the 7-day view.
+function drawDotStrip(el, cfg, days, vals, goal, today) {
+  const W = Math.max(240, el.clientWidth || 320), H = 42;
+  const l = 6, r = 6, n = days.length, slot = (W - l - r) / n, rad = Math.min(10, slot * 0.36);
+  const cx = i => l + slot * i + slot / 2, cy = 14;
+  let g = '';
   days.forEach((d, i) => {
-    g += `<rect class="tb-hit" data-date="${d}" x="${m.l + slot * i}" y="0" width="${slot}" height="${H}"/>`;
+    const v = vals[i], live = d === today, sel = d === trendSel;
+    if (v === null) g += `<circle cx="${cx(i)}" cy="${cy}" r="2" fill="var(--text-faint)"/>`;
+    else if (v >= goal) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad}" fill="var(--creatine)"/>`;
+    else if (v > 0) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad}" fill="var(--creatine)" opacity="0.5"/>`;
+    else if (live) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad - 1}" fill="none" stroke="var(--miss)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+    else g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad}" fill="var(--miss)" opacity="0.55"/>`;
+    if (sel) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad + 3}" fill="none" stroke="var(--text)" stroke-width="1.5"/>`;
+    if (n <= 7) g += `<text class="t-ax" x="${cx(i)}" y="${H - 3}" text-anchor="middle">${'MTWTFSS'[(new Date(d + 'T00:00:00').getDay() + 6) % 7]}</text>`;
   });
-
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title} by day">${g}</svg>`;
+  if (n > 7) {
+    g += `<text class="t-ax" x="${cx(0)}" y="${H - 3}" text-anchor="middle">${fmtMD(days[0])}</text>`;
+    g += `<text class="t-ax" x="${cx(n - 1)}" y="${H - 3}" text-anchor="middle">${fmtMD(days[n - 1])}</text>`;
+  }
+  days.forEach((d, i) => { g += `<rect class="tb-hit" data-date="${d}" x="${l + slot * i}" y="0" width="${slot}" height="${H}"/>`; });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title}">${g}</svg>`;
 }
 
 document.getElementById('trendCards').addEventListener('click', ev => {
@@ -1967,22 +2047,22 @@ document.getElementById('trendCards').addEventListener('click', ev => {
     return;
   }
   const hit = ev.target.closest('.tb-hit');
-  if (hit) {
-    trendSel = trendSel === hit.dataset.date ? null : hit.dataset.date;
-    renderTrends();
-  }
+  if (!hit) return;
+  if (hit.dataset.wk) trendSelWk = trendSelWk === hit.dataset.wk ? null : hit.dataset.wk;
+  else trendSel = trendSel === hit.dataset.date ? null : hit.dataset.date;
+  renderTrends();
 });
 document.querySelectorAll('#trendSeg button').forEach(b => b.addEventListener('click', () => {
   trendDays = Number(b.dataset.days);
   document.querySelectorAll('#trendSeg button').forEach(x => x.classList.toggle('active', x === b));
-  trendSel = null;
+  trendSel = null; trendSelWk = null;
   loadTrends();
 }));
-document.getElementById('trendPrev').addEventListener('click', () => { trendEnd = addDays(trendWindow()[trendDays - 1], -trendDays); trendSel = null; loadTrends(); });
+document.getElementById('trendPrev').addEventListener('click', () => { trendEnd = addDays(trendWindow()[trendDays - 1], -trendDays); trendSel = null; trendSelWk = null; loadTrends(); });
 document.getElementById('trendNext').addEventListener('click', () => {
   const next = addDays(trendWindow()[trendDays - 1], trendDays);
   trendEnd = next > todayStr() ? todayStr() : next;
-  trendSel = null;
+  trendSel = null; trendSelWk = null;
   loadTrends();
 });
 let trendResizeTimer = null;
@@ -2002,7 +2082,7 @@ function switchView(view) {
   document.getElementById('tabTrends').classList.toggle('active', view === 'trends');
   document.getElementById('hdrToday').classList.toggle('active', view === 'today');
   document.getElementById('hdrTrends').classList.toggle('active', view === 'trends');
-  if (view === 'trends') { loadTrends(); loadHistory(); }
+  if (view === 'trends') loadTrends();
 }
 document.getElementById('tabToday').addEventListener('click', () => switchView('today'));
 document.getElementById('tabTrends').addEventListener('click', () => switchView('trends'));
@@ -2015,6 +2095,7 @@ function showSignedOut(note = '') {
   foods = []; entries = [];
   goals = { ...DEFAULT_GOALS };
   quickAdds = [];
+  trendCreatineStart = null;
   document.getElementById('profileMenu').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   document.getElementById('tabbar').style.display = 'none';

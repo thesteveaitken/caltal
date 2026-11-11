@@ -32,7 +32,7 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 - Supplements (for example 10g creatine) are 0-calorie foods that are favourited. No schema change.
 - Skipped on purpose: fibre, sugar, sodium (data entry cost), steps, sleep, mood.
 
-**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. Step 3 and the edit-food pencil are done. Trends step 1 is built (see 2b); step 2 is next.
+**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. Step 3 and the edit-food pencil are done. Trends steps 1 and 2 are built (see 2b); next is the Day view.
 
 **App changes for 2a.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
 1. **(Done) Eaten-at time on the log sheet.** Time is picked with a stepper: `(−) [editable time] (+)` in 30 minute steps. Defaults to now when logging today and blank for past days (stored as null). Each entry has a copy-icon button ("log again") that copies it as a new row at the current time. One-off cleanup: `supabase/backfill_eaten_at.sql` (run). Entries show the time. One-offs get the current time when logged for today. Also done: entries now copy `alcohol` and `fluid_ml` from the food. **Original spec:** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
@@ -74,9 +74,10 @@ Problem: the water button sits under the summary and pushes "Logged Today" down,
 Inspired by the Garmin/Apple Health style. Charts are hand-drawn inline SVG (no chart library), mobile-first, two columns of cards on desktop.
 - **Controls:** a `7d | 4w` toggle and a "‹ Nov 4 – 10 ›" row that steps back by one window. A Day view (1d) comes later, once `eaten_at` has enough data.
 - **One rule for every chart:** bars are coloured by whether the day met its goal. Calories: success is under the ceiling (amber if over). Protein, fluids, creatine: success is at or above the goal (slate when missed). Goal line is always drawn. Each card has stat tiles: average daily and "days under/at goal". Days with no calories logged are gaps (a water-only day is not a tracked day). Today is in progress: drawn with a grey ghost up to the goal, and left out of the averages and counts. A 7-day average line sits over calories and protein.
-- **Tap a bar** to select a day: the readout shows its value with an "Open day" link into Today. The "Past days" list stays under the charts for now.
-- **Step 1 (built, needs a test):** Trends tab (replaces History), toggle, range arrows, calories and protein cards.
-- **Step 2 (next):** fluids (bars + 3 L line + average), one stacked carbs and fat chart (no goal, no colouring), creatine as a daily dot strip (all or nothing, "N of M days"), weekly alcohol totals (always the last 8 calendar weeks, current week hollow; no guideline line for now, maybe an optional weekly limit in Goals later), and decide what to do with the Past days list.
+- **Tap a bar** to select a day: the readout shows its value with an "Open day" link into Today.
+- **Step 1 (done):** Trends tab (replaces History), toggle, range arrows, calories and protein cards.
+- **Step 2 (built, needs a test):** fluids (bars, goal line, average), one stacked carbs and fat chart (no goal, no colouring), creatine as a compact one-row dot strip (purple = taken, dim slate = missed, dashed ring = today still to do; weekday letters in 7d; "N of M days at goal" in the card header; days before your first logged creatine are not counted; hidden if the creatine goal is off), weekly alcohol totals (last 8 calendar weeks Mon-Sun ending at the window's week, current week dashed outline; no guideline line, maybe an optional weekly limit in Goals later).
+- The old Past days list is removed (tap a bar, then Open day). Later: revisit the creatine strip (not happy with it yet, no better idea so far) and the Day (1d) view.
 - Data: `daily_totals` has everything, no schema change. The later Day view reads `log_entries` directly.
 
 ## 3. Guest mode
