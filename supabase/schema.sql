@@ -61,6 +61,13 @@ create policy "foods: read standard + own" on public.foods
   for select to authenticated
   using (owner_id is null or owner_id = auth.uid());
 
+-- Signed-out visitors (guest mode) can read the standard foods only. Private foods stay hidden.
+drop policy if exists "foods: read standard (signed out)" on public.foods;
+create policy "foods: read standard (signed out)" on public.foods
+  for select to anon
+  using (owner_id is null);
+grant select on public.foods to anon;
+
 drop policy if exists "foods: insert own, or standard if admin" on public.foods;
 create policy "foods: insert own, or standard if admin" on public.foods
   for insert to authenticated

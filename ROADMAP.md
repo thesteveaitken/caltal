@@ -83,14 +83,24 @@ Inspired by the Garmin/Apple Health style. Charts are hand-drawn inline SVG (no 
 ## 2c. Grouped entries on Today (built, needs a test)
 Repeats of the same food on a day (2 or more, matched by `food_id`, or by name for one-offs) collapse into one row: name, total servings, time range and the group's totals. Tap to expand and see each entry with its own edit, log-again and delete. The group row has log-again (copies the latest entry) but no delete. The group sits at its most recent entry's position and starts collapsed; expansion resets when you change day.
 
-## 3. Guest mode
-- A signed-out user can log foods. Entries live in `localStorage`, not memory, because Google sign-in redirects away and back and reloads the page.
-- After sign-in, insert the local entries into the database and clear the local copy.
-- Show a banner or similar: sign in to save your macro history. Losing guest data in a new session is acceptable.
-- Needs a local version of the data layer beside the Supabase one.
-- Needs RLS to allow reading standard foods without signing in.
-- Adding a custom food could require an account, as a natural sign-in prompt.
-- Catch: the Google consent screen in Testing mode blocks anyone not on the test-user list from creating an account. Publishing the consent screen removes that limit.
+## 3. Guest mode (design agreed 2026-11-10; steps 1-2 built 2026-11-11, needs `schema.sql` run and a test)
+**Why:** guests will be friends and prospective employers. Employers are not on the Google test-user list, so today they cannot sign in at all; guest mode is their whole experience, so it must work well with no sign-in wall and no sample-data button (decided against).
+
+**Decisions**
+- Guests get the **whole app** (log, foods, favourites, goals, quick-adds, Trends, grouping), not a cut-down version.
+- **Stand-in backend:** a small fake `sb` in `index.html` that answers the same calls the app already makes (`from(...).select/insert/update/upsert/delete`, `eq`, `in`, `gt`, `gte`, `lte`, `order`, `limit`, `maybeSingle`) from `localStorage`, and computes the `daily_totals` view from entries. Guest mode swaps it in; signing in swaps in the real Supabase client. The rest of the app is unchanged. Rejected: separate guest code per feature (duplication); Supabase anonymous sign-in (opens the database to unlimited anonymous users and writes with the public key, linking fails if the Google account already has data, and the session still lives in the browser); a cut-down guest mode (weak demo); IndexedDB (more complex, not needed for this volume).
+- **Ids are generated in the browser (uuid)** so rows keep their ids when uploaded.
+- **Standard foods for signed-out users:** change `schema.sql` so the `anon` role can read `foods` where `owner_id is null` (check the `grant select` too). Re-runnable. Those foods are already public in the repo.
+- **Telling guests to sign in:** a slim, never-blocking banner at the top of Today ("Guest mode: saved on this device only. Sign in to keep your data" plus a Sign in button), the header profile button becomes "Sign in", and a one-time toast after the first log. After a few entries or about a week the banner gets more prominent. Be honest that Safari can clear site storage after about 7 days of inactivity.
+- **Merge on sign-in:** copy local foods, entries, favourites, quick-adds and goals up with their ids kept. A guest food whose name matches one the account already has attaches to the existing food. Additive and safe to repeat. Clear the local copy only after the upload succeeds. Google sign-in redirects away and back, so the local data must survive the reload (it is in `localStorage`).
+
+**Build order**
+1. **(Built, tested)** The stand-in backend (`makeLocalClient()`). Guest data is in `caltal_guest_v1`.
+2. **(Built, schema run)** Anon read access to standard foods. The app fetches them with the publishable key and caches a copy in `localStorage`.
+3. **(Built, needs a test)** **No sign-in screen:** anyone without a session lands straight in guest mode. A conspicuous amber banner at the top ("Guest mode. Your data is saved on this device only. Sign in to keep it and use it anywhere." plus a "Sign in with Google" button) shows for guests only; the profile menu's last item is "Sign in with Google"; a toast after the first log in a session says "Saved on this device. Sign in to keep it." Signing out lands you in a fresh guest session. The guest's profile button is a hamburger icon (not an avatar). Decided: no stronger nudge over time.
+4. Merge on sign-in. (Until this is built, guest data stays in the browser when someone signs in and is not copied up.)
+5. Test in a private window as the "guest", then with a second Google account.
+6. **Publish the Google consent screen** (Google Cloud, a step for Steve): from Testing to In production so any Google account can sign in. Basic sign-in scopes should not need Google's verification review and should not show an "unverified app" warning, but confirm by signing in with an account that is not on the test list. It is reversible and does not expose data (row-level security keeps each user's rows separate). Signed-in users' emails appear in Supabase under Authentication > Users, which gives contact details.
 
 ## 4. Weight (later, needs more thinking)
 - A `daily_metrics` table, one row per user per day, nullable columns.
