@@ -80,6 +80,9 @@ Inspired by the Garmin/Apple Health style. Charts are hand-drawn inline SVG (no 
 - The old Past days list is removed (tap a bar, then Open day). Later: revisit the creatine strip (not happy with it yet, no better idea so far) and the Day (1d) view.
 - Data: `daily_totals` has everything, no schema change. The later Day view reads `log_entries` directly.
 
+## 2c. Grouped entries on Today (built, needs a test)
+Repeats of the same food on a day (2 or more, matched by `food_id`, or by name for one-offs) collapse into one row: name, total servings, time range and the group's totals. Tap to expand and see each entry with its own edit, log-again and delete. The group row has log-again (copies the latest entry) but no delete. The group sits at its most recent entry's position and starts collapsed; expansion resets when you change day.
+
 ## 3. Guest mode
 - A signed-out user can log foods. Entries live in `localStorage`, not memory, because Google sign-in redirects away and back and reloads the page.
 - After sign-in, insert the local entries into the database and clear the local copy.

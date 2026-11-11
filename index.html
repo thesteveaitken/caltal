@@ -158,6 +158,11 @@
     cursor: pointer;
   }
   .entry:active { border-color: var(--accent); }
+  .entry-group { display: flex; flex-direction: column; gap: 6px; }
+  .group-head { cursor: pointer; }
+  .group-chev { color: var(--text-faint); font-size: 20px; line-height: 1; width: 26px; text-align: center; transition: transform .15s; flex-shrink: 0; }
+  .group-head.open .group-chev { transform: rotate(90deg); }
+  .group-children { display: flex; flex-direction: column; gap: 6px; margin-left: 12px; padding-left: 10px; border-left: 2px solid var(--border); }
   .entry-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .entry-name { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entry-sub { font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
@@ -1163,14 +1168,14 @@ document.getElementById('menuQuick').addEventListener('click', () => { profileMe
 document.getElementById('menuSignOut').addEventListener('click', async () => { profileMenu.style.display = 'none'; await sb.auth.signOut(); });
 
 // ---------- Rendering: today's entries ----------
-function renderEntries() {
-  const list = document.getElementById('entryList');
-  if (!entries.length) {
-    list.innerHTML = '<div class="empty-state">Nothing logged yet. Add something below.</div>';
-    return;
-  }
-  list.innerHTML = entries.map(e => `
-    <div class="entry" data-id="${e.id}">
+// Repeats of the same food on a day (2 or more) are grouped into one collapsible row,
+// placed where the most recent of them sits. Singletons render exactly as before.
+const expandedGroups = new Set();
+let expandedGroupsDate = null;
+
+function entryRowHtml(e, child = false) {
+  return `
+    <div class="entry${child ? ' child' : ''}" data-id="${e.id}">
       <div class="entry-main">
         <span class="entry-name">${escapeHtml(e.food_name)}</span>
         <span class="entry-sub">
@@ -1185,10 +1190,69 @@ function renderEntries() {
       <span class="entry-cal">${Math.round(e.calories)}</span>
       <button class="entry-again" data-id="${e.id}" aria-label="Log again" title="Log again"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></button>
       <button class="entry-del" data-id="${e.id}">✕</button>
-    </div>
-  `).join('');
+    </div>`;
+}
 
-  list.querySelectorAll('.entry').forEach(el => {
+function groupRowHtml(key, items) {
+  const sum = k => items.reduce((a, e) => a + (e[k] || 0), 0);
+  const times = items.map(e => e.eaten_at).filter(Boolean).sort();
+  const range = !times.length ? '' : times.length === 1 || formatTime(times[0]) === formatTime(times[times.length - 1])
+    ? formatTime(times[0]) : `${formatTime(times[0])} – ${formatTime(times[times.length - 1])}`;
+  const open = expandedGroups.has(key);
+  const last = items[items.length - 1];
+  const head = `
+    <div class="entry group-head${open ? ' open' : ''}" data-group="${escapeHtml(key)}">
+      <div class="entry-main">
+        <span class="entry-name">${escapeHtml(last.food_name)}</span>
+        <span class="entry-sub">
+          <span class="qty">${round1(sum('quantity'))}×${round1(sum('quantity')) === items.length ? '' : ' · ' + items.length + ' entries'}</span>
+          ${range ? `<span class="time">${range}</span>` : ''}
+          <span class="sep">·</span>
+          <span class="m-p">P${round1(sum('protein'))}</span>
+          <span class="m-c">C${round1(sum('carbs'))}</span>
+          <span class="m-f">F${round1(sum('fat'))}</span>
+        </span>
+      </div>
+      <span class="entry-cal">${Math.round(sum('calories'))}</span>
+      <button class="entry-again" data-id="${last.id}" aria-label="Log again" title="Log again"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></button>
+      <span class="group-chev" aria-hidden="true">›</span>
+    </div>`;
+  return `<div class="entry-group">${head}${open ? `<div class="group-children">${items.map(e => entryRowHtml(e, true)).join('')}</div>` : ''}</div>`;
+}
+
+function renderEntries() {
+  const list = document.getElementById('entryList');
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state">Nothing logged yet. Add something below.</div>';
+    return;
+  }
+  if (expandedGroupsDate !== currentDate) { expandedGroups.clear(); expandedGroupsDate = currentDate; }
+
+  const keyOf = e => e.food_id ? 'f:' + e.food_id : 'n:' + e.food_name;
+  const byKey = new Map();
+  entries.forEach((e, i) => {
+    const k = keyOf(e);
+    if (!byKey.has(k)) byKey.set(k, []);
+    byKey.get(k).push(e);
+  });
+  // Blocks in list order, a group anchored at its last entry.
+  const blocks = [];
+  entries.forEach((e, i) => {
+    const items = byKey.get(keyOf(e));
+    if (items.length === 1) blocks.push(entryRowHtml(e));
+    else if (items[items.length - 1] === e) blocks.push(groupRowHtml(keyOf(e), items));
+  });
+  list.innerHTML = blocks.join('');
+
+  list.querySelectorAll('.group-head').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.dataset.group;
+      if (expandedGroups.has(k)) expandedGroups.delete(k); else expandedGroups.add(k);
+      renderEntries();
+    });
+  });
+
+  list.querySelectorAll('.entry[data-id]').forEach(el => {
     el.addEventListener('click', () => {
       const entry = entries.find(e => e.id === el.dataset.id);
       if (entry) openEditSheet(entry);
