@@ -827,6 +827,8 @@ let guest = false;
 // ---------- State ----------
 let user = null;          // signed-in Supabase user
 let foods = [];           // standard + own foods, favourites first
+let recentFoodIds = [];   // food ids, most recently logged first (no repeats)
+const RECENT_MAX = 8;
 let currentDate = todayStr();
 let entries = [];         // today's (or viewed day's) log entries
 let activeFood = null;    // per-unit values for the food currently in the log/edit sheet
@@ -1133,10 +1135,13 @@ async function mergeGuestData(authUser) {
 // ---------- Loading data ----------
 async function loadFoods() {
   try {
-    const [foodRows, favRows] = await Promise.all([
+    const [foodRows, favRows, recentRows] = await Promise.all([
       must(sb.from('foods').select('id, owner_id, name, calories, protein, carbs, fat, alcohol, fluid_ml, creatine_g')),
       must(sb.from('favourites').select('food_id')),
+      // Recent logs by insert time; enough rows to find a handful of distinct foods.
+      must(sb.from('log_entries').select('food_id, created_at').order('created_at', { ascending: false }).limit(200)),
     ]);
+    recentFoodIds = [...new Set(recentRows.map(r => r.food_id).filter(Boolean))];
     const favIds = new Set(favRows.map(f => f.food_id));
     foods = foodRows.map(f => ({
       ...numeric(f),
@@ -1499,6 +1504,7 @@ function renderEntries() {
           alcohol: e.alcohol, fluid_ml: e.fluid_ml, creatine_g: e.creatine_g,
           eaten_at: e.date === todayStr() ? eatenAtFor(e.date, nowHHMM()) : e.eaten_at,
         }));
+        noteRecent(e.food_id);
         await loadEntriesForDate(currentDate);
         showToast(`Logged ${e.food_name} again`);
       } catch (err) {
@@ -1518,26 +1524,40 @@ function renderEntries() {
 }
 
 // ---------- Rendering: food list (search) ----------
+// Order: up to RECENT_MAX recently logged foods, then favourites, then the rest A-Z.
+// Each food appears once, as one list with no headings (searching keeps the same order).
+function noteRecent(foodId) {
+  if (!foodId) return;
+  recentFoodIds = [foodId, ...recentFoodIds.filter(id => id !== foodId)];
+  renderFoodList();
+}
+
 function renderFoodList() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  const filtered = q ? foods.filter(f => f.name.toLowerCase().includes(q)) : foods;
   const list = document.getElementById('foodList');
   updateQuickVisibility();
 
-  if (!filtered.length) {
+  const byId = new Map(foods.map(f => [f.id, f]));
+  const recent = recentFoodIds.map(id => byId.get(id)).filter(Boolean).slice(0, RECENT_MAX);
+  const taken = new Set(recent.map(f => f.id));
+  const rest = foods.filter(f => !taken.has(f.id)); // foods is already favourites first, then A-Z
+  const ordered = [...recent, ...rest];
+  const shown = q ? ordered.filter(f => f.name.toLowerCase().includes(q)) : ordered;
+
+  if (!shown.length) {
     list.innerHTML = '<div class="empty-state">No match. Add it as a new food or a one-off.</div>';
     return;
   }
 
-  list.innerHTML = filtered.map(f => `
+  list.innerHTML = shown.map(f => `
     <div class="food-item" data-id="${f.id}">
       <div class="food-main">
         ${f.favourite ? '<span class="star">★</span>' : ''}
         <span class="food-name">${escapeHtml(f.name)}</span>
       </div>
       <span class="food-cal">${Math.round(f.calories)} cal</span>
-    </div>
-  `).join('');
+    </div>`).join('');
+  list.scrollTop = 0; // new order or new matches: start at the top (the desktop list stays on screen)
 
   list.querySelectorAll('.food-item').forEach(el => {
     el.addEventListener('click', () => openLogSheet(el.dataset.id));
@@ -1604,6 +1624,7 @@ async function quickLog(btn) {
       alcohol: food.alcohol || 0, fluid_ml: food.fluid_ml || 0, creatine_g: food.creatine_g || 0,
       eaten_at: currentDate === todayStr() ? eatenAtFor(currentDate, nowHHMM()) : null,
     }));
+    noteRecent(food.id);
     await loadEntriesForDate(currentDate);
     showToast(`Logged ${food.name}`);
   } catch (err) {
@@ -1845,6 +1866,7 @@ document.getElementById('confirmLog').addEventListener('click', async () => {
         food_name: activeFood.name,
         ...scaledMacros(),
       }));
+      recentFoodIds = [activeFood.id, ...recentFoodIds.filter(id => id !== activeFood.id)];
     }
     document.getElementById('logSheetOverlay').classList.remove('open');
     document.getElementById('searchInput').value = '';

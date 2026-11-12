@@ -3,28 +3,28 @@
 ## Where we left off (2026-11-11)
 Everything below marked built is committed and live. Latest: guest mode with merge on sign-in, goals defaults, grouped entries, Trends (7d/4w).
 **Pick up with:**
-1. **Test guest merge with a real sign-in** (needs your Google account): private window, log as a guest, sign in, check the "Added N guest entries" toast and that nothing duplicated.
+1. **(Done)** Guest merge tested with a real sign-in.
 2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6.
-3. **Section 0 housekeeping** below (disable Supabase Email sign-in, second-account isolation test, archive the old Apps Script).
+3. **Section 0 housekeeping** below (archive the old Apps Script, second-account isolation test).
 4. Then, in rough order: goals helper (2a-quater), revisit the creatine strip (2b), Day view for Trends (2b), weight (4), pace tick on the summary bars (2a-bis).
 Suggested order for the older items below is historical; the list above is current.
 
-## Ledger redesign (in progress on branch `ledger-redesign`)
+## Ledger redesign (done and live 2026-11-11)
 UX and brand audit, then a new look: "Ledger" direction, Bar tab variant. Brief and every decision are in `.impeccable.md`; mockups are on the design canvas. Built in passes, each checked in light and dark, phone and desktop:
 1. **(Done)** Colours and fonts: light paper base with dark following the device, amber in three shades, crimson for over, Barlow + Barlow Condensed, tally mark drawn in the header.
 2. **(Done)** Today: hero number, tally (20 marks to the goal, room for 150%), goal grid, ruled entry rows, remove-with-Undo in the edit sheet, search band pinned above the tab bar on phones, one-line guest strip.
 3. **(Done)** Sheets: log sheet ("After this: N cal left/over"), new food ("Save and log 1 serving" primary), one-off, goals, quick-add, profile menu values.
 4. **(Done)** Trends: ruled sections, by-day alcohol on 7 days (weekly on 4 weeks), dashed today bar.
 5. **(Done)** Accessibility from the audit: pinch-zoom, labels on icon buttons, visible focus, sheet focus handling, landmarks and an h1, reduced motion.
-6. Merge `ledger-redesign` into `main` to deploy.
+6. **(Done)** Merged into `main` and live.
 Later passes:
-- Food list with recently logged foods first.
+- **(Done)** Food list with recently logged foods first: "Recent" (up to 8), then favourites, then A-Z, one list with no headings; search keeps that order.
 - **Revisit chart colour contrast:** light-mode grey "short of goal" bars on Trends (`--miss` `#b9bdc3`) are 1.7:1 on paper, under the 3:1 guideline for chart marks. Kept light on purpose because darker read as too heavy; `#878d95` would pass. Look for a treatment that passes without the weight (outline, hatching, or a slightly darker tone with thinner bars).
 
 ## 0. Housekeeping (do first)
 Found in the public-repo review. These are dashboard steps, not code.
 - [ ] **Archive the old Apps Script deployment** (Deploy > Manage deployments > Archive). Two old web app URLs are in the public git history and work like passwords for the old sheet. Then delete the local `AppsScript.gs`.
-- [ ] **Disable Supabase Email sign-in** (Authentication > Sign In / Providers > Email). It is on by default, and the publishable key is public, so anyone could sign up by email directly. Re-enable it when adding magic links. Also check that anonymous sign-ins are off.
+- [x] **Disable Supabase Email sign-in** (Authentication > Sign In / Providers > Email). It is on by default, and the publishable key is public, so anyone could sign up by email directly. Re-enable it when adding magic links. Also check that anonymous sign-ins are off.
 - [ ] **Test data isolation with a second Google account** (must be on the consent screen's test-user list). It should see the standard foods but none of your foods or log entries. Also try querying another user's rows from the browser console: it should return nothing.
 - [ ] **Check the live site** (https://thesteveaitken.github.io/caltal/): sign in, and confirm the imported history and foods appear.
 - [ ] Optional: switch git commits to your GitHub noreply email (GitHub Settings > Emails). The Gmail address is visible on every commit. This only affects new commits.
@@ -126,7 +126,7 @@ Repeats of the same food on a day (2 or more, matched by `food_id`, or by name f
 2. **(Built, schema run)** Anon read access to standard foods. The app fetches them with the publishable key and caches a copy in `localStorage`.
 3. **(Built and live)** **No sign-in screen:** anyone without a session lands straight in guest mode. A conspicuous amber banner at the top ("Guest mode. Your data is saved on this device only. Sign in to keep it and use it anywhere." plus a "Sign in with Google" button) shows for guests only; the profile menu's last item is "Sign in with Google"; a toast after the first log in a session says "Saved on this device. Sign in to keep it." Signing out lands you in a fresh guest session. The guest's profile button is a hamburger icon (not an avatar). Decided: no stronger nudge over time.
 4. **(Built and live, real sign-in test pending)** Merge on sign-in: `mergeGuestData()` runs when a real user's session starts and local guest data exists. Foods, favourites, entries, goals and quick-adds are copied up with their ids kept (so a repeat does nothing twice). A guest food whose name matches one the account already has attaches to it; references to foods that no longer exist are dropped (the entry keeps its name). Goals and quick-adds are copied only if the account has none. The local copy is deleted only after everything uploaded; on any error it stays and a toast says so. A toast reports how many entries were added. Note: leftover guest data on a shared browser would merge into whoever signs in next.
-5. **(Test pending)** Test the merge with a real Google sign-in, then with a second Google account.
+5. **(Done with your account; second account pending)** Test the merge with a real Google sign-in, then with a second Google account.
 6. **Publish the Google consent screen** (Google Cloud, a step for Steve): from Testing to In production so any Google account can sign in. Basic sign-in scopes should not need Google's verification review and should not show an "unverified app" warning, but confirm by signing in with an account that is not on the test list. It is reversible and does not expose data (row-level security keeps each user's rows separate). Signed-in users' emails appear in Supabase under Authentication > Users, which gives contact details.
 
 ## 4. Weight (later, needs more thinking)
