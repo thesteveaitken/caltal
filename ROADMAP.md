@@ -14,9 +14,12 @@ UX and brand audit, then a new look: "Ledger" direction, Bar tab variant. Brief 
 1. **(Done)** Colours and fonts: light paper base with dark following the device, amber in three shades, crimson for over, Barlow + Barlow Condensed, tally mark drawn in the header.
 2. **(Done)** Today: hero number, tally (20 marks to the goal, room for 150%), goal grid, ruled entry rows, remove-with-Undo in the edit sheet, search band pinned above the tab bar on phones, one-line guest strip.
 3. **(Done)** Sheets: log sheet ("After this: N cal left/over"), new food ("Save and log 1 serving" primary), one-off, goals, quick-add, profile menu values.
-4. Trends: ruled sections, by-day alcohol on 7 days (weekly on 4 weeks), dashed today bar.
-5. Accessibility from the audit: pinch-zoom, labels on icon buttons, visible focus.
-Later pass: food list with recently logged foods first.
+4. **(Done)** Trends: ruled sections, by-day alcohol on 7 days (weekly on 4 weeks), dashed today bar.
+5. **(Done)** Accessibility from the audit: pinch-zoom, labels on icon buttons, visible focus, sheet focus handling, landmarks and an h1, reduced motion.
+6. Merge `ledger-redesign` into `main` to deploy.
+Later passes:
+- Food list with recently logged foods first.
+- **Revisit chart colour contrast:** light-mode grey "short of goal" bars on Trends (`--miss` `#b9bdc3`) are 1.7:1 on paper, under the 3:1 guideline for chart marks. Kept light on purpose because darker read as too heavy; `#878d95` would pass. Look for a treatment that passes without the weight (outline, hatching, or a slightly darker tone with thinner bars).
 
 ## 0. Housekeeping (do first)
 Found in the public-repo review. These are dashboard steps, not code.
