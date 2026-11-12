@@ -1,6 +1,22 @@
 # CalTal roadmap
 
-Suggested order. Items 1 and 2 are independent of each other and of everything after them.
+## Where we left off (2026-11-11)
+Everything below marked built is committed and live. Latest: guest mode with merge on sign-in, goals defaults, grouped entries, Trends (7d/4w).
+**Pick up with:**
+1. **Test guest merge with a real sign-in** (needs your Google account): private window, log as a guest, sign in, check the "Added N guest entries" toast and that nothing duplicated.
+2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6.
+3. **Section 0 housekeeping** below (disable Supabase Email sign-in, second-account isolation test, archive the old Apps Script).
+4. Then, in rough order: goals helper (2a-quater), revisit the creatine strip (2b), Day view for Trends (2b), weight (4), pace tick on the summary bars (2a-bis).
+Suggested order for the older items below is historical; the list above is current.
+
+## Ledger redesign (in progress on branch `ledger-redesign`)
+UX and brand audit, then a new look: "Ledger" direction, Bar tab variant. Brief and every decision are in `.impeccable.md`; mockups are on the design canvas. Built in passes, each checked in light and dark, phone and desktop:
+1. **(Done)** Colours and fonts: light paper base with dark following the device, amber in three shades, crimson for over, Barlow + Barlow Condensed, tally mark drawn in the header.
+2. **(Done)** Today: hero number, tally (20 marks to the goal, room for 150%), goal grid, ruled entry rows, remove-with-Undo in the edit sheet, search band pinned above the tab bar on phones, one-line guest strip.
+3. Sheets: log sheet ("After this: N cal left/over"), new food ("Save and log 1 serving" primary), one-off, goals, quick-add, profile menu values.
+4. Trends: ruled sections, by-day alcohol on 7 days (weekly on 4 weeks), dashed today bar.
+5. Accessibility from the audit: pinch-zoom, labels on icon buttons, visible focus.
+Later pass: food list with recently logged foods first.
 
 ## 0. Housekeeping (do first)
 Found in the public-repo review. These are dashboard steps, not code.
@@ -32,7 +48,7 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 - Supplements (for example 10g creatine) are 0-calorie foods that are favourited. No schema change.
 - Skipped on purpose: fibre, sugar, sodium (data entry cost), steps, sleep, mood.
 
-**Status (2026-11-10):** schema and seeds are all run in Supabase. Live in the app: eaten-at time, log again, water quick-add, profile menu, goals sheet and the goal-based summary. Step 3 and the edit-food pencil are done. Trends steps 1 and 2 are built (see 2b); next is the Day view.
+**Status (2026-11-11):** schema and seeds are all run in Supabase. Steps 1-5 of 2a and the edit-food pencil are done and live. Trends steps 1 and 2 are done (see 2b).
 
 **App changes for 2a.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
 1. **(Done) Eaten-at time on the log sheet.** Time is picked with a stepper: `(−) [editable time] (+)` in 30 minute steps. Defaults to now when logging today and blank for past days (stored as null). Each entry has a copy-icon button ("log again") that copies it as a new row at the current time. One-off cleanup: `supabase/backfill_eaten_at.sql` (run). Entries show the time. One-offs get the current time when logged for today. Also done: entries now copy `alcohol` and `fluid_ml` from the food. **Original spec:** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
@@ -64,7 +80,7 @@ A collapsed "Help me choose" section in the Goals sheet for people who are unsur
 - **Wording:** an estimate, not medical advice; point people with medical conditions or under 18 to a professional. Add short hint text under each goal (for example "Most adults aim for 2-3 L a day").
 - Later, the weight could come from weight tracking (section 4).
 
-### 2a-ter. Configurable quick-add buttons (built 2026-11-10; needs `schema.sql` run and a test)
+### 2a-ter. Configurable quick-add buttons (built and live)
 **Decided:** 6 slots (3 x 2, 34px tall buttons), 10-character labels, grid directly under the search box (search stays first), with no heading. Editing: a "Quick-add buttons" item in the avatar menu, plus dotted "+ Add" cells that complete a partly filled row (shown at 1, 2, 4 or 5 buttons) and open the editor on the first empty slot. Water (250 ml) is a virtual default for slot 0 until the user saves buttons (clearing every slot brings that default back). The old water-row is removed.
 Problem: the water button sits under the summary and pushes "Logged Today" down, especially now that the summary has grown. Idea: move it to the right column, as one of several user-configurable quick-add buttons.
 - **Where:** top of the right column, above or below the search box, as a small grid of compact buttons (3 columns, up to 2 rows). The water button moves out of the left column.
@@ -88,10 +104,10 @@ Inspired by the Garmin/Apple Health style. Charts are hand-drawn inline SVG (no 
 - The old Past days list is removed (tap a bar, then Open day). Later: revisit the creatine strip (not happy with it yet, no better idea so far) and the Day (1d) view.
 - Data: `daily_totals` has everything, no schema change. The later Day view reads `log_entries` directly.
 
-## 2c. Grouped entries on Today (built, needs a test)
+## 2c. Grouped entries on Today (built and live)
 Repeats of the same food on a day (2 or more, matched by `food_id`, or by name for one-offs) collapse into one row: name, total servings, time range and the group's totals. Tap to expand and see each entry with its own edit, log-again and delete. The group row has log-again (copies the latest entry) but no delete. The group sits at its most recent entry's position and starts collapsed; expansion resets when you change day.
 
-## 3. Guest mode (design agreed 2026-11-10; steps 1-2 built 2026-11-11, needs `schema.sql` run and a test)
+## 3. Guest mode (built and live 2026-11-11, except the consent-screen step below)
 **Why:** guests will be friends and prospective employers. Employers are not on the Google test-user list, so today they cannot sign in at all; guest mode is their whole experience, so it must work well with no sign-in wall and no sample-data button (decided against).
 
 **Decisions**
@@ -105,9 +121,9 @@ Repeats of the same food on a day (2 or more, matched by `food_id`, or by name f
 **Build order**
 1. **(Built, tested)** The stand-in backend (`makeLocalClient()`). Guest data is in `caltal_guest_v1`.
 2. **(Built, schema run)** Anon read access to standard foods. The app fetches them with the publishable key and caches a copy in `localStorage`.
-3. **(Built, needs a test)** **No sign-in screen:** anyone without a session lands straight in guest mode. A conspicuous amber banner at the top ("Guest mode. Your data is saved on this device only. Sign in to keep it and use it anywhere." plus a "Sign in with Google" button) shows for guests only; the profile menu's last item is "Sign in with Google"; a toast after the first log in a session says "Saved on this device. Sign in to keep it." Signing out lands you in a fresh guest session. The guest's profile button is a hamburger icon (not an avatar). Decided: no stronger nudge over time.
-4. **(Built, needs a test with a real sign-in)** Merge on sign-in: `mergeGuestData()` runs when a real user's session starts and local guest data exists. Foods, favourites, entries, goals and quick-adds are copied up with their ids kept (so a repeat does nothing twice). A guest food whose name matches one the account already has attaches to it; references to foods that no longer exist are dropped (the entry keeps its name). Goals and quick-adds are copied only if the account has none. The local copy is deleted only after everything uploaded; on any error it stays and a toast says so. A toast reports how many entries were added. Note: leftover guest data on a shared browser would merge into whoever signs in next.
-5. Test in a private window as the "guest", then with a second Google account.
+3. **(Built and live)** **No sign-in screen:** anyone without a session lands straight in guest mode. A conspicuous amber banner at the top ("Guest mode. Your data is saved on this device only. Sign in to keep it and use it anywhere." plus a "Sign in with Google" button) shows for guests only; the profile menu's last item is "Sign in with Google"; a toast after the first log in a session says "Saved on this device. Sign in to keep it." Signing out lands you in a fresh guest session. The guest's profile button is a hamburger icon (not an avatar). Decided: no stronger nudge over time.
+4. **(Built and live, real sign-in test pending)** Merge on sign-in: `mergeGuestData()` runs when a real user's session starts and local guest data exists. Foods, favourites, entries, goals and quick-adds are copied up with their ids kept (so a repeat does nothing twice). A guest food whose name matches one the account already has attaches to it; references to foods that no longer exist are dropped (the entry keeps its name). Goals and quick-adds are copied only if the account has none. The local copy is deleted only after everything uploaded; on any error it stays and a toast says so. A toast reports how many entries were added. Note: leftover guest data on a shared browser would merge into whoever signs in next.
+5. **(Test pending)** Test the merge with a real Google sign-in, then with a second Google account.
 6. **Publish the Google consent screen** (Google Cloud, a step for Steve): from Testing to In production so any Google account can sign in. Basic sign-in scopes should not need Google's verification review and should not show an "unverified app" warning, but confirm by signing in with an account that is not on the test list. It is reversible and does not expose data (row-level security keeps each user's rows separate). Signed-in users' emails appear in Supabase under Authentication > Users, which gives contact details.
 
 ## 4. Weight (later, needs more thinking)

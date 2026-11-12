@@ -12,7 +12,7 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 - **Old backend:** the Google Sheet and Apps Script (`AppsScript.gs`, local only, never committed). It has been migrated and is being retired.
 
 ## Data model decisions
-- `foods.owner_id IS NULL` is a **standard food**, readable by every signed-in user. Otherwise the food is private to its owner.
+- `foods.owner_id IS NULL` is a **standard food**, readable by every signed-in user and by signed-out guests (anon `select` policy). Otherwise the food is private to its owner.
 - Only user ids in the `admins` table can write standard foods. Anything added in the app is always private (the new-food form takes fluid ml, alcohol and creatine g too, in a collapsed "Drinks & supplements" section; a pencil icon in the log sheet corner reopens that form for the user's own foods, and past entries keep their snapshot values). There is no admin UI: maintain standard foods with SQL or the Supabase table editor.
 - **Favourites are per user** (`favourites` table) and can point at standard or private foods.
 - Nutrition is **per serving, as described in the food name** ("1 cup cooked rice"). There are no units or gram fields.
@@ -21,7 +21,7 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 - The log sheet has a "Time eaten" stepper (native time input plus round -/+ buttons, 30 min steps). It is blank by default on past days (saved as null). Each entry row has a copy-icon "log again" button that inserts a copy stamped with the current time.
 - `supabase/backfill_fluids_alcohol.sql` is a one-off that sets fluid/alcohol on the admin's own foods by name, then copies fluid, alcohol and creatine onto past log entries from their foods (x quantity) where those are still 0.
 - `supabase/backfill_eaten_at.sql` is a one-off that sets `eaten_at` from `created_at` for older entries logged the same (US Eastern) day. The sheet import put the sheet's Timestamp into `created_at`, with noon as a placeholder when it had none.
-- On Today, 2+ entries of the same food (same `food_id`, or name for one-offs) on a day render as one collapsible group row (`renderEntries()`), anchored at the most recent entry; the row has log-again but no delete.
+- On Today, 2+ entries of the same food (same `food_id`, or name for one-offs) on a day render as one collapsible group row (`renderEntries()`), anchored at the most recent entry; the row has log-again. No row has a delete button: tapping an entry opens the log sheet, which has "Remove entry", and the toast offers Undo (`restoreEntry()` re-inserts it with the same id).
 - `quick_adds` holds up to 6 buttons per user (slot 0-5, food_id, label up to 12 chars), own-row RLS; deleting a food removes its button. With no rows the app shows a virtual "Water" button. One tap logs one serving.
 - `goals` holds one row per user (calories as a ceiling, protein, fluid_ml, creatine_g), own-row RLS. A null goal means off: protein loses its goal bar, and fluids and creatine disappear from the summary (creatine's Trends card also disappears; Fluids' Trends chart stays, without a goal line). With no row the app uses only a calorie ceiling of 2000, everything else off. Standard supplement foods are in `supabase/seed_supplements.sql`.
 - The Trends tab (calories, protein, fluids, carbs & fat, creatine dots and weekly alcohol cards) reads the `daily_totals` view; charts are inline SVG drawn by `drawTrendChart()` / `drawDotStrip()`, not a library.
@@ -32,7 +32,7 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 - **Keys:** the publishable key (`sb_publishable_...`) is public and lives in `index.html`. The secret key (`sb_secret_...`) must **never** go in `index.html`, the repo, or chat. It is only for `scripts/.env`.
 - **Gitignored, never commit:** `scripts/.env`, `*.csv` and `promote.txt`.
 - Check `git status` before committing: this repo is public.
-- The Google OAuth consent screen is in "Testing" mode, so only listed test users can sign in. Add friends' Gmail addresses under Test users in Google Cloud.
+- The Google OAuth consent screen is in "Testing" mode, so only listed test users can sign in with Google (guests need no account). Add friends' Gmail addresses under Test users in Google Cloud. Publishing it to production is planned (ROADMAP section 3, step 6).
 - supabase-js: call other Supabase methods inside `onAuthStateChange` only after a `setTimeout`, to avoid a deadlock.
 
 ## Run and deploy
@@ -48,8 +48,9 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 
 ## Where things are
 - `index.html`: markup, then CSS, then one `<script>`. State is global variables. Data access goes through the `must()` helper, which turns Supabase `{data, error}` results into exceptions.
-- **Header:** a round profile button (Google photo or initial) opens a menu with email, Goals and Quick-add buttons (both sheets) and Sign out. Goals state and the summary bars are in `loadGoals()` / `renderTotals()`.
-- `caltal-icon.png`: the logo, loaded by the header and sign-in screen (the favicon is inlined separately).
-- **Layout:** mobile-first with a bottom tab bar. At 900px and up (one `@media` block at the end of the CSS) the page widens to 1100px, tabs and Sign out move into the header, and Today becomes two independently scrolling columns. The day switcher (`#dateNav`) is moved between the header and the left column by `placeDateNav()` in the script, so keep it as a single element.
+- **Header:** a round profile button (Google photo or initial; a hamburger icon for guests) opens a menu with email, Goals and Quick-add buttons (both sheets) and Sign out ("Sign in with Google" for guests). Guests also see a one-line amber strip at the top ("Saved on this device only. Sign in to keep it"). Goals state and the summary are in `loadGoals()` / `renderTotals()`.
+- **Today summary:** calories so far as a large number ("785 / 2,200", with "1,415 left" or "352 over" beside it), then the **tally** (`renderTally()`, inline SVG redrawn on resize): 20 marks struck in fives reach the calorie goal and take 2/3 of the width, so up to 150% fits on one line; the mark in progress fills from the bottom; past the goal marks use `--danger` after a thin goal marker. With no calorie goal the tally counts against 2,000, stays amber, and has no marker. Under it, the goal grid: goals that are on (protein, fluids, creatine) with a bar, then carbs and fat as plain figures. Design decisions and colours are in `.impeccable.md`.
+- `caltal-icon.png`: the app logo on its dark tile. The header draws the tally mark itself as inline SVG in the theme colours; the favicon is inlined separately.
+- **Layout:** mobile-first with a bottom tab bar. At 900px and up (one `@media` block at the end of the CSS) the page widens to 1100px, tabs and Sign out move into the header, and Today becomes two independently scrolling columns. On phones the search box and quick-adds are a band pinned above the tab bar; focusing search opens it full screen (`body.adding`, `enterAdding()` / `exitAdding()`), and reloading entries after a log closes it. The day switcher (`#dateNav`) is moved between the header and the left column by `placeDateNav()` in the script, so keep it as a single element.
 - `SETUP.md`: full setup walkthrough for a fresh Supabase project.
 - `ROADMAP.md`: planned work.
