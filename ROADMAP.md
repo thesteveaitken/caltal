@@ -19,7 +19,7 @@ UX and brand audit, then a new look: "Ledger" direction, Bar tab variant. Brief 
 6. **(Done)** Merged into `main` and live.
 Later passes:
 - **(Done)** Food list with recently logged foods first: "Recent" (up to 8), then favourites, then A-Z, one list with no headings; search keeps that order.
-- **Revisit chart colour contrast:** light-mode grey "short of goal" bars on Trends (`--miss` `#b9bdc3`) are 1.7:1 on paper, under the 3:1 guideline for chart marks. Kept light on purpose because darker read as too heavy; `#878d95` would pass. Look for a treatment that passes without the weight (outline, hatching, or a slightly darker tone with thinner bars).
+- **(Done)** Chart colour contrast: "short of goal" bars are now a pale body with a dark cap at the value (cap 5.5:1 on paper); the light-mode fat segment, missed creatine rings and switch off-state moved to `#878d95` (3:1). Rejected: darker solid bars (too heavy), outlines (too close to today's dashed bar), hatching (busy on 4 weeks).
 
 ## 0. Housekeeping (do first)
 Found in the public-repo review. These are dashboard steps, not code.

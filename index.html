@@ -26,9 +26,11 @@
     --on-accent: #1e2228;
     --accent-dim: #f1e2c6;
     --good: #b87415;
-    --miss: #b9bdc3;
+    --miss: #dcdcd6;          /* body of a "short of goal" bar; the cap carries the value */
+    --miss-cap: var(--text-dim);
+    --switch-off: #878d95;    /* 3:1 on paper */
     --bar: #555b63;           /* neutral chart bars (carbs, alcohol) */
-    --bar-light: #9aa0a8;     /* second neutral (fat) */
+    --bar-light: #878d95;     /* second neutral (fat, missed creatine rings), 3:1 on paper */
     --ghost: #dcdcd6;         /* empty tally marks, chart tracks */
     --protein: var(--text);
     --carbs: var(--bar);
@@ -60,7 +62,8 @@
       --on-accent: #1e2228;
       --accent-dim: #3a2c16;
       --good: #e8a23d;
-      --miss: #6b717b;
+      --miss: #3a3e46;
+      --switch-off: #6b717b;
       --bar: #b9bec6;
       --bar-light: #6b717b;
       --ghost: #33373f;
@@ -383,7 +386,7 @@
   .goal-row.off .goal-name, .goal-row.off .goal-input, .goal-row.off .goal-unit { opacity: 0.45; }
   .switch { position: relative; width: 46px; height: 28px; flex-shrink: 0; }
   .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; inset: 0; cursor: pointer; z-index: 1; }
-  .switch span { position: absolute; inset: 0; background: var(--miss); border-radius: 14px; transition: background 0.15s; }
+  .switch span { position: absolute; inset: 0; background: var(--switch-off); border-radius: 14px; transition: background 0.15s; }
   .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fbfbf9; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s; }
   .switch input:checked + span { background: var(--accent); }
   .switch input:checked + span::after { transform: translateX(18px); }
@@ -426,6 +429,7 @@
   .trend-chart svg { display: block; }
   .tb-good { fill: var(--good); }
   .tb-miss { fill: var(--miss); }
+  .tb-cap { fill: var(--miss-cap); }
   .tb-over { fill: var(--danger); }
   .tb-live { fill: none; stroke: var(--text-dim); stroke-width: 1.5; stroke-dasharray: 4 3; }
   .tb-sel { stroke: var(--text); stroke-width: 2; }
@@ -2474,6 +2478,8 @@ function drawTrendChart(el, cfg, items, goal) {
     else if (cfg.dir === 'ceil' || (goal && it.val >= goal)) cls = 'tb-good';
     else cls = 'tb-miss';
     g += `<rect class="${cls}${isSel ? ' tb-sel' : ''}" x="${x}" y="${y(it.val)}" width="${bw}" height="${h}" rx="${rx}"/>`;
+    // Short of goal: a pale body with a dark cap at the value, so the mark passes contrast without the weight.
+    if (cls === 'tb-miss') g += `<rect class="tb-cap" x="${x}" y="${y(it.val)}" width="${bw}" height="${Math.min(3, h)}" rx="1.5"/>`;
   });
 
   if (goal) g += `<line class="tg-line" x1="${m.l}" x2="${W - m.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
