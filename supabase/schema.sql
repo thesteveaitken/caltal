@@ -124,6 +124,16 @@ alter table public.log_entries add column if not exists fluid_ml numeric not nul
 alter table public.log_entries add column if not exists eaten_at timestamptz;
 alter table public.log_entries add column if not exists creatine_g numeric not null default 0;
 create index if not exists log_entries_user_date_idx on public.log_entries (user_id, date);
+-- No negative amounts on entries (foods already have these checks). NOT VALID: applies to new and
+-- edited rows without re-checking history. Re-runnable: skipped if the constraint already exists.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'log_entries_amounts_nonneg') then
+    alter table public.log_entries add constraint log_entries_amounts_nonneg
+      check (calories >= 0 and protein >= 0 and carbs >= 0 and fat >= 0
+             and alcohol >= 0 and fluid_ml >= 0 and creatine_g >= 0) not valid;
+  end if;
+end $$;
 
 alter table public.log_entries enable row level security;
 
