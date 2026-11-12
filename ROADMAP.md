@@ -11,7 +11,7 @@ Suggested order for the older items below is historical; the list above is curre
 
 ## Ledger redesign (done and live 2026-11-11)
 UX and brand audit, then a new look: "Ledger" direction, Bar tab variant. Brief and every decision are in `.impeccable.md`; mockups are on the design canvas. Built in passes, each checked in light and dark, phone and desktop:
-1. **(Done)** Colours and fonts: light paper base with dark following the device, amber in three shades, crimson for over, Barlow + Barlow Condensed, tally mark drawn in the header.
+1. **(Done)** Colours and fonts: light paper base with dark following the device, amber (since unified to the logo amber `#e8a23d` in both themes), crimson for over, Barlow + Barlow Condensed, tally mark drawn in the header.
 2. **(Done)** Today: hero number, tally (20 marks to the goal, room for 150%), goal grid, ruled entry rows, remove-with-Undo in the edit sheet, search band pinned above the tab bar on phones, one-line guest strip.
 3. **(Done)** Sheets: log sheet ("After this: N cal left/over"), new food ("Save and log 1 serving" primary), one-off, goals, quick-add, profile menu values.
 4. **(Done)** Trends: ruled sections, by-day alcohol on 7 days (weekly on 4 weeks), dashed today bar.
@@ -19,6 +19,7 @@ UX and brand audit, then a new look: "Ledger" direction, Bar tab variant. Brief 
 6. **(Done)** Merged into `main` and live.
 Later passes:
 - **(Done)** Food list with recently logged foods first: "Recent" (up to 8), then favourites, then A-Z, one list with no headings; search keeps that order.
+- **(Done)** One brand amber: light mode now uses the logo's `#e8a23d` for every mark and fill, with words in ink and amber underlines on links.
 - **(Done)** Chart colour contrast: "short of goal" bars are now a pale body with a dark cap at the value (cap 5.5:1 on paper); the light-mode fat segment, missed creatine rings and switch off-state moved to `#878d95` (3:1). Rejected: darker solid bars (too heavy), outlines (too close to today's dashed bar), hatching (busy on 4 weeks).
 
 ## 0. Housekeeping (do first)

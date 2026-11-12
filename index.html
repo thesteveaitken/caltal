@@ -20,12 +20,13 @@
     --text: #1e2228;          /* ink */
     --text-dim: #5f646c;
     --text-faint: #5f646c;    /* same as dim: anything lighter fails 4.5:1 on paper */
-    --accent: #b87415;        /* amber marks, bars, logo strokes */
-    --accent-text: #915708;   /* amber used as text */
+    --accent: #e8a23d;        /* the logo amber: one amber in both themes, for marks, bars and fills */
+    --accent-text: var(--text); /* amber is 2:1 on paper, so words stay ink in light mode */
     --accent-fill: #e8a23d;   /* primary button fill (ink text on it) */
+    --focus: var(--text);     /* focus ring needs 3:1 on paper */
     --on-accent: #1e2228;
     --accent-dim: #f1e2c6;
-    --good: #b87415;
+    --good: var(--accent);
     --miss: #dcdcd6;          /* body of a "short of goal" bar; the cap carries the value */
     --miss-cap: var(--text-dim);
     --switch-off: #878d95;    /* 3:1 on paper */
@@ -58,6 +59,7 @@
       --text-faint: #8d939d;
       --accent: #e8a23d;
       --accent-text: #e8a23d;
+      --focus: #e8a23d;
       --accent-fill: #e8a23d;
       --on-accent: #1e2228;
       --accent-dim: #3a2c16;
@@ -211,6 +213,10 @@
   .food-list .empty-state { padding: 14px 0; }
   .add-new-row { margin: 0 20px; padding: 12px 0; font-size: 14px; color: var(--text-dim); }
   .add-new-row a { color: var(--accent-text); font-weight: 700; cursor: pointer; }
+  /* True links: amber underline (the text itself is ink in light mode, amber in dark) */
+  .add-new-row a, .trend-legend a, .trend-readout a, .guest-banner button {
+    text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px;
+  }
 
   /* ---------- Bottom nav ---------- */
   .tabbar {
@@ -237,6 +243,7 @@
     cursor: pointer;
   }
   .tab.active { color: var(--accent-text); font-weight: 700; }
+  .tab.active svg { color: var(--accent); }
   .tab svg { display: block; }
 
   /* ---------- Quick-adds on Today (amber text links) ---------- */
@@ -474,7 +481,7 @@
 
   /* Keyboard focus: one visible ring for every control (fields keep their own focus style). */
   :focus { outline: none; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
   .field-input:focus-visible, .search-input:focus-visible { outline: none; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -488,7 +495,7 @@
   }
   .guest-banner button {
     background: none; border: none; padding: 4px 2px; font: inherit; font-weight: 700; color: var(--accent-text);
-    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+    cursor: pointer;
   }
 
   /* ---------- Profile menu (header) ---------- */
@@ -2478,8 +2485,8 @@ function drawTrendChart(el, cfg, items, goal) {
     else if (cfg.dir === 'ceil' || (goal && it.val >= goal)) cls = 'tb-good';
     else cls = 'tb-miss';
     g += `<rect class="${cls}${isSel ? ' tb-sel' : ''}" x="${x}" y="${y(it.val)}" width="${bw}" height="${h}" rx="${rx}"/>`;
-    // Short of goal: a pale body with a dark cap at the value, so the mark passes contrast without the weight.
-    if (cls === 'tb-miss') g += `<rect class="tb-cap" x="${x}" y="${y(it.val)}" width="${bw}" height="${Math.min(3, h)}" rx="1.5"/>`;
+    // A dark cap marks the value on amber and "short" bars, so the mark passes contrast (amber is 2:1 on paper).
+    if (cls === 'tb-miss' || cls === 'tb-good') g += `<rect class="tb-cap" x="${x}" y="${y(it.val)}" width="${bw}" height="${Math.min(3, h)}" rx="1.5"/>`;
   });
 
   if (goal) g += `<line class="tg-line" x1="${m.l}" x2="${W - m.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
