@@ -13,7 +13,7 @@ Suggested order for the older items below is historical; the list above is curre
 UX and brand audit, then a new look: "Ledger" direction, Bar tab variant. Brief and every decision are in `.impeccable.md`; mockups are on the design canvas. Built in passes, each checked in light and dark, phone and desktop:
 1. **(Done)** Colours and fonts: light paper base with dark following the device, amber in three shades, crimson for over, Barlow + Barlow Condensed, tally mark drawn in the header.
 2. **(Done)** Today: hero number, tally (20 marks to the goal, room for 150%), goal grid, ruled entry rows, remove-with-Undo in the edit sheet, search band pinned above the tab bar on phones, one-line guest strip.
-3. Sheets: log sheet ("After this: N cal left/over"), new food ("Save and log 1 serving" primary), one-off, goals, quick-add, profile menu values.
+3. **(Done)** Sheets: log sheet ("After this: N cal left/over"), new food ("Save and log 1 serving" primary), one-off, goals, quick-add, profile menu values.
 4. Trends: ruled sections, by-day alcohol on 7 days (weekly on 4 weeks), dashed today bar.
 5. Accessibility from the audit: pinch-zoom, labels on icon buttons, visible focus.
 Later pass: food list with recently logged foods first.

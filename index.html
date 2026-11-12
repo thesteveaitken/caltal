@@ -233,7 +233,19 @@
   .tab.active { color: var(--accent-text); font-weight: 700; }
   .tab svg { display: block; }
 
-  /* ---------- Modal sheet ---------- */
+  /* ---------- Quick-adds on Today (amber text links) ---------- */
+  .quick-wrap { margin: 2px 20px 0; display: flex; align-items: center; font-size: 14px; color: var(--text-dim); overflow-x: auto; white-space: nowrap; }
+  .quick-label { margin-right: 4px; flex-shrink: 0; }
+  .quick-grid { display: flex; align-items: center; gap: 2px; }
+  .quick-btn {
+    height: 40px; padding: 0 8px; background: none; border: none; border-radius: 6px;
+    color: var(--accent-text); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .quick-btn:active { background: var(--accent-dim); }
+  .quick-btn:disabled { opacity: 0.5; }
+  .quick-add-slot { color: var(--text-dim); font-weight: 600; }
+
+  /* ---------- Sheets: paper, a handle, ruled rows ---------- */
   .sheet-overlay {
     position: fixed; inset: 0;
     background: var(--scrim);
@@ -248,193 +260,136 @@
   .sheet {
     width: 100%;
     max-width: 480px;
+    max-height: calc(100% - 24px);
+    overflow-y: auto;
     margin: 0 auto;
-    background: var(--bg-elevated);
-    border-radius: 20px 20px 0 0;
-    padding: 22px 20px calc(22px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background: var(--bg);
+    border-radius: 18px 18px 0 0;
+    padding: 8px 20px calc(24px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
     transform: translateY(100%);
     transition: transform 0.25s ease;
   }
+  .sheet::before { content: ""; flex-shrink: 0; align-self: center; width: 38px; height: 4px; border-radius: 2px; background: var(--border); margin-bottom: 8px; }
   .sheet-overlay.open .sheet { transform: translateY(0); }
 
-  .sheet-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
-  .sheet-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; }
-
-  .qty-control {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    margin: 18px 0 20px;
+  .sheet-head { display: flex; align-items: flex-start; gap: 2px; margin-bottom: 14px; }
+  .sheet-head > div:first-child { flex: 1; min-width: 0; padding-top: 4px; }
+  .sheet-title { font-family: var(--font-num); font-size: 27px; font-weight: 600; line-height: 1.1; }
+  .sheet-sub { font-size: 13.5px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; text-wrap: pretty; }
+  .icon-btn {
+    width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: none; border-radius: 8px; background: none;
+    display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer;
   }
-  .qty-btn {
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 20px;
-    cursor: pointer;
+  .icon-btn:hover { color: var(--text); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn.on { color: var(--accent); }
+
+  /* Log sheet: two stepper rows whose − and + line up */
+  .sheet-rows { display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+  .step-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; border-bottom: 1px solid var(--border); }
+  .step-row > span, .step-row > label { font-size: 15px; font-weight: 600; }
+  .stepper { display: flex; align-items: center; gap: 6px; }
+  .step-btn {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-elevated); color: var(--text); font: inherit; font-size: 22px; line-height: 1; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
-  .qty-btn:active { border-color: var(--accent); color: var(--accent-text); }
-  .qty-value { font-family: var(--font-num); font-size: 34px; font-weight: 600; min-width: 64px; text-align: center; }
-
-  .sheet-macros {
-    display: flex;
-    justify-content: space-around;
-    background: var(--bg-card);
-    border-radius: var(--radius-sm);
-    padding: 14px;
-    margin-bottom: 20px;
+  .step-btn:active { border-color: var(--accent); color: var(--accent-text); }
+  .step-val { width: 100px; box-sizing: border-box; text-align: center; font-variant-numeric: tabular-nums; }
+  .qty-value { font-family: var(--font-num); font-size: 34px; font-weight: 600; }
+  .step-row input[type="time"] {
+    height: 44px; padding: 0; border: none; border-radius: 6px; background: none; outline: none;
+    font: inherit; font-size: 17px; font-weight: 600; color: var(--text);
   }
-  .sheet-macro { text-align: center; }
-  .sheet-macro .v { font-family: var(--font-num); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .sheet-macro .l { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .step-row input[type="time"]:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  /* No clock icon: type on desktop, use −/+; phones show their native picker. */
+  .step-row input[type="time"]::-webkit-calendar-picker-indicator { display: none; }
+  .step-row input[type="time"]::-webkit-date-and-time-value { text-align: center; }
+  .sheet-sum { display: flex; align-items: baseline; gap: 8px; margin-top: 16px; }
+  .sheet-sum .v { font-family: var(--font-num); font-size: 44px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+  .sheet-sum .u { font-size: 15px; color: var(--text-dim); }
+  .sheet-sum .m { margin-left: auto; font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; }
+  .sheet-after { margin-top: 4px; font-size: 13.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .sheet-after b { color: var(--text); font-weight: 600; }
+  .sheet-after.over b { color: var(--danger); }
 
   .btn-primary {
-    width: 100%;
-    background: var(--accent-fill);
-    color: var(--on-accent);
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 15px;
-    font-size: 15.5px;
-    font-weight: 700;
+    width: 100%; height: 54px; margin-top: 18px; flex-shrink: 0;
+    background: var(--accent-fill); color: var(--on-accent);
+    border: none; border-radius: 10px;
+    font: inherit; font-size: 17px; font-weight: 700;
     cursor: pointer;
   }
   .btn-primary:active { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.6; }
+  .btn-link {
+    width: 100%; height: 44px; margin-top: 4px; flex-shrink: 0; background: none; border: none;
+    font: inherit; font-size: 15px; font-weight: 600; color: var(--accent-text); cursor: pointer;
+  }
   .btn-remove {
-    width: 100%; margin-top: 6px; height: 46px; background: none; border: none; cursor: pointer;
+    width: 100%; margin-top: 6px; height: 46px; flex-shrink: 0; background: none; border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 8px;
     font: inherit; font-size: 15px; font-weight: 600; color: var(--text-dim);
   }
   .btn-remove:active { color: var(--danger); }
-  .btn-secondary {
-    width: 100%;
-    background: none;
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 13px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 10px;
-  }
 
-  .field-row { margin-bottom: 14px; }
-  .quick-wrap { margin: 2px 20px 0; display: flex; align-items: center; font-size: 14px; color: var(--text-dim); overflow-x: auto; white-space: nowrap; }
-  .quick-label { margin-right: 4px; flex-shrink: 0; }
-  .quick-grid { display: flex; align-items: center; gap: 2px; }
-  .quick-btn {
-    height: 40px; padding: 0 8px; background: none; border: none; border-radius: 6px;
-    color: var(--accent-text); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
-  }
-  .quick-btn:active { background: var(--accent-dim); }
-  .quick-btn:disabled { opacity: 0.5; }
-  .quick-add-slot { color: var(--text-dim); font-weight: 600; }
-  .quick-row { display: grid; grid-template-columns: 1fr 112px; gap: 8px; margin-bottom: 10px; }
-  .quick-row .field-input { padding: 10px 10px; font-size: 14px; min-width: 0; }
-  .goal-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
-  .goal-row:last-of-type { border-bottom: none; margin-bottom: 8px; }
-  .goal-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; }
-  .goal-name small { display: block; font-size: 12px; font-weight: 400; color: var(--text-faint); margin-top: 1px; }
-  .goal-row .goal-input { width: 88px; flex: none; text-align: right; padding: 9px 10px; }
-  .goal-row .goal-input:disabled { opacity: 0.35; }
-  .goal-unit { width: 26px; flex: none; font-size: 13px; color: var(--text-dim); }
-  .switch { position: relative; width: 40px; height: 24px; flex-shrink: 0; }
-  .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; inset: 0; cursor: pointer; z-index: 1; }
-  .switch span { position: absolute; inset: 0; background: var(--border); border-radius: 12px; transition: background 0.15s; }
-  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: transform 0.15s; }
-  .switch input:checked + span { background: var(--accent); }
-  .switch input:checked + span::after { transform: translateX(16px); }
-  .time-row { margin: 0 0 18px; }
-  .time-row { text-align: center; }
-  .time-stepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
-  .time-stepper .field-input {
-    width: 140px; flex: none; text-align: center;
-    font-size: 15px; font-weight: 600; color: var(--text-dim);
-    padding: 8px 6px;
-  }
-  /* No clock icon: type on desktop, use +/-; phones show their native time picker. */
-  .time-stepper input[type="time"]::-webkit-calendar-picker-indicator { display: none; }
-  .time-stepper input[type="time"]::-webkit-date-and-time-value { text-align: center; }
-  .step-btn {
-    width: 34px; height: 34px; border-radius: 50%;
-    background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim);
-    font-size: 17px; cursor: pointer; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .step-btn:active { color: var(--accent-text); border-color: var(--accent); }
-  .field-label { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block; }
+  /* Forms: new food, one-off */
+  .form { display: flex; flex-direction: column; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field-label { font-size: 13px; font-weight: 600; color: var(--text-dim); }
   .field-input {
-    width: 100%;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    color: var(--text);
-    font-size: 15px;
-    outline: none;
+    width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font: inherit; font-size: 16px; outline: none;
   }
-  .field-input:focus { border-color: var(--accent); }
-  .more-toggle { background: none; border: none; color: var(--text-dim); font: inherit; font-size: 13px; padding: 4px 0; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  .more-toggle:hover { color: var(--text); }
-  .more-chev { display: inline-block; transition: transform .15s; font-size: 16px; line-height: 1; }
-  .more-toggle.open .more-chev { transform: rotate(90deg); }
-  .field-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-
-  .fav-toggle {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 12px 14px;
-    background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    margin-bottom: 18px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+  .field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .field-input.num { padding: 0 10px; font-family: var(--font-num); font-size: 22px; font-weight: 600; }
+  .field-input::placeholder { color: var(--text-dim); font-weight: 400; }
+  .field-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 12px 0 14px; border-bottom: 1px solid var(--border); }
+  .form-rows { border-top: 1px solid var(--border); }
+  .more-toggle {
+    width: 100%; min-height: 52px; padding: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: none; border: none; border-bottom: 1px solid var(--border);
+    font: inherit; font-size: 15px; font-weight: 600; color: var(--text); text-align: left; cursor: pointer;
   }
+  .more-toggle small { font-size: 14px; font-weight: 400; color: var(--text-dim); }
+  .more-chev { flex-shrink: 0; color: var(--text-dim); transition: transform .15s; }
+  .more-toggle.open .more-chev { transform: rotate(180deg); }
+  .fav-toggle { display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--border); cursor: pointer; }
   .fav-toggle .check {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    border: 1.5px solid var(--text-faint);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    flex-shrink: 0;
-    color: transparent;
-    background: transparent;
-    transition: all 0.15s ease;
+    width: 22px; height: 22px; flex-shrink: 0; box-sizing: border-box; border-radius: 5px; border: 2px solid var(--text-dim);
+    display: flex; align-items: center; justify-content: center; color: transparent;
   }
-  .fav-toggle.on {
-    border-color: var(--accent);
-    background: var(--accent-dim);
-  }
-  .fav-toggle.on .check {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--on-accent);
-  }
-  .fav-toggle .ftext { font-size: 14px; color: var(--text-dim); font-weight: 500; }
-  .fav-toggle.on .ftext { color: var(--text); font-weight: 600; }
+  .fav-toggle.on .check { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .fav-toggle .ftext { font-size: 15px; font-weight: 600; }
+  .fav-toggle .ftext small { margin-left: 6px; font-size: 13.5px; font-weight: 400; color: var(--text-dim); }
 
-  /* Corner icons share a 40px hit area (glyphs stay small and dim). */
-  .sheet-close-x, .sheet-fav, .sheet-edit {
-    position: absolute;
-    top: 8px;
-    width: 40px; height: 40px;
-    display: flex; align-items: center; justify-content: center;
-    background: none; border: none; padding: 0;
-    color: var(--text-faint);
-    cursor: pointer;
-  }
-  .sheet-close-x { right: 8px; font-size: 20px; }
-  .sheet-edit { right: 88px; }
-  .sheet-edit:hover { color: var(--text); }
-  .sheet-edit svg { width: 17px; height: 17px; }
-  #logSheetTitle { padding-right: 120px; }
+  /* Goals */
+  #goalRows { border-top: 1px solid var(--border); }
+  .goal-row { display: flex; align-items: center; gap: 12px; min-height: 70px; border-bottom: 1px solid var(--border); }
+  .goal-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .goal-name small { display: block; font-size: 13px; font-weight: 400; color: var(--text-dim); margin-top: 1px; }
+  .goal-row .goal-input { width: 86px; flex: none; text-align: right; padding: 0 10px; font-family: var(--font-num); font-size: 22px; font-weight: 600; }
+  .goal-unit { width: 26px; flex: none; font-size: 14px; color: var(--text-dim); }
+  .goal-row.off .goal-name, .goal-row.off .goal-input, .goal-row.off .goal-unit { opacity: 0.45; }
+  .switch { position: relative; width: 46px; height: 28px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; inset: 0; cursor: pointer; z-index: 1; }
+  .switch span { position: absolute; inset: 0; background: var(--miss); border-radius: 14px; transition: background 0.15s; }
+  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fbfbf9; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s; }
+  .switch input:checked + span { background: var(--accent); }
+  .switch input:checked + span::after { transform: translateX(18px); }
+  .switch input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-dim); }
+
+  /* Quick-add buttons sheet */
+  .quick-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 104px; gap: 0 10px; align-items: center; min-height: 60px; border-bottom: 1px solid var(--border); }
+  .quick-row.quick-head { min-height: 0; padding-bottom: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-dim); }
+  .quick-n { font-family: var(--font-num); font-size: 18px; font-weight: 600; color: var(--text-dim); }
+  .quick-row .field-input { height: 44px; padding: 0 10px; font-size: 15px; min-width: 0; }
+  .quick-row input.field-input { font-weight: 700; color: var(--accent-text); }
 
   /* ---------- Trends ---------- */
   .seg { display: flex; margin: 0 20px 12px; max-width: 320px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
@@ -497,10 +452,6 @@
 
   ::-webkit-scrollbar { display: none; }
 
-  /* ---------- Favourite star in log sheet ---------- */
-  .sheet-fav { right: 48px; font-size: 21px; }
-  .sheet-fav.on { color: var(--accent-text); }
-
   /* ---------- Guest strip ---------- */
   .guest-banner {
     display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 10px;
@@ -523,21 +474,22 @@
   .profile-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .profile-btn:hover { border-color: var(--text-faint); }
   .profile-menu {
-    position: absolute; right: 0; top: 44px; min-width: 210px; z-index: 40;
-    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    box-shadow: 0 10px 30px var(--shadow); padding: 6px;
+    position: absolute; right: 0; top: 46px; width: 260px; z-index: 40;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 12px 32px var(--shadow); padding: 6px;
   }
-  .profile-email {
-    padding: 8px 10px 10px; font-size: 12.5px; color: var(--text-dim);
-    border-bottom: 1px solid var(--border); margin-bottom: 4px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  .profile-who { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border); min-width: 0; }
+  .profile-who b { font-size: 15px; }
+  .profile-who span { font-size: 13px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .profile-sep { height: 1px; background: var(--border); margin: 4px 0; }
   .profile-item {
-    display: block; width: 100%; text-align: left; background: none; border: none;
-    color: var(--text); font-size: 14.5px; font-weight: 500; padding: 10px; border-radius: 7px; cursor: pointer;
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 12px;
+    background: none; border: none; border-radius: 8px; cursor: pointer;
+    font: inherit; font-size: 15.5px; font-weight: 600; color: var(--text); text-align: left;
   }
-  .profile-item:hover, .profile-item:active { background: var(--bg-card); }
+  .profile-item svg { flex-shrink: 0; color: var(--text-dim); }
+  .profile-item .pv { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--text-dim); }
+  .profile-item:hover, .profile-item:active { background: var(--bg-elevated); }
 
   /* ---------- Mobile add band ---------- */
   @media (max-width: 899px) {
@@ -611,12 +563,12 @@
     </div>
     <div class="profile" id="profile">
       <button class="profile-btn" id="profileBtn" aria-label="Account menu" aria-haspopup="true"><span id="profileInitial">?</span></button>
-      <div class="profile-menu" id="profileMenu" style="display:none;">
-        <div class="profile-email" id="profileEmail"></div>
-        <button class="profile-item" id="menuGoals">Goals</button>
-        <button class="profile-item" id="menuQuick">Quick-add buttons</button>
+      <div class="profile-menu" id="profileMenu" role="menu" style="display:none;">
+        <div class="profile-who"><b id="profileName"></b><span id="profileEmail"></span></div>
+        <button class="profile-item" id="menuGoals" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg><span>Goals</span><span class="pv" id="menuGoalsVal"></span></button>
+        <button class="profile-item" id="menuQuick" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6Z"/></svg><span>Quick-add buttons</span><span class="pv" id="menuQuickVal"></span></button>
         <div class="profile-sep"></div>
-        <button class="profile-item" id="menuSignOut">Sign out</button>
+        <button class="profile-item" id="menuSignOut" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg><span id="menuSignOutText">Sign out</span></button>
       </div>
     </div>
   </header>
@@ -681,139 +633,128 @@
   <button class="tab" id="tabTrends"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Trends</button>
 </div>
 
-<!-- LOG QUANTITY SHEET -->
+<!-- LOG SHEET (new entry, or editing one) -->
 <div class="sheet-overlay" id="logSheetOverlay">
-  <div class="sheet">
-    <button class="sheet-close-x" id="closeLogSheet">✕</button>
-    <button class="sheet-edit" id="editFoodLink" style="display:none" aria-label="Edit food" title="Edit food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
-    <button class="sheet-fav" id="logSheetFav" aria-label="Toggle favourite">☆</button>
-    <div class="sheet-title" id="logSheetTitle">Food name</div>
-    <div class="sheet-sub" id="logSheetSub">per serving</div>
-
-    <div class="qty-control">
-      <button class="qty-btn" id="qtyMinus">−</button>
-      <div class="qty-value" id="qtyValue">1</div>
-      <button class="qty-btn" id="qtyPlus">+</button>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="logSheetTitle">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="logSheetTitle">Food name</div>
+        <div class="sheet-sub" id="logSheetSub">per serving</div>
+      </div>
+      <button class="icon-btn" id="editFoodLink" style="display:none" aria-label="Edit food" title="Edit food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+      <button class="icon-btn" id="logSheetFav" aria-label="Add to favourites" aria-pressed="false"></button>
+      <button class="icon-btn" id="closeLogSheet" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
 
-    <div class="time-row">
-      <div class="field-label">Time eaten</div>
-      <div class="time-stepper">
-        <button type="button" class="step-btn" id="timeMinus" aria-label="30 minutes earlier">−</button>
-        <input type="time" class="field-input" id="logTime">
-        <button type="button" class="step-btn" id="timePlus" aria-label="30 minutes later">+</button>
+    <div class="sheet-rows">
+      <div class="step-row">
+        <span>Servings</span>
+        <div class="stepper">
+          <button type="button" class="step-btn" id="qtyMinus" aria-label="Half a serving less">−</button>
+          <span class="step-val qty-value" id="qtyValue" aria-live="polite">1</span>
+          <button type="button" class="step-btn" id="qtyPlus" aria-label="Half a serving more">+</button>
+        </div>
+      </div>
+      <div class="step-row">
+        <label for="logTime">Time eaten</label>
+        <div class="stepper">
+          <button type="button" class="step-btn" id="timeMinus" aria-label="30 minutes earlier">−</button>
+          <input type="time" class="step-val" id="logTime">
+          <button type="button" class="step-btn" id="timePlus" aria-label="30 minutes later">+</button>
+        </div>
       </div>
     </div>
 
-    <div class="sheet-macros">
-      <div class="sheet-macro"><div class="v" id="prevCal">0</div><div class="l">Cal</div></div>
-      <div class="sheet-macro"><div class="v" id="prevP">0g</div><div class="l">Protein</div></div>
-      <div class="sheet-macro"><div class="v" id="prevC">0g</div><div class="l">Carbs</div></div>
-      <div class="sheet-macro"><div class="v" id="prevF">0g</div><div class="l">Fat</div></div>
+    <div class="sheet-sum">
+      <span class="v" id="prevCal">0</span><span class="u">cal</span>
+      <span class="m" id="prevMacros"></span>
     </div>
+    <div class="sheet-after" id="logAfter"></div>
 
     <button class="btn-primary" id="confirmLog">Log it</button>
     <button type="button" class="btn-remove" id="removeEntry" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Remove entry</button>
   </div>
 </div>
 
-<!-- ADD NEW FOOD SHEET -->
+<!-- NEW / EDIT FOOD SHEET -->
 <div class="sheet-overlay" id="addFoodOverlay">
-  <div class="sheet">
-    <button class="sheet-close-x" id="closeAddFood">✕</button>
-    <div class="sheet-title" id="foodSheetTitle">New saved food</div>
-    <div class="sheet-sub" id="foodSheetSub">Enter it at the size you'll usually log. Only you will see it.</div>
-
-    <div class="field-row">
-      <label class="field-label">Name</label>
-      <input type="text" class="field-input" id="newFoodName" placeholder="e.g. 6oz Steak">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="foodSheetTitle">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="foodSheetTitle">New food</div>
+        <div class="sheet-sub" id="foodSheetSub">One serving, the way you usually log it. Only you see it.</div>
+      </div>
+      <button class="icon-btn" id="closeAddFood" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <div class="field-row">
-      <label class="field-label">Calories</label>
-      <input type="number" class="field-input" id="newFoodCal" placeholder="0" inputmode="decimal">
-    </div>
-    <div class="field-row field-grid">
-      <div>
-        <label class="field-label">Protein g</label>
-        <input type="number" class="field-input" id="newFoodP" placeholder="0" inputmode="decimal">
+    <div class="form">
+      <div class="field">
+        <label class="field-label" for="newFoodName">Name, with the serving size</label>
+        <input type="text" class="field-input" id="newFoodName" placeholder="e.g. Greek yoghurt 200g" autocomplete="off">
       </div>
-      <div>
-        <label class="field-label">Carbs g</label>
-        <input type="number" class="field-input" id="newFoodC" placeholder="0" inputmode="decimal">
+      <div class="field-grid">
+        <div class="field"><label class="field-label" for="newFoodCal">Calories</label><input type="number" class="field-input num" id="newFoodCal" placeholder="0" inputmode="decimal"></div>
+        <div class="field"><label class="field-label" for="newFoodP">Protein g</label><input type="number" class="field-input num" id="newFoodP" placeholder="0" inputmode="decimal"></div>
+        <div class="field"><label class="field-label" for="newFoodC">Carbs g</label><input type="number" class="field-input num" id="newFoodC" placeholder="0" inputmode="decimal"></div>
+        <div class="field"><label class="field-label" for="newFoodF">Fat g</label><input type="number" class="field-input num" id="newFoodF" placeholder="0" inputmode="decimal"></div>
       </div>
-      <div>
-        <label class="field-label">Fat g</label>
-        <input type="number" class="field-input" id="newFoodF" placeholder="0" inputmode="decimal">
-      </div>
-    </div>
-
-    <button type="button" class="more-toggle" id="moreToggle" aria-expanded="false">
-      <span class="more-chev">›</span> Drinks &amp; supplements
-    </button>
-    <div class="field-row field-grid" id="moreFields" style="display:none">
-      <div>
-        <label class="field-label">Fluid ml</label>
-        <input type="number" class="field-input" id="newFoodFluid" placeholder="0" inputmode="decimal">
-      </div>
-      <div>
-        <label class="field-label">Alcohol (std)</label>
-        <input type="number" class="field-input" id="newFoodAlc" placeholder="0" inputmode="decimal">
-      </div>
-      <div>
-        <label class="field-label">Creatine g</label>
-        <input type="number" class="field-input" id="newFoodCr" placeholder="0" inputmode="decimal">
+      <div class="form-rows">
+        <button type="button" class="more-toggle" id="moreToggle" aria-expanded="false" aria-controls="moreFields">
+          <span>Drinks and supplements <small>· fluid, alcohol, creatine</small></span>
+          <svg class="more-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="field-grid three" id="moreFields" style="display:none">
+          <div class="field"><label class="field-label" for="newFoodFluid">Fluid ml</label><input type="number" class="field-input num" id="newFoodFluid" placeholder="0" inputmode="decimal"></div>
+          <div class="field"><label class="field-label" for="newFoodAlc">Alcohol (std)</label><input type="number" class="field-input num" id="newFoodAlc" placeholder="0" inputmode="decimal"></div>
+          <div class="field"><label class="field-label" for="newFoodCr">Creatine g</label><input type="number" class="field-input num" id="newFoodCr" placeholder="0" inputmode="decimal"></div>
+        </div>
+        <div class="fav-toggle" id="favToggle" role="checkbox" aria-checked="false" tabindex="0">
+          <span class="check" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></span>
+          <span class="ftext" id="favToggleText">Add to favourites <small>listed first</small></span>
+        </div>
       </div>
     </div>
-
-    <div class="fav-toggle" id="favToggle">
-      <div class="check">★</div>
-      <div class="ftext" id="favToggleText">Mark as favourite</div>
-    </div>
-
-    <button class="btn-primary" id="saveNewFood">Save food</button>
+    <button class="btn-primary" id="saveNewFood">Save and log 1 serving</button>
+    <button type="button" class="btn-link" id="saveFoodOnly">Save only</button>
   </div>
 </div>
 
-<!-- LOG ONE-OFF SHEET -->
+<!-- ONE-OFF SHEET -->
 <div class="sheet-overlay" id="oneOffOverlay">
-  <div class="sheet">
-    <button class="sheet-close-x" id="closeOneOff">✕</button>
-    <div class="sheet-title">Log a one-off</div>
-    <div class="sheet-sub">Logs straight to today — won't be saved to your food list</div>
-
-    <div class="field-row">
-      <label class="field-label">Name</label>
-      <input type="text" class="field-input" id="oneOffName" placeholder="e.g. Birthday cake slice">
-    </div>
-    <div class="field-row">
-      <label class="field-label">Calories</label>
-      <input type="number" class="field-input" id="oneOffCal" placeholder="0" inputmode="decimal">
-    </div>
-    <div class="field-row field-grid">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="oneOffTitle">
+    <div class="sheet-head">
       <div>
-        <label class="field-label">Protein g</label>
-        <input type="number" class="field-input" id="oneOffP" placeholder="0" inputmode="decimal">
+        <div class="sheet-title" id="oneOffTitle">One-off</div>
+        <div class="sheet-sub">Logged to this day only. It isn't saved to your foods.</div>
       </div>
-      <div>
-        <label class="field-label">Carbs g</label>
-        <input type="number" class="field-input" id="oneOffC" placeholder="0" inputmode="decimal">
+      <button class="icon-btn" id="closeOneOff" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="form">
+      <div class="field">
+        <label class="field-label" for="oneOffName">Name</label>
+        <input type="text" class="field-input" id="oneOffName" placeholder="e.g. Slice of birthday cake" autocomplete="off">
       </div>
-      <div>
-        <label class="field-label">Fat g</label>
-        <input type="number" class="field-input" id="oneOffF" placeholder="0" inputmode="decimal">
+      <div class="field-grid">
+        <div class="field"><label class="field-label" for="oneOffCal">Calories</label><input type="number" class="field-input num" id="oneOffCal" placeholder="0" inputmode="decimal"></div>
+        <div class="field"><label class="field-label" for="oneOffP">Protein g</label><input type="number" class="field-input num" id="oneOffP" placeholder="0" inputmode="decimal"></div>
+        <div class="field"><label class="field-label" for="oneOffC">Carbs g</label><input type="number" class="field-input num" id="oneOffC" placeholder="0" inputmode="decimal"></div>
+        <div class="field"><label class="field-label" for="oneOffF">Fat g</label><input type="number" class="field-input num" id="oneOffF" placeholder="0" inputmode="decimal"></div>
       </div>
     </div>
-
     <button class="btn-primary" id="saveOneOff">Log it</button>
   </div>
 </div>
 
-<!-- QUICK-ADD EDIT SHEET -->
+<!-- QUICK-ADD BUTTONS SHEET -->
 <div class="sheet-overlay" id="quickOverlay">
-  <div class="sheet">
-    <button class="sheet-close-x" id="closeQuick">✕</button>
-    <div class="sheet-title">Quick-add buttons</div>
-    <div class="sheet-sub">Up to 6. One tap logs one serving. Keep names short (10 characters).</div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="quickTitle">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="quickTitle">Quick-add buttons</div>
+        <div class="sheet-sub">Up to 6. One tap logs one serving.</div>
+      </div>
+      <button class="icon-btn" id="closeQuick" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="quick-row quick-head" aria-hidden="true"><span></span><span>Food</span><span>Button label</span></div>
     <div id="quickRows"></div>
     <button class="btn-primary" id="saveQuick">Save buttons</button>
   </div>
@@ -821,10 +762,14 @@
 
 <!-- GOALS SHEET -->
 <div class="sheet-overlay" id="goalsOverlay">
-  <div class="sheet">
-    <button class="sheet-close-x" id="closeGoals">✕</button>
-    <div class="sheet-title">Daily goals</div>
-    <div class="sheet-sub">Switch a goal off to hide it from your summary.</div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="goalsTitle">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="goalsTitle">Daily goals</div>
+        <div class="sheet-sub">Goals you switch off drop out of Today.</div>
+      </div>
+      <button class="icon-btn" id="closeGoals" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
     <div id="goalRows"></div>
     <button class="btn-primary" id="saveGoals">Save goals</button>
   </div>
@@ -1320,17 +1265,17 @@ new ResizeObserver(() => {
 
 // Goals sheet
 const GOAL_DEFS = [
-  { key: 'calories',   label: 'Calories', note: 'daily limit', unit: 'cal', scale: 1,    step: 50 },
-  { key: 'protein',    label: 'Protein',  note: 'daily goal',  unit: 'g',   scale: 1,    step: 5 },
-  { key: 'fluid_ml',   label: 'Fluids',   note: 'daily goal',  unit: 'L',   scale: 1000, step: 0.1 },
-  { key: 'creatine_g', label: 'Creatine', note: 'daily goal',  unit: 'g',   scale: 1,    step: 1 },
+  { key: 'calories',   label: 'Calories', note: 'Limit · stay under it', unit: 'cal', scale: 1,    step: 50 },
+  { key: 'protein',    label: 'Protein',  note: 'At least this much',    unit: 'g',   scale: 1,    step: 5 },
+  { key: 'fluid_ml',   label: 'Fluids',   note: 'At least this much',    unit: 'L',   scale: 1000, step: 0.1 },
+  { key: 'creatine_g', label: 'Creatine', note: 'At least this much',    unit: 'g',   scale: 1,    step: 1 },
 ];
 function openGoals() {
   document.getElementById('goalRows').innerHTML = GOAL_DEFS.map(d => `
-    <div class="goal-row">
-      <label class="switch"><input type="checkbox" id="goalOn_${d.key}" ${goals[d.key] ? 'checked' : ''}><span></span></label>
+    <div class="goal-row${goals[d.key] ? '' : ' off'}" id="goalRow_${d.key}">
+      <label class="switch"><input type="checkbox" role="switch" aria-label="${d.label} goal" id="goalOn_${d.key}" ${goals[d.key] ? 'checked' : ''}><span></span></label>
       <div class="goal-name">${d.label}<small>${d.note}</small></div>
-      <input type="number" class="field-input goal-input" id="goalVal_${d.key}" inputmode="decimal" step="${d.step}" min="0"
+      <input type="number" class="field-input goal-input" id="goalVal_${d.key}" aria-label="${d.label} amount in ${d.unit}" inputmode="decimal" step="${d.step}" min="0"
              value="${goals[d.key] ? goals[d.key] / d.scale : ''}" ${goals[d.key] ? '' : 'disabled'}>
       <span class="goal-unit">${d.unit}</span>
     </div>`).join('');
@@ -1338,6 +1283,7 @@ function openGoals() {
     document.getElementById('goalOn_' + d.key).addEventListener('change', (ev) => {
       const input = document.getElementById('goalVal_' + d.key);
       input.disabled = !ev.target.checked;
+      document.getElementById('goalRow_' + d.key).classList.toggle('off', !ev.target.checked);
       if (ev.target.checked && !input.value) input.value = GOAL_STARTERS[d.key] / d.scale;
     });
   }
@@ -1372,7 +1318,13 @@ document.getElementById('saveGoals').addEventListener('click', async () => {
 const profileMenu = document.getElementById('profileMenu');
 document.getElementById('profileBtn').addEventListener('click', (ev) => {
   ev.stopPropagation();
-  profileMenu.style.display = profileMenu.style.display === 'none' ? '' : 'none';
+  const opening = profileMenu.style.display === 'none';
+  if (opening) {
+    document.getElementById('menuGoalsVal').textContent = goals.calories ? `${fmtNum(goals.calories)} cal` : '';
+    const n = effectiveQuickAdds().filter(q => foods.some(f => f.id === q.food_id)).length;
+    document.getElementById('menuQuickVal').textContent = `${n} of ${QUICK_SLOTS}`;
+  }
+  profileMenu.style.display = opening ? '' : 'none';
 });
 document.addEventListener('click', (ev) => {
   if (!ev.target.closest('#profile')) profileMenu.style.display = 'none';
@@ -1623,8 +1575,9 @@ function openQuickEdit(focusEmpty = false) {
   for (let i = 0; i < QUICK_SLOTS; i++) {
     const q = current.find(x => x.slot === i);
     html += `<div class="quick-row">
-      <select class="field-input" id="quickFood_${i}"><option value="">— empty —</option>${options}</select>
-      <input type="text" class="field-input" id="quickLabel_${i}" maxlength="${QUICK_LABEL_MAX}" placeholder="Label" value="${q ? escapeHtml(q.label) : ''}">
+      <span class="quick-n">${i + 1}</span>
+      <select class="field-input" id="quickFood_${i}" aria-label="Button ${i + 1} food"><option value="">Choose a food</option>${options}</select>
+      <input type="text" class="field-input" id="quickLabel_${i}" aria-label="Button ${i + 1} label" maxlength="${QUICK_LABEL_MAX}" placeholder="Label" value="${q ? escapeHtml(q.label) : ''}">
     </div>`;
   }
   document.getElementById('quickRows').innerHTML = html;
@@ -1709,7 +1662,7 @@ function openLogSheet(foodId) {
   pendingQty = 1;
   updateFavButton();
   document.getElementById('logSheetTitle').textContent = activeFood.name;
-  document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
+  document.getElementById('logSheetSub').textContent = `${fmtNum(activeFood.calories)} cal a serving`;
   document.getElementById('confirmLog').textContent = 'Log it';
   document.getElementById('removeEntry').style.display = 'none';
   document.getElementById('editFoodLink').style.display = activeFood.mine ? '' : 'none';
@@ -1738,7 +1691,7 @@ function openEditSheet(entry) {
   pendingQty = qty;
   updateFavButton();
   document.getElementById('logSheetTitle').textContent = entry.food_name;
-  document.getElementById('logSheetSub').textContent = `${Math.round(activeFood.calories)} cal per serving`;
+  document.getElementById('logSheetSub').textContent = `${fmtNum(activeFood.calories)} cal a serving`;
   document.getElementById('confirmLog').textContent = 'Save changes';
   document.getElementById('removeEntry').style.display = '';
   document.getElementById('editFoodLink').style.display = 'none';
@@ -1748,11 +1701,24 @@ function openEditSheet(entry) {
 }
 
 function updateQtyDisplay() {
-  document.getElementById('qtyValue').textContent = pendingQty;
-  document.getElementById('prevCal').textContent = Math.round(activeFood.calories * pendingQty);
-  document.getElementById('prevP').textContent = round1(activeFood.protein * pendingQty) + 'g';
-  document.getElementById('prevC').textContent = round1(activeFood.carbs * pendingQty) + 'g';
-  document.getElementById('prevF').textContent = round1(activeFood.fat * pendingQty) + 'g';
+  const q = pendingQty, f = activeFood;
+  document.getElementById('qtyValue').textContent = q;
+  document.getElementById('prevCal').textContent = fmtNum(f.calories * q);
+  document.getElementById('prevMacros').textContent = (f.protein || f.carbs || f.fat)
+    ? `P ${Math.round(f.protein * q)} · C ${Math.round(f.carbs * q)} · F ${Math.round(f.fat * q)}`
+    : entrySub({ fluid_ml: (f.fluid_ml || 0) * q, alcohol: (f.alcohol || 0) * q, creatine_g: (f.creatine_g || 0) * q }, 1);
+  // Where the day would stand after this entry (an edited entry's old calories are swapped out).
+  const dayCal = entries.reduce((a, e) => a + e.calories, 0) - (editingId ? (entries.find(e => e.id === editingId)?.calories || 0) : 0);
+  const after = dayCal + f.calories * q;
+  const el = document.getElementById('logAfter');
+  if (goals.calories) {
+    const left = Math.round(goals.calories - after);
+    el.innerHTML = `After this: <b>${Math.abs(left).toLocaleString()} cal ${left < 0 ? 'over' : 'left'}</b>`;
+    el.classList.toggle('over', left < 0);
+  } else {
+    el.innerHTML = `After this: <b>${fmtNum(after)} cal</b> for the day`;
+    el.classList.remove('over');
+  }
 }
 
 document.getElementById('qtyMinus').addEventListener('click', () => {
@@ -1773,8 +1739,11 @@ function updateFavButton() {
   const btn = document.getElementById('logSheetFav');
   const food = activeFood && activeFood.id ? foods.find(f => f.id === activeFood.id) : null;
   btn.style.display = food ? '' : 'none'; // hidden for one-offs / deleted foods
-  btn.classList.toggle('on', !!(food && food.favourite));
-  btn.textContent = food && food.favourite ? '★' : '☆';
+  const on = !!(food && food.favourite);
+  btn.classList.toggle('on', on);
+  btn.setAttribute('aria-pressed', on);
+  btn.setAttribute('aria-label', on ? 'Remove from favourites' : 'Add to favourites');
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg>`;
 }
 
 document.getElementById('logSheetFav').addEventListener('click', async () => {
@@ -1883,12 +1852,13 @@ let newFoodFavourite = false;
 let editingFoodId = null; // set while the food sheet is editing an existing food
 
 function setFoodSheetMode(editing) {
-  document.getElementById('foodSheetTitle').textContent = editing ? 'Edit food' : 'New saved food';
+  document.getElementById('foodSheetTitle').textContent = editing ? 'Edit food' : 'New food';
   document.getElementById('foodSheetSub').textContent = editing
     ? 'Changes apply to future logs. Entries you already logged keep their values.'
-    : "Enter it at the size you'll usually log. Only you will see it.";
+    : 'One serving, the way you usually log it. Only you see it.';
   document.getElementById('favToggle').style.display = editing ? 'none' : '';
-  document.getElementById('saveNewFood').textContent = editing ? 'Save changes' : 'Save food';
+  document.getElementById('saveFoodOnly').style.display = editing ? 'none' : '';
+  document.getElementById('saveNewFood').textContent = editing ? 'Save changes' : 'Save and log 1 serving';
 }
 
 function setMoreOpen(open) {
@@ -1911,9 +1881,7 @@ document.getElementById('addNewFoodLink').addEventListener('click', () => {
   document.getElementById('newFoodF').value = '';
   ['newFoodFluid', 'newFoodAlc', 'newFoodCr'].forEach(id => { document.getElementById(id).value = ''; });
   setMoreOpen(false);
-  newFoodFavourite = false;
-  document.getElementById('favToggle').classList.remove('on');
-  document.getElementById('favToggleText').textContent = 'Mark as favourite';
+  setNewFoodFavourite(false);
   document.getElementById('addFoodOverlay').classList.add('open');
 });
 document.getElementById('editFoodLink').addEventListener('click', () => {
@@ -1932,53 +1900,63 @@ document.getElementById('editFoodLink').addEventListener('click', () => {
 document.getElementById('closeAddFood').addEventListener('click', () => {
   document.getElementById('addFoodOverlay').classList.remove('open');
 });
-document.getElementById('favToggle').addEventListener('click', () => {
-  newFoodFavourite = !newFoodFavourite;
-  document.getElementById('favToggle').classList.toggle('on', newFoodFavourite);
-  document.getElementById('favToggleText').textContent = newFoodFavourite
-    ? 'Favourite — will appear at the top'
-    : 'Mark as favourite';
+function setNewFoodFavourite(on) {
+  newFoodFavourite = on;
+  const t = document.getElementById('favToggle');
+  t.classList.toggle('on', on);
+  t.setAttribute('aria-checked', on);
+}
+document.getElementById('favToggle').addEventListener('click', () => setNewFoodFavourite(!newFoodFavourite));
+document.getElementById('favToggle').addEventListener('keydown', (ev) => {
+  if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); setNewFoodFavourite(!newFoodFavourite); }
 });
 
-document.getElementById('saveNewFood').addEventListener('click', async () => {
+// Save the food; for a new food the primary button also logs one serving to the viewed day.
+async function saveFood(logIt) {
   const name = document.getElementById('newFoodName').value.trim();
-  const calories = Number(document.getElementById('newFoodCal').value) || 0;
-  const protein = Number(document.getElementById('newFoodP').value) || 0;
-  const carbs = Number(document.getElementById('newFoodC').value) || 0;
-  const fat = Number(document.getElementById('newFoodF').value) || 0;
-  const fluid_ml = Number(document.getElementById('newFoodFluid').value) || 0;
-  const alcohol = Number(document.getElementById('newFoodAlc').value) || 0;
-  const creatine_g = Number(document.getElementById('newFoodCr').value) || 0;
-
+  const num = id => Number(document.getElementById(id).value) || 0;
+  const values = {
+    name, calories: num('newFoodCal'), protein: num('newFoodP'), carbs: num('newFoodC'), fat: num('newFoodF'),
+    fluid_ml: num('newFoodFluid'), alcohol: num('newFoodAlc'), creatine_g: num('newFoodCr'),
+  };
   if (!name) { showToast('Give it a name first'); return; }
 
-  const btn = document.getElementById('saveNewFood');
+  const editing = !!editingFoodId;
+  const btn = document.getElementById(logIt ? 'saveNewFood' : 'saveFoodOnly');
+  const label = btn.textContent;
   btn.textContent = 'Saving…';
   btn.disabled = true;
   try {
-    const values = { name, calories, protein, carbs, fat, fluid_ml, alcohol, creatine_g };
-    if (editingFoodId) {
+    if (editing) {
       await must(sb.from('foods').update(values).eq('id', editingFoodId).select('id'));
     } else {
       // New foods are always private to the signed-in user.
-      const [food] = await must(sb.from('foods')
-        .insert({ owner_id: user.id, ...values })
-        .select('id'));
-      if (newFoodFavourite) {
-        await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
+      const [food] = await must(sb.from('foods').insert({ owner_id: user.id, ...values }).select('id'));
+      if (newFoodFavourite) await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
+      if (logIt) {
+        await must(sb.from('log_entries').insert({
+          date: currentDate, food_id: food.id, food_name: name, quantity: 1,
+          calories: values.calories, protein: values.protein, carbs: values.carbs, fat: values.fat,
+          alcohol: values.alcohol, fluid_ml: values.fluid_ml, creatine_g: values.creatine_g,
+          eaten_at: currentDate === todayStr() ? eatenAtFor(currentDate, nowHHMM()) : null,
+        }));
       }
     }
     document.getElementById('addFoodOverlay').classList.remove('open');
     await loadFoods();
-    showToast(editingFoodId ? 'Food updated' : 'Food saved');
+    if (logIt && !editing) await loadEntriesForDate(currentDate);
+    showToast(editing ? 'Food updated' : logIt ? `Saved and logged ${name}` : 'Food saved');
   } catch (err) {
     console.error(err);
-    showToast(err.code === '23505' ? 'You already have a food with that name' : 'Could not save — try again');
+    showToast(err.code === '23505' ? 'You already have a food with that name' : 'Could not save. Try again.');
   } finally {
-    btn.textContent = editingFoodId ? 'Save changes' : 'Save food';
+    btn.textContent = label;
     btn.disabled = false;
   }
-});
+}
+// In edit mode the primary button just saves.
+document.getElementById('saveNewFood').addEventListener('click', () => saveFood(!editingFoodId));
+document.getElementById('saveFoodOnly').addEventListener('click', () => saveFood(false));
 
 // ---------- Log a one-off (skips Foods entirely, logs straight to today's entries) ----------
 document.getElementById('logOneOffLink').addEventListener('click', () => {
@@ -2024,6 +2002,18 @@ document.getElementById('saveOneOff').addEventListener('click', async () => {
     btn.textContent = 'Log it';
     btn.disabled = false;
   }
+});
+
+// ---------- Closing sheets ----------
+document.querySelectorAll('.sheet-overlay').forEach(ov => {
+  ov.addEventListener('click', (ev) => { if (ev.target === ov) ov.querySelector('.sheet-head .icon-btn[aria-label="Close"]').click(); });
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  const open = [...document.querySelectorAll('.sheet-overlay.open')].pop();
+  if (!open) return;
+  ev.stopImmediatePropagation(); // one Escape closes one layer
+  open.querySelector('.sheet-head .icon-btn[aria-label="Close"]').click();
 });
 
 // ---------- Search ----------
@@ -2427,8 +2417,9 @@ function showApp(sessionUser, isGuest) {
   document.getElementById('app').style.display = '';
   document.getElementById('tabbar').style.display = '';
   document.getElementById('guestBanner').style.display = guest ? '' : 'none';
-  document.getElementById('profileEmail').textContent = guest ? 'Guest: saved on this device only' : (user.email || '');
-  document.getElementById('menuSignOut').textContent = guest ? 'Sign in with Google' : 'Sign out';
+  document.getElementById('profileName').textContent = guest ? 'Guest' : (user.user_metadata?.full_name || 'Signed in');
+  document.getElementById('profileEmail').textContent = guest ? 'Saved on this device only' : (user.email || '');
+  document.getElementById('menuSignOutText').textContent = guest ? 'Sign in with Google' : 'Sign out';
   const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
   const initial = (user.user_metadata?.full_name || user.email || '?').trim().charAt(0).toUpperCase();
   const btn = document.getElementById('profileBtn');
