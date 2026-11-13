@@ -1,14 +1,15 @@
 # CalTal roadmap
 
 ## Where we left off (2026-11-13)
-Everything below marked built is committed and live. Latest: goals helper with saved profile, creatine streak and 4-week grid.
+Everything below marked built is committed and live. Latest: weight tracking stage 1 (built, not yet live).
 **Pick up with:**
 1. **(Done)** Guest merge tested with a real sign-in.
 2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6.
 3. **Section 0 housekeeping** below (archive the old Apps Script, second-account isolation test).
 4. **(Done)** Goals helper (2a-quater), live with the `profiles` table.
-5. **(Built)** Creatine card: streak and 4-week grid (2b).
-6. Then, in rough order: weight (4), pace tick on the summary bars (2a-bis).
+5. **(Done)** Creatine card: streak and 4-week grid (2b).
+6. **Weight stage 1 (section 4): built, not yet live.** Run the new `daily_metrics` section of `supabase/schema.sql` (it also adds `goals.weight_kg`) before pushing.
+7. Then: weight stage 2 (your Apple Health Shortcut), stage 3 (history import), pace tick on the summary bars (2a-bis).
 
 **Maybe later** (not sure they are worth it):
 - **Day view on Trends.** Today already shows a day's entries and times, so a one-day chart adds little. If it comes back, make it a pattern over the window instead ("most of your calories land after 7pm"), read from `log_entries.eaten_at`.
@@ -136,9 +137,18 @@ Repeats of the same food on a day (2 or more, matched by `food_id`, or by name f
 5. **(Done with your account; second account pending)** Test the merge with a real Google sign-in, then with a second Google account.
 6. **Publish the Google consent screen** (Google Cloud, a step for Steve): from Testing to In production so any Google account can sign in. Basic sign-in scopes should not need Google's verification review and should not show an "unverified app" warning, but confirm by signing in with an account that is not on the test list. It is reversible and does not expose data (row-level security keeps each user's rows separate). Signed-in users' emails appear in Supabase under Authentication > Users, which gives contact details.
 
-## 4. Weight (later, needs more thinking)
-- A `daily_metrics` table, one row per user per day, nullable columns.
-- Store in one unit and add an easy lbs/kg toggle (lbs by default).
-- Chart with a 7-day moving average, since daily weight is noisy.
-- One-off import of the long history from Apple Health (export is XML), as a separate script like `scripts/migrate_from_sheet.py`.
+## 4. Weight (planned 2026-11-13)
+**Apple Health background.** A website cannot read or write Apple Health; only native apps can (no web API). The bridge is the Shortcuts app, which can read Health samples and "Log Health Sample". Decided: Apple Health sync is a private feature for Steve only; if friends ever want it, that means making CalTal a native app.
 
+**Stage 1 (built 2026-11-13): weight in CalTal, for everyone.**
+- `daily_metrics`: one row per user per day (`weight_kg`, `source` manual/import/shortcut, `updated_at`), own-row RLS. Stored in kg, shown in `profiles.units` (lb by default). Guests have it in the stand-in; it merges on sign-in.
+- Optional goal weight on `goals.weight_kg` (null = none), set in the Weight sheet, not the Daily goals sheet.
+- **Weight sheet** from the profile menu (shows the latest weight): logs for the day being viewed, lb/kg switch (saved to the profile), goal weight row, "Remove this weigh-in", and the last 10 weigh-ins (tap one to edit that day). The box's placeholder is your latest weight. Switching units and saving an unchanged value keeps it exact.
+- **Trends card** (after Calories; only once there is a weigh-in or a goal weight): its own scale (not from zero), dots for weigh-ins, a line for the average of the weigh-ins in the 7 days up to each day, dashed goal line when it fits without flattening the data (else just in the legend). Tiles: latest, change in average across the window, distance to goal. Tap a day: value, average, and "Edit ›" / "Add weight ›" into the sheet.
+- The Goals helper prefills weight from the latest weigh-in.
+
+**Stage 2: Steve's daily Shortcut (Health and CalTal in one step).** A "Log weight" Shortcut (home screen, widget or Siri) asks for the weight, writes it to Apple Health (Log Health Sample) and posts it to CalTal. Needs: a `sync_keys` table holding a hashed personal key (no policies, so the app cannot read it); a `log_weight(key, date, value, unit)` security-definer function callable with the publishable key, which finds the user by key and upserts that day's weight (source 'shortcut'); the key generated once in the SQL editor and pasted into the Shortcut (never in the repo or chat; replaceable with one line). Weights typed in CalTal do not reach Health (fine for corrections).
+
+**Stage 3: history.** One-off import of Apple Health's export (zip with a large XML) by a Python script like `scripts/migrate_from_sheet.py`; earliest weigh-in of each day; source 'import'.
+
+**Only if Steve gets a smart scale:** a morning Shortcuts automation reads new Health weights and calls the same `log_weight`. Both directions together are harmless: one weight per day, and a manual entry wins.

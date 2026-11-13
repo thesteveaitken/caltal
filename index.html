@@ -400,6 +400,26 @@
   .switch input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-dim); }
   .goal-name small { white-space: normal; }
 
+  /* Weight sheet */
+  .weight-entry { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; }
+  .weight-entry .field-input { flex: 1; min-width: 0; height: 64px; text-align: center; font-family: var(--font-num); font-size: 36px; font-weight: 600; }
+  .weight-entry .seg { flex: none; }
+  #weightGoalRow { border-top: 1px solid var(--border); }
+  .weight-recent { margin-top: 22px; }
+  .weight-recent .field-label { display: block; margin-bottom: 6px; }
+  .wr-row {
+    width: 100%; display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0; box-sizing: border-box;
+    background: none; border: none; border-bottom: 1px solid var(--border); font: inherit; color: var(--text); text-align: left; cursor: pointer;
+  }
+  .weight-recent > div { border-top: 1px solid var(--border); }
+  .wr-date { flex: 1; font-size: 15px; }
+  .wr-val { font-family: var(--font-num); font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .wr-val small { font-family: var(--font); font-size: 13px; font-weight: 400; color: var(--text-dim); margin-left: 3px; }
+  .wr-row.current .wr-date { font-weight: 700; }
+  .wr-row.current { box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
+  .tw-dot { fill: var(--accent); stroke: var(--miss-cap); stroke-width: 1; }
+  .tw-line { fill: none; stroke: var(--text); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+
   /* Goals helper ("Help me choose") */
   .helper-body { display: flex; flex-direction: column; gap: 16px; padding: 14px 0 18px; border-bottom: 1px solid var(--border); }
   .helper-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -639,6 +659,7 @@
       <div class="profile-menu" id="profileMenu" role="menu" style="display:none;">
         <div class="profile-who"><b id="profileName"></b><span id="profileEmail"></span></div>
         <button class="profile-item" id="menuGoals" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg><span>Goals</span><span class="pv" id="menuGoalsVal"></span></button>
+        <button class="profile-item" id="menuWeight" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 9.5a5 5 0 0 1 7 0M12 9.5l1.5-1.5"/></svg><span>Weight</span><span class="pv" id="menuWeightVal"></span></button>
         <button class="profile-item" id="menuQuick" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6Z"/></svg><span>Quick-add buttons</span><span class="pv" id="menuQuickVal"></span></button>
         <div class="profile-sep"></div>
         <button class="profile-item" id="menuSignOut" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg><span id="menuSignOutText">Sign out</span></button>
@@ -892,6 +913,38 @@
   </div>
 </div>
 
+<!-- WEIGHT SHEET -->
+<div class="sheet-overlay" id="weightOverlay">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="weightTitle">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="weightTitle">Weight</div>
+        <div class="sheet-sub" id="weightSub"></div>
+      </div>
+      <button class="icon-btn" id="closeWeight" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="weight-entry">
+      <input type="number" class="field-input" id="weightVal" aria-label="Weight" inputmode="decimal" min="0" step="0.1" placeholder="—">
+      <div class="seg" id="weightUnits" aria-label="Units">
+        <button type="button" data-units="us" aria-pressed="true" class="active">lb</button>
+        <button type="button" data-units="metric" aria-pressed="false">kg</button>
+      </div>
+    </div>
+    <div class="goal-row" id="weightGoalRow">
+      <label class="switch"><input type="checkbox" role="switch" aria-label="Goal weight" id="weightGoalOn"><span></span></label>
+      <div class="goal-name">Goal weight<small>Optional · a line on Trends</small></div>
+      <input type="number" class="field-input goal-input" id="weightGoalVal" aria-label="Goal weight" inputmode="decimal" min="0" step="0.1">
+      <span class="goal-unit" id="weightGoalUnit">lb</span>
+    </div>
+    <button class="btn-primary" id="saveWeight">Save weight</button>
+    <button type="button" class="btn-remove" id="removeWeight" style="display:none">Remove this weigh-in</button>
+    <div class="weight-recent" id="weightRecentBox" style="display:none">
+      <span class="field-label">Recent</span>
+      <div id="weightRecent"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -1003,7 +1056,7 @@ const FOOD_COLS = 'id, owner_id, name, calories, protein, carbs, fat, alcohol, f
 function makeLocalClient() {
   let store = {};
   try { store = JSON.parse(localStorage.getItem(GUEST_STORE_KEY)) || {}; } catch (e) { store = {}; }
-  for (const t of ['foods', 'favourites', 'log_entries', 'goals', 'quick_adds', 'profiles']) if (!Array.isArray(store[t])) store[t] = [];
+  for (const t of ['foods', 'favourites', 'log_entries', 'goals', 'quick_adds', 'profiles', 'daily_metrics']) if (!Array.isArray(store[t])) store[t] = [];
   let standard = null;
 
   const nowIso = () => new Date().toISOString();
@@ -1015,7 +1068,7 @@ function makeLocalClient() {
   };
   const fail = (code, message) => ({ data: null, error: { code, message } });
 
-  const KEYS = { favourites: ['user_id', 'food_id'], goals: ['user_id'], profiles: ['user_id'], quick_adds: ['user_id', 'slot'] };
+  const KEYS = { favourites: ['user_id', 'food_id'], goals: ['user_id'], profiles: ['user_id'], daily_metrics: ['user_id', 'date'], quick_adds: ['user_id', 'slot'] };
   const NUM0 = { calories: 0, protein: 0, carbs: 0, fat: 0, alcohol: 0, fluid_ml: 0, creatine_g: 0 };
   const DEFAULTS = {
     foods: () => ({ id: uuid(), ...NUM0, created_at: nowIso() }),
@@ -1023,6 +1076,7 @@ function makeLocalClient() {
     favourites: () => ({ created_at: nowIso() }),
     goals: () => ({}),
     profiles: () => ({}),
+    daily_metrics: () => ({ source: 'manual', updated_at: nowIso() }),
     quick_adds: () => ({}),
   };
 
@@ -1167,7 +1221,7 @@ async function mergeGuestData(authUser) {
   try { store = JSON.parse(localStorage.getItem(GUEST_STORE_KEY)); } catch (e) { return; }
   if (!store) return;
   const g = t => (Array.isArray(store[t]) ? store[t] : []);
-  if (![g('foods'), g('favourites'), g('log_entries'), g('goals'), g('quick_adds'), g('profiles')].some(a => a.length)) return;
+  if (![g('foods'), g('favourites'), g('log_entries'), g('goals'), g('quick_adds'), g('profiles'), g('daily_metrics')].some(a => a.length)) return;
   merging = true;
   try {
     const uid = authUser.id;
@@ -1210,6 +1264,8 @@ async function mergeGuestData(authUser) {
       const { user_id, ...rest } = profileRow;
       await must(supa.from('profiles').upsert({ user_id: uid, ...rest }));
     }
+    const metrics = g('daily_metrics').map(m => ({ user_id: uid, date: m.date, weight_kg: m.weight_kg, source: m.source || 'manual', updated_at: m.updated_at }));
+    if (metrics.length) await must(supa.from('daily_metrics').upsert(metrics, { onConflict: 'user_id,date', ignoreDuplicates: true }));
     const quick = g('quick_adds').map(q => ({ user_id: uid, slot: q.slot, food_id: mapFood(q.food_id), label: q.label })).filter(q => q.food_id);
     if (quick.length && !(await must(supa.from('quick_adds').select('slot'))).length) {
       await must(supa.from('quick_adds').upsert(quick));
@@ -1276,19 +1332,20 @@ async function loadEntriesForDate(date) {
 // ---------- Goals ----------
 // A null goal means "off": it is hidden from the summary. Creatine defaults to off.
 // Someone with no saved goals gets only a neutral calorie ceiling; everything else is off until they turn it on.
-const DEFAULT_GOALS = { calories: 2000, protein: null, fluid_ml: null, creatine_g: null };
+const DEFAULT_GOALS = { calories: 2000, protein: null, fluid_ml: null, creatine_g: null, weight_kg: null };
 // Starting values offered when a goal is switched on in the Goals sheet.
 const GOAL_STARTERS = { calories: 2000, protein: 100, fluid_ml: 2500, creatine_g: 5 };
 let goals = { ...DEFAULT_GOALS };
 
 async function loadGoals() {
   try {
-    const row = await must(sb.from('goals').select('calories, protein, fluid_ml, creatine_g').maybeSingle());
+    const row = await must(sb.from('goals').select('calories, protein, fluid_ml, creatine_g, weight_kg').maybeSingle());
     goals = row ? {
       calories: row.calories === null ? null : Number(row.calories),
       protein: row.protein === null ? null : Number(row.protein),
       fluid_ml: row.fluid_ml === null ? null : Number(row.fluid_ml),
       creatine_g: row.creatine_g === null ? null : Number(row.creatine_g),
+      weight_kg: row.weight_kg == null ? null : Number(row.weight_kg),
     } : { ...DEFAULT_GOALS };
   } catch (err) {
     console.error(err);
@@ -1441,7 +1498,7 @@ document.getElementById('saveGoals').addEventListener('click', async () => {
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     await must(sb.from('goals').upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() }));
-    goals = next;
+    goals = { ...goals, ...next };
     renderTotals();
     document.getElementById('goalsOverlay').classList.remove('open');
     showToast('Goals saved');
@@ -1578,7 +1635,7 @@ function fillHelperFromProfile(p) {
   ['hFt', 'hIn', 'hCm', 'hWt'].forEach(id => { hEl(id).value = ''; hEl(id).removeAttribute('aria-invalid'); });
   hEl('hYear').removeAttribute('aria-invalid');
   setHelperUnits(helperUnits);
-  helperShowSize(p?.height_cm ? Number(p.height_cm) : null, p?.weight_kg ? Number(p.weight_kg) : null);
+  helperShowSize(p?.height_cm ? Number(p.height_cm) : null, latestWeight ? latestWeight.weight_kg : (p?.weight_kg ? Number(p.weight_kg) : null));
   updateHelperPace();
   hEl('helperResult').textContent = '';
 }
@@ -1629,6 +1686,186 @@ hEl('helperFill').addEventListener('click', async () => {
   }
 });
 
+// ---------- Weight ----------
+// One weigh-in per day in `daily_metrics`, stored in kg and shown in the profile's units (lb by default).
+// The Weight sheet logs for the day being viewed; the optional goal weight lives on `goals.weight_kg`.
+let latestWeight = null;        // { date, weight_kg } of the newest weigh-in, or null
+let trendWeights = new Map();   // date -> kg, for the Trends window
+let weightDate = null;          // day the Weight sheet is editing
+let weightSheetUnits = 'us';
+let weightLoadedKg = null;      // the day's saved weight when the sheet opened, so an unchanged value isn't re-rounded
+const WEIGHT_LIMITS_KG = [20, 400];
+
+const trendsVisible = () => document.getElementById('view-trends').style.display !== 'none';
+const unitsNow = () => (profile?.units === 'metric' ? 'metric' : 'us');
+const wUnit = (u = unitsNow()) => (u === 'metric' ? 'kg' : 'lb');
+const kgTo = (kg, u = unitsNow()) => (u === 'metric' ? kg : kg / KG_PER_LB);
+const toKg = (v, u = unitsNow()) => (u === 'metric' ? v : v * KG_PER_LB);
+const fmtWeight = (kg, u = unitsNow()) => `${kgTo(kg, u).toFixed(1)} ${wUnit(u)}`;
+
+async function loadLatestWeight() {
+  try {
+    const row = await must(sb.from('daily_metrics').select('date, weight_kg').order('date', { ascending: false }).limit(1));
+    latestWeight = row.length && row[0].weight_kg != null ? { date: row[0].date, weight_kg: Number(row[0].weight_kg) } : null;
+  } catch (err) {
+    console.error(err);
+  }
+}
+// Units come from the profile, so load it before anything shows a weight.
+async function loadWeightState() {
+  await loadProfile();
+  await loadLatestWeight();
+  if (trendsVisible()) renderTrends();
+}
+
+function setWeightSheetUnits(u) {
+  const input = hEl('weightVal'), goalInput = hEl('weightGoalVal');
+  const conv = el => { if (el.value.trim() !== '' && Number.isFinite(Number(el.value))) el.value = kgTo(toKg(Number(el.value), weightSheetUnits), u).toFixed(1); };
+  if (u !== weightSheetUnits) { conv(input); conv(goalInput); }
+  weightSheetUnits = u;
+  document.querySelectorAll('#weightUnits button').forEach(b => { const on = b.dataset.units === u; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
+  hEl('weightGoalUnit').textContent = wUnit(u);
+  input.setAttribute('aria-label', `Weight in ${wUnit(u)}`);
+}
+document.querySelectorAll('#weightUnits button').forEach(b => b.addEventListener('click', () => setWeightSheetUnits(b.dataset.units)));
+hEl('weightGoalOn').addEventListener('change', ev => {
+  const on = ev.target.checked, input = hEl('weightGoalVal');
+  input.disabled = !on;
+  hEl('weightGoalRow').classList.toggle('off', !on);
+  if (on && !input.value && hEl('weightVal').value) input.value = hEl('weightVal').value;
+});
+
+async function openWeight(date) {
+  weightDate = date;
+  const label = formatDateLabel(date);
+  hEl('weightSub').textContent = date === todayStr() ? 'For today. One weigh-in a day.' : `For ${label}. One weigh-in a day.`;
+  ['weightVal', 'weightGoalVal'].forEach(id => hEl(id).removeAttribute('aria-invalid'));
+  await loadProfile();
+  weightSheetUnits = unitsNow();
+  setWeightSheetUnits(weightSheetUnits);
+  const goalOn = !!goals.weight_kg;
+  hEl('weightGoalOn').checked = goalOn;
+  hEl('weightGoalRow').classList.toggle('off', !goalOn);
+  hEl('weightGoalVal').disabled = !goalOn;
+  hEl('weightGoalVal').value = goalOn ? kgTo(goals.weight_kg).toFixed(1) : '';
+  hEl('weightVal').value = '';
+  hEl('weightVal').placeholder = latestWeight ? kgTo(latestWeight.weight_kg, weightSheetUnits).toFixed(1) : '';
+  weightLoadedKg = null;
+  hEl('removeWeight').style.display = 'none';
+  hEl('weightOverlay').classList.add('open');
+  try {
+    const [day, recent] = await Promise.all([
+      must(sb.from('daily_metrics').select('date, weight_kg').eq('date', date).maybeSingle()),
+      must(sb.from('daily_metrics').select('date, weight_kg').order('date', { ascending: false }).limit(10)),
+    ]);
+    if (weightDate !== date) return;
+    if (day && day.weight_kg != null) {
+      weightLoadedKg = Number(day.weight_kg);
+      hEl('weightVal').value = kgTo(weightLoadedKg, weightSheetUnits).toFixed(1);
+      hEl('removeWeight').style.display = '';
+    }
+    renderWeightRecent(recent.filter(r => r.weight_kg != null));
+  } catch (err) {
+    console.error(err);
+    showToast('Could not load weights');
+  }
+}
+function renderWeightRecent(rows) {
+  hEl('weightRecentBox').style.display = rows.length ? '' : 'none';
+  hEl('weightRecent').innerHTML = rows.map(r => {
+    const d = new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return `<button type="button" class="wr-row${r.date === weightDate ? ' current' : ''}" data-date="${r.date}">
+      <span class="wr-date">${d}</span><span class="wr-val">${kgTo(Number(r.weight_kg), weightSheetUnits).toFixed(1)}<small>${wUnit(weightSheetUnits)}</small></span></button>`;
+  }).join('');
+}
+hEl('weightRecent').addEventListener('click', ev => {
+  const row = ev.target.closest('.wr-row');
+  if (row && row.dataset.date !== weightDate) openWeight(row.dataset.date);
+});
+hEl('closeWeight').addEventListener('click', () => hEl('weightOverlay').classList.remove('open'));
+
+// After any weight change: refresh what shows it.
+async function weightChanged() {
+  await loadLatestWeight();
+  if (trendsVisible()) loadTrends();
+}
+
+hEl('saveWeight').addEventListener('click', async () => {
+  const u = weightSheetUnits, unit = wUnit(u);
+  const [minKg, maxKg] = WEIGHT_LIMITS_KG;
+  const range = `${Math.ceil(kgTo(minKg, u))}–${Math.floor(kgTo(maxKg, u))} ${unit}`;
+  const read = (id, what) => {
+    const el = hEl(id), raw = el.value.trim();
+    if (raw === '') return null;
+    const v = Number(raw);
+    if (!Number.isFinite(v) || toKg(v, u) < minKg || toKg(v, u) > maxKg) {
+      el.setAttribute('aria-invalid', 'true'); el.focus();
+      throw new InvalidField(`${what} should be between ${range}`);
+    }
+    return Math.round(toKg(v, u) * 100) / 100;
+  };
+  let kg, goalKg;
+  try {
+    kg = read('weightVal', 'Weight');
+    goalKg = hEl('weightGoalOn').checked ? read('weightGoalVal', 'Goal weight') : null;
+    if (hEl('weightGoalOn').checked && goalKg === null) { hEl('weightGoalVal').setAttribute('aria-invalid', 'true'); hEl('weightGoalVal').focus(); throw new InvalidField('Enter a goal weight, or switch it off'); }
+  } catch (err) {
+    if (err instanceof InvalidField) { showToast(err.message); return; }
+    throw err;
+  }
+  // Showing a weight in other units rounds it; if the box still shows the saved value, keep it exactly.
+  if (kg !== null && weightLoadedKg !== null && kgTo(weightLoadedKg, u).toFixed(1) === hEl('weightVal').value.trim()) kg = null;
+  if (goalKg !== null && goals.weight_kg && kgTo(goals.weight_kg, u).toFixed(1) === hEl('weightGoalVal').value.trim()) goalKg = goals.weight_kg;
+  const goalChanged = (goalKg ?? null) !== (goals.weight_kg ?? null)
+    && !(goalKg && goals.weight_kg && Math.abs(goalKg - goals.weight_kg) < 0.05);
+  const unitsChanged = u !== unitsNow();
+  const hadWeight = hEl('removeWeight').style.display !== 'none';
+  if (kg === null && !goalChanged && !unitsChanged) {
+    if (!hadWeight || weightLoadedKg === null) { hEl('weightVal').setAttribute('aria-invalid', 'true'); hEl('weightVal').focus(); showToast('Enter a weight'); return; }
+    hEl('weightOverlay').classList.remove('open');
+    return;
+  }
+  const btn = hEl('saveWeight');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const now = new Date().toISOString();
+    if (kg !== null) {
+      await must(sb.from('daily_metrics').upsert({ user_id: user.id, date: weightDate, weight_kg: kg, source: 'manual', updated_at: now }, { onConflict: 'user_id,date' }));
+    }
+    if (goalChanged) {
+      // Send every goal, so a first goals row doesn't switch the others off.
+      const { calories, protein, fluid_ml, creatine_g } = goals;
+      await must(sb.from('goals').upsert({ user_id: user.id, calories, protein, fluid_ml, creatine_g, weight_kg: goalKg, updated_at: now }));
+      goals = { ...goals, weight_kg: goalKg };
+    }
+    if (unitsChanged) {
+      await must(sb.from('profiles').upsert({ user_id: user.id, units: u, updated_at: now }));
+      profile = { ...(profile || {}), units: u };
+    }
+    hEl('weightOverlay').classList.remove('open');
+    showToast(kg !== null ? `Weight saved: ${fmtWeight(kg, u)}` : 'Saved');
+    weightChanged();
+  } catch (err) {
+    console.error(err);
+    showToast('Could not save. Try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save weight';
+  }
+});
+
+hEl('removeWeight').addEventListener('click', async () => {
+  const date = weightDate;
+  try {
+    await must(sb.from('daily_metrics').delete().eq('date', date));
+    hEl('weightOverlay').classList.remove('open');
+    showToast('Weigh-in removed');
+    weightChanged();
+  } catch (err) {
+    console.error(err);
+    showToast('Could not remove it. Try again.');
+  }
+});
+
 // Profile menu
 const profileMenu = document.getElementById('profileMenu');
 document.getElementById('profileBtn').addEventListener('click', (ev) => {
@@ -1638,6 +1875,7 @@ document.getElementById('profileBtn').addEventListener('click', (ev) => {
     document.getElementById('menuGoalsVal').textContent = goals.calories ? `${fmtNum(goals.calories)} cal` : '';
     const n = effectiveQuickAdds().filter(q => foods.some(f => f.id === q.food_id)).length;
     document.getElementById('menuQuickVal').textContent = `${n} of ${QUICK_SLOTS}`;
+    document.getElementById('menuWeightVal').textContent = latestWeight ? fmtWeight(latestWeight.weight_kg) : '';
   }
   profileMenu.style.display = opening ? '' : 'none';
 });
@@ -1656,6 +1894,7 @@ document.addEventListener('keydown', (ev) => {
 });
 document.getElementById('menuGoals').addEventListener('click', () => { profileMenu.style.display = 'none'; openGoals(); });
 document.getElementById('menuQuick').addEventListener('click', () => { profileMenu.style.display = 'none'; openQuickEdit(); });
+document.getElementById('menuWeight').addEventListener('click', () => { profileMenu.style.display = 'none'; openWeight(currentDate); });
 document.getElementById('menuSignOut').addEventListener('click', async () => {
   profileMenu.style.display = 'none';
   if (guest) startGoogleSignIn(); else await supa.auth.signOut();
@@ -2494,6 +2733,7 @@ let creatineStreak = 0;         // days in a row at the creatine goal, up to tod
 
 const TREND_CARDS = [
   { id: 'cal', title: 'Calories', key: 'calories', goalKey: 'calories', dir: 'ceil',  unit: 'cal', tile: 'days under', avg: true },
+  { id: 'wt',  title: 'Weight', kind: 'weight' },
   { id: 'pro', title: 'Protein',  key: 'protein',  goalKey: 'protein',  dir: 'floor', unit: 'g',   tile: 'days at goal', avg: true },
   { id: 'flu', title: 'Fluids',   key: 'fluid_ml', goalKey: 'fluid_ml', dir: 'floor', unit: 'L', div: 1000, tile: 'days at goal', avg: true },
   { id: 'cf',  title: 'Carbs and fat', unit: 'g', stack: [['carbs', 'tb-carbs', 'Carbs'], ['fat', 'tb-fat', 'Fat']] },
@@ -2547,6 +2787,12 @@ async function loadTrends() {
       .gte('date', from).lte('date', to).order('date'));
     if (req !== trendReq) return;
     trendRows = new Map(rows.map(r => [r.date, numeric(r)]));
+    // Weigh-ins, with 6 days before the window for the 7-day average. A failure only empties the card.
+    try {
+      const w = await must(sb.from('daily_metrics').select('date, weight_kg').gte('date', addDays(days[0], -6)).lte('date', days[days.length - 1]));
+      if (req !== trendReq) return;
+      trendWeights = new Map(w.filter(r => r.weight_kg != null).map(r => [r.date, Number(r.weight_kg)]));
+    } catch (err) { console.error('Could not load weights', err); trendWeights = new Map(); }
     if (!trendCreatineStart && goals.creatine_g) {
       const first = await must(sb.from('log_entries').select('date').gt('creatine_g', 0).order('date').limit(1));
       if (req !== trendReq) return;
@@ -2589,12 +2835,13 @@ function dayVal(cfg, date) {
 function renderTrends() {
   const days = trendWindow();
   const today = todayStr();
-  const cards = TREND_CARDS.filter(c => c.kind !== 'dots' || goals.creatine_g);
+  const cards = TREND_CARDS.filter(c => (c.kind !== 'dots' || goals.creatine_g) && (c.kind !== 'weight' || latestWeight || goals.weight_kg));
   const box = document.getElementById('trendCards');
   box.innerHTML = cards.map(cfg => {
     const goal = cfg.goalKey ? goals[cfg.goalKey] : null;
     let title = cfg.title, legend = '';
     if (cfg.stack) legend = cfg.stack.map(([k, , lab]) => `<span class="sw" style="background:var(--${k})"></span>${lab}`).join('');
+    else if (cfg.kind === 'weight') legend = ['line: 7-day avg', goals.weight_kg ? `goal ${fmtWeight(goals.weight_kg)}` : ''].filter(Boolean).join(' · ');
     else if (cfg.kind === 'weekly') { title = trendDays === 7 ? 'Alcohol' : 'Alcohol, by week'; legend = 'standard drinks'; }
     else if (cfg.kind !== 'dots') {
       const g = !goal ? '' : cfg.dir === 'ceil' ? `limit ${fmtNum(goal)}` : `goal ${fmtV(cfg, goal)}`;
@@ -2653,6 +2900,32 @@ function renderTrends() {
       const last = items[items.length - 1];
       stats.innerHTML = tile(done.length ? String(+mean(done).toFixed(1)) : '—', 'avg a week') +
         tile(last.val === null ? '—' : String(+last.val.toFixed(1)), last.live ? 'this week so far' : 'latest week');
+      return;
+    }
+
+    if (cfg.kind === 'weight') {
+      // Dots are weigh-ins; the line is the average of the weigh-ins in the 7 days up to each day.
+      const u = unitsNow();
+      const items = days.map(d => {
+        const kg = trendWeights.get(d);
+        const near = [];
+        for (let k = 0; k < 7; k++) { const v = trendWeights.get(addDays(d, -k)); if (v != null) near.push(v); }
+        return { id: d, val: kg == null ? null : kgTo(kg, u), avg: near.length ? kgTo(mean(near), u) : null, live: d === today };
+      });
+      const goalV = goals.weight_kg ? kgTo(goals.weight_kg, u) : null;
+      drawWeightChart(chart, cfg, items, goalV, wUnit(u));
+      const si = days.indexOf(trendSel);
+      const editLink = d => `<a data-weight="${d}">${trendWeights.has(d) ? 'Edit' : 'Add weight'} ›</a>`;
+      ro.innerHTML = si >= 0 ? `<b>${dayLabel(trendSel)}</b> · ${items[si].val == null ? 'no weigh-in' : `${items[si].val.toFixed(1)} ${wUnit(u)}`}${items[si].avg != null ? ` · avg ${items[si].avg.toFixed(1)}` : ''}${editLink(trendSel)}` : '';
+      const withAvg = items.filter(i => i.avg != null);
+      const latest = latestWeight ? kgTo(latestWeight.weight_kg, u) : null;
+      const sign = v => (v > 0.05 ? '+' : v < -0.05 ? '−' : '±') + Math.abs(v).toFixed(1);
+      const tiles = [];
+      if (latest != null) tiles.push(tile(latest.toFixed(1), `latest, ${wUnit(u)}`));
+      if (withAvg.length >= 2) tiles.push(tile(sign(withAvg[withAvg.length - 1].avg - withAvg[0].avg), 'change in avg'));
+      if (latest != null && goalV) tiles.push(tile(Math.abs(latest - goalV) < 0.05 ? 'At goal' : Math.abs(latest - goalV).toFixed(1), Math.abs(latest - goalV) < 0.05 ? 'nice work' : `${wUnit(u)} to goal`));
+      stats.innerHTML = tiles.join('');
+      foot.textContent = items.some(i => i.val != null) ? '' : 'No weigh-ins in this window.';
       return;
     }
 
@@ -2800,6 +3073,59 @@ function drawTrendChart(el, cfg, items, goal) {
 
 // One dot per day: amber = taken, half amber = some, hollow ring = missed, dashed ring = today
 // still to do, tiny dot = not tracked. Day names under the dots in the 7-day view.
+// Weight: its own scale (not from zero) so small changes show. Dots are weigh-ins, the line is the
+// 7-day average, and the goal is a dashed line when it is near enough to fit without flattening the data.
+function drawWeightChart(el, cfg, items, goal, unit) {
+  const W = Math.max(240, el.clientWidth || 320), H = 170;
+  const m = { l: 34, r: 6, t: 10, b: 30 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const n = items.length, slot = pw / n;
+  const vals = items.flatMap(i => [i.val, i.avg]).filter(v => v != null);
+  if (!vals.length) { el.innerHTML = ''; return; }
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const spanData = Math.max(hi - lo, unit === 'kg' ? 1 : 2);
+  const showGoal = goal != null && goal >= lo - spanData * 1.5 && goal <= hi + spanData * 1.5;
+  if (showGoal) { lo = Math.min(lo, goal); hi = Math.max(hi, goal); }
+  const span = Math.max(hi - lo, unit === 'kg' ? 1 : 2);
+  const raw = span / 3, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
+  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+  const yMin = Math.floor((lo - span * 0.1) / step) * step, yMax = Math.ceil((hi + span * 0.1) / step) * step;
+  const y = v => m.t + ph * (1 - (v - yMin) / (yMax - yMin));
+  const cx = i => m.l + slot * i + slot / 2;
+  let g = '';
+  for (let v = yMin; v <= yMax + step / 1000; v += step) {
+    g += `<line class="t-grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`;
+    g += `<text class="t-ax" x="${m.l - 6}" y="${y(v) + 3.5}" text-anchor="end">${+v.toFixed(1)}</text>`;
+  }
+  if (showGoal) g += `<line class="tg-line" x1="${m.l}" x2="${W - m.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
+  // Average line, broken where there is no average.
+  let seg = [];
+  const flush = () => { if (seg.length > 1) g += `<polyline class="tw-line" points="${seg.join(' ')}"/>`; seg = []; };
+  items.forEach((it, i) => { if (it.avg == null) flush(); else seg.push(`${cx(i)},${y(it.avg)}`); });
+  flush();
+  const r = n > 7 ? 3.5 : 5;
+  items.forEach((it, i) => {
+    if (it.val == null) return;
+    g += `<circle class="tw-dot" cx="${cx(i)}" cy="${y(it.val)}" r="${r}"/>`;
+    if (it.id === trendSel) g += `<circle class="tb-selring" cx="${cx(i)}" cy="${y(it.val)}" r="${r + 3.5}"/>`;
+  });
+  if (n <= 7) {
+    items.forEach((it, i) => {
+      const strong = it.live || it.id === trendSel;
+      g += `<text class="t-ax${strong ? ' strong' : ''}" x="${cx(i)}" y="${H - 9}" text-anchor="middle">${dayAbbr(it.id, it.live)}</text>`;
+    });
+  } else {
+    items.forEach((it, i) => {
+      const s = it.id === trendSel;
+      g += `<circle cx="${cx(i)}" cy="${m.t + ph + 12}" r="${s ? 3.5 : 2}" fill="${s ? 'var(--text)' : 'var(--text-dim)'}"/>`;
+    });
+    g += `<text class="t-ax" x="${cx(0)}" y="${H - 3}" text-anchor="middle">${fmtMD(items[0].id)}</text>`;
+    g += `<text class="t-ax" x="${cx(n - 1)}" y="${H - 3}" text-anchor="middle">${fmtMD(items[n - 1].id)}</text>`;
+  }
+  items.forEach((it, i) => { g += `<rect class="tb-hit" data-date="${it.id}" x="${m.l + slot * i}" y="0" width="${slot}" height="${H}"/>`; });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title} in ${unit}">${g}</svg>`;
+}
+
 // Creatine dots. 7 days: one row with weekday letters. 4 weeks: a grid of 4 rows of 7 consecutive
 // days (each column is one weekday, each row labelled with its first date), so weekly patterns show.
 function drawDotStrip(el, cfg, days, vals, goal, today) {
@@ -2843,6 +3169,8 @@ function drawDotStrip(el, cfg, days, vals, goal, today) {
 }
 
 document.getElementById('trendCards').addEventListener('click', ev => {
+  const wEdit = ev.target.closest('[data-weight]');
+  if (wEdit) { openWeight(wEdit.dataset.weight); return; }
   const open = ev.target.closest('[data-open]');
   if (open) {
     currentDate = open.dataset.open;
@@ -2919,6 +3247,8 @@ function showApp(sessionUser, isGuest) {
     goals = { ...DEFAULT_GOALS };
     quickAdds = [];
     profile = undefined;
+    latestWeight = null;
+    trendWeights = new Map();
     trendCreatineStart = null;
     creatineStreak = 0;
     document.getElementById('profileMenu').style.display = 'none';
@@ -2929,6 +3259,7 @@ function showApp(sessionUser, isGuest) {
       refreshDateUI();
       loadFoods();
       loadGoals();
+      loadWeightState();
       loadQuickAdds();
     })();
   }

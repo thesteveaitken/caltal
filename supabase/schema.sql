@@ -202,6 +202,28 @@ create policy "profiles: own row" on public.profiles
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- ---------- Daily metrics (per user, one row per day) ----------
+-- Body weight for now, always in kg (the app shows lb or kg from profiles.units).
+-- source says where it came from: typed in the app, imported from Apple Health, or a Shortcut.
+create table if not exists public.daily_metrics (
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  date       date not null,
+  weight_kg  numeric check (weight_kg between 20 and 400),
+  source     text not null default 'manual' check (source in ('manual', 'import', 'shortcut')),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, date)
+);
+alter table public.daily_metrics enable row level security;
+
+drop policy if exists "daily_metrics: own rows" on public.daily_metrics;
+create policy "daily_metrics: own rows" on public.daily_metrics
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+-- Optional goal weight, kept with the other goals (null = no goal).
+alter table public.goals add column if not exists weight_kg numeric check (weight_kg between 20 and 400);
+
 -- ---------- Daily totals (History view) ----------
 -- New columns must be added at the END of the select list (create or replace view).
 -- security_invoker makes the view respect the caller's RLS on log_entries.
