@@ -1,13 +1,17 @@
 # CalTal roadmap
 
-## Where we left off (2026-11-12)
-Everything below marked built is committed and live. Latest: guest mode with merge on sign-in, goals defaults, grouped entries, Trends (7d/4w).
+## Where we left off (2026-11-13)
+Everything below marked built is committed and live. Latest: goals helper with saved profile, creatine streak and 4-week grid.
 **Pick up with:**
 1. **(Done)** Guest merge tested with a real sign-in.
 2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6.
 3. **Section 0 housekeeping** below (archive the old Apps Script, second-account isolation test).
-4. **Goals helper (2a-quater): built, not yet live.** Run the new `profiles` section of `supabase/schema.sql` in the SQL editor before pushing (signed-in saves fail without it; guests are fine).
-5. Then, in rough order: revisit the creatine strip (2b), Day view for Trends (2b), weight (4), pace tick on the summary bars (2a-bis).
+4. **(Done)** Goals helper (2a-quater), live with the `profiles` table.
+5. **(Built)** Creatine card: streak and 4-week grid (2b).
+6. Then, in rough order: weight (4), pace tick on the summary bars (2a-bis).
+
+**Maybe later** (not sure they are worth it):
+- **Day view on Trends.** Today already shows a day's entries and times, so a one-day chart adds little. If it comes back, make it a pattern over the window instead ("most of your calories land after 7pm"), read from `log_entries.eaten_at`.
 Suggested order for the older items below is historical; the list above is current.
 
 ## Ledger redesign (done and live 2026-11-11)
@@ -106,7 +110,8 @@ Inspired by the Garmin/Apple Health style. Charts are hand-drawn inline SVG (no 
 - **Tap a bar** to select a day: the readout shows its value with an "Open day" link into Today.
 - **Step 1 (done):** Trends tab (replaces History), toggle, range arrows, calories and protein cards.
 - **Step 2 (built, needs a test):** fluids (bars, goal line, average), one stacked carbs and fat chart (no goal, no colouring), creatine as a compact one-row dot strip (purple = taken, dim slate = missed, dashed ring = today still to do; weekday letters in 7d; "N of M days at goal" in the card header; days before your first logged creatine are not counted; hidden if the creatine goal is off), weekly alcohol totals (last 8 calendar weeks Mon-Sun ending at the window's week, current week dashed outline; no guideline line, maybe an optional weekly limit in Goals later).
-- The old Past days list is removed (tap a bar, then Open day). Later: revisit the creatine strip (not happy with it yet, no better idea so far) and the Day (1d) view.
+- The old Past days list is removed (tap a bar, then Open day). Day (1d) view moved to "Maybe later" at the top.
+- **Creatine card (done 2026-11-13):** the header adds a current streak ("N days in a row", shown from 2) after "N of M days at goal". The streak counts back from today, or from yesterday while today is still to do, and ignores the window, so it is always "now" (its own `daily_totals` query, up to 400 days). On the 4-week view the dots are a grid of 4 rows of 7 consecutive days (each column one weekday, rows labelled with their first date), so a habitually skipped weekday shows as a column. 7 days stays one row.
 - Data: `daily_totals` has everything, no schema change. The later Day view reads `log_entries` directly.
 
 ## 2c. Grouped entries on Today (built and live)

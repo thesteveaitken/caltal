@@ -2490,6 +2490,7 @@ let trendSelWk = null;   // selected week start for the alcohol chart
 let trendRows = new Map();
 let trendReq = 0;
 let trendCreatineStart = null; // date of the first creatine ever logged; earlier days are not counted as misses
+let creatineStreak = 0;         // days in a row at the creatine goal, up to today (or yesterday while today is still to do)
 
 const TREND_CARDS = [
   { id: 'cal', title: 'Calories', key: 'calories', goalKey: 'calories', dir: 'ceil',  unit: 'cal', tile: 'days under', avg: true },
@@ -2550,6 +2551,20 @@ async function loadTrends() {
       const first = await must(sb.from('log_entries').select('date').gt('creatine_g', 0).order('date').limit(1));
       if (req !== trendReq) return;
       trendCreatineStart = first.length ? first[0].date : null;
+    }
+    creatineStreak = 0;
+    if (goals.creatine_g) {
+      // Days at goal, newest first; enough to count a streak of over a year.
+      // A failure here only hides the streak.
+      try {
+        const hits = await must(sb.from('daily_totals').select('date').gte('creatine_g', goals.creatine_g)
+          .lte('date', todayStr()).order('date', { ascending: false }).limit(400));
+        if (req !== trendReq) return;
+        const set = new Set(hits.map(h => h.date));
+        let d = todayStr();
+        if (!set.has(d)) d = addDays(d, -1);
+        while (set.has(d)) { creatineStreak++; d = addDays(d, -1); }
+      } catch (err) { console.error('Could not load creatine streak', err); }
     }
   } catch (err) {
     console.error(err);
@@ -2651,7 +2666,10 @@ function renderTrends() {
       const si = days.indexOf(trendSel);
       const done = eff.filter((v, i) => v !== null && days[i] !== today);
       if (si >= 0) head.innerHTML = `${dayLabel(trendSel)} · ${eff[si] === null ? 'not tracked' : (eff[si] > 0 ? fmtV(cfg, eff[si]) : 'none')} ${openLink(trendSel)}`;
-      else head.innerHTML = !trendCreatineStart ? 'No creatine logged yet' : (done.length ? `<b>${done.filter(v => v >= goal).length} of ${done.length}</b> days at goal` : '');
+      else head.innerHTML = !trendCreatineStart ? 'No creatine logged yet' : [
+        done.length ? `<b>${done.filter(v => v >= goal).length} of ${done.length}</b> days at goal` : '',
+        creatineStreak >= 2 ? `<b>${creatineStreak}</b> days in a row` : '',
+      ].filter(Boolean).join(' · ');
       ro.innerHTML = ''; stats.innerHTML = '';
       return;
     }
@@ -2782,26 +2800,45 @@ function drawTrendChart(el, cfg, items, goal) {
 
 // One dot per day: amber = taken, half amber = some, hollow ring = missed, dashed ring = today
 // still to do, tiny dot = not tracked. Day names under the dots in the 7-day view.
+// Creatine dots. 7 days: one row with weekday letters. 4 weeks: a grid of 4 rows of 7 consecutive
+// days (each column is one weekday, each row labelled with its first date), so weekly patterns show.
 function drawDotStrip(el, cfg, days, vals, goal, today) {
-  const W = Math.max(240, el.clientWidth || 320), H = 48;
-  const l = 6, r = 6, n = days.length, slot = (W - l - r) / n, rad = Math.min(11, slot * 0.36);
-  const cx = i => l + slot * i + slot / 2, cy = 14;
+  const W = Math.max(240, el.clientWidth || 320), n = days.length, grid = n > 7;
+  const labW = grid ? 40 : 6, r = 6, slot = (W - labW - r) / 7;
+  const head = grid ? 18 : 0, rowH = grid ? 34 : 34, rows = Math.ceil(n / 7);
+  const H = grid ? head + rows * rowH : 48;
+  const rad = Math.min(11, slot * 0.36);
   let g = '';
-  days.forEach((d, i) => {
-    const v = vals[i], live = d === today, sel = d === trendSel;
-    if (v === null) g += `<circle cx="${cx(i)}" cy="${cy}" r="2" fill="var(--text-dim)"/>`;
-    else if (v >= goal) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad}" fill="var(--creatine)"/>`;
-    else if (v > 0) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad}" fill="var(--creatine)" opacity="0.5"/>`;
-    else if (live) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad - 1}" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
-    else g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad - 1}" fill="none" stroke="var(--bar-light)" stroke-width="2"/>`;
-    if (sel) g += `<circle cx="${cx(i)}" cy="${cy}" r="${rad + 3}" fill="none" stroke="var(--text)" stroke-width="1.5"/>`;
-    if (n <= 7) g += `<text class="t-ax${live || sel ? ' strong' : ''}" x="${cx(i)}" y="${H - 3}" text-anchor="middle">${dayAbbr(d, live)}</text>`;
-  });
-  if (n > 7) {
-    g += `<text class="t-ax" x="${cx(0)}" y="${H - 3}" text-anchor="middle">${fmtMD(days[0])}</text>`;
-    g += `<text class="t-ax" x="${cx(n - 1)}" y="${H - 3}" text-anchor="middle">${fmtMD(days[n - 1])}</text>`;
+  const dot = (i, x, y) => {
+    const d = days[i], v = vals[i], live = d === today, sel = d === trendSel;
+    let s = '';
+    if (v === null) s = `<circle cx="${x}" cy="${y}" r="2" fill="var(--text-dim)"/>`;
+    else if (v >= goal) s = `<circle cx="${x}" cy="${y}" r="${rad}" fill="var(--creatine)"/>`;
+    else if (v > 0) s = `<circle cx="${x}" cy="${y}" r="${rad}" fill="var(--creatine)" opacity="0.5"/>`;
+    else if (live) s = `<circle cx="${x}" cy="${y}" r="${rad - 1}" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+    else s = `<circle cx="${x}" cy="${y}" r="${rad - 1}" fill="none" stroke="var(--bar-light)" stroke-width="2"/>`;
+    if (sel) s += `<circle cx="${x}" cy="${y}" r="${rad + 3}" fill="none" stroke="var(--text)" stroke-width="1.5"/>`;
+    return s;
+  };
+  const cx = c => labW + slot * c + slot / 2;
+  if (!grid) {
+    days.forEach((d, i) => {
+      g += dot(i, cx(i), 14);
+      g += `<text class="t-ax${d === today || d === trendSel ? ' strong' : ''}" x="${cx(i)}" y="${H - 3}" text-anchor="middle">${dayAbbr(d, d === today)}</text>`;
+      g += `<rect class="tb-hit" data-date="${d}" x="${labW + slot * i}" y="0" width="${slot}" height="${H}"/>`;
+    });
+  } else {
+    for (let c = 0; c < 7; c++) g += `<text class="t-ax" x="${cx(c)}" y="11" text-anchor="middle">${dayAbbr(days[c], false)}</text>`;
+    for (let row = 0; row < rows; row++) {
+      const y = head + row * rowH + rowH / 2;
+      g += `<text class="t-ax" x="0" y="${y + 4}">${fmtMD(days[row * 7])}</text>`;
+      for (let c = 0; c < 7 && row * 7 + c < n; c++) {
+        const i = row * 7 + c;
+        g += dot(i, cx(c), y);
+        g += `<rect class="tb-hit" data-date="${days[i]}" x="${labW + slot * c}" y="${head + row * rowH}" width="${slot}" height="${rowH}"/>`;
+      }
+    }
   }
-  days.forEach((d, i) => { g += `<rect class="tb-hit" data-date="${d}" x="${l + slot * i}" y="0" width="${slot}" height="${H}"/>`; });
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title}">${g}</svg>`;
 }
 
@@ -2883,6 +2920,7 @@ function showApp(sessionUser, isGuest) {
     quickAdds = [];
     profile = undefined;
     trendCreatineStart = null;
+    creatineStreak = 0;
     document.getElementById('profileMenu').style.display = 'none';
     currentDate = todayStr();
     (async () => {
