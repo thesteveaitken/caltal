@@ -398,6 +398,43 @@
   .switch input:checked + span { background: var(--accent); }
   .switch input:checked + span::after { transform: translateX(18px); }
   .switch input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-dim); }
+  .goal-name small { white-space: normal; }
+
+  /* Goals helper ("Help me choose") */
+  .helper-body { display: flex; flex-direction: column; gap: 16px; padding: 14px 0 18px; border-bottom: 1px solid var(--border); }
+  .helper-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .helper-top .field-label { font-size: 14px; }
+  .helper-body .field-grid.three { padding: 0; border: none; }
+  .helper-group { border: none; margin: 0; padding: 0; min-width: 0; }
+  .helper-group legend { padding: 0; margin-bottom: 6px; }
+  .chips { display: flex; gap: 8px; }
+  .chip { flex: 1; position: relative; }
+  .chip input, .opt input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+  .chip span {
+    display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 8px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card);
+    font-size: 15px; font-weight: 600; color: var(--text-dim); cursor: pointer; text-align: center;
+  }
+  .chip input:checked + span { border-color: var(--accent-fill); background: var(--accent-fill); color: var(--on-accent); }
+  .chip input:focus-visible + span, .opt input:focus-visible ~ .opt-dot { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .opts { border-top: 1px solid var(--border); }
+  .opt { position: relative; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 7px 0; box-sizing: border-box; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .opt-dot { width: 20px; height: 20px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--text-dim); }
+  .opt input:checked ~ .opt-dot { border: 6px solid var(--accent); }
+  .opt-text { font-size: 15px; font-weight: 600; line-height: 1.3; }
+  .opt-text small { display: block; font-size: 13.5px; font-weight: 400; color: var(--text-dim); }
+  .helper-note { font-size: 13px; color: var(--text-dim); line-height: 1.45; text-wrap: pretty; }
+  .btn-secondary {
+    width: 100%; height: 48px; flex-shrink: 0; border-radius: 8px; cursor: pointer;
+    background: none; border: 1.5px solid var(--accent); font: inherit; font-size: 16px; font-weight: 700; color: var(--accent-text);
+  }
+  .btn-secondary:active { opacity: 0.85; }
+  .helper-result { font-size: 14px; line-height: 1.45; text-wrap: pretty; }
+  .helper-result:empty { display: none; }
+  .helper-group legend small { font-size: 12.5px; font-weight: 400; }
+  #helperSize.metric { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #helperSize.metric .us-only, #helperSize:not(.metric) .metric-only { display: none; }
+  .helper-result.warn { color: var(--danger); }
 
   /* Quick-add buttons sheet */
   .quick-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 104px; gap: 0 10px; align-items: center; min-height: 60px; border-bottom: 1px solid var(--border); }
@@ -812,6 +849,45 @@
       <button class="icon-btn" id="closeGoals" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div id="goalRows"></div>
+    <button type="button" class="more-toggle" id="helperToggle" aria-expanded="false" aria-controls="helperBody">
+      <span>Help me choose <small>· from your size and activity</small></span>
+      <svg class="more-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="helper-body" id="helperBody" style="display:none">
+      <div class="helper-top">
+        <span class="field-label">About you</span>
+        <div class="seg" id="helperUnits" aria-label="Units">
+          <button type="button" data-units="us" aria-pressed="true" class="active">US</button>
+          <button type="button" data-units="metric" aria-pressed="false">Metric</button>
+        </div>
+      </div>
+      <div class="field-grid" id="helperSize">
+        <div class="field"><label class="field-label" for="hYear">Year born</label><input type="number" class="field-input num" id="hYear" placeholder="1990" inputmode="numeric" min="1900" step="1"></div>
+        <div class="field us-only"><label class="field-label" for="hFt">Height ft</label><input type="number" class="field-input num" id="hFt" placeholder="5" inputmode="numeric" min="0" step="1"></div>
+        <div class="field us-only"><label class="field-label" for="hIn">in</label><input type="number" class="field-input num" id="hIn" placeholder="9" inputmode="decimal" min="0" max="11.9" step="any"></div>
+        <div class="field metric-only"><label class="field-label" for="hCm">Height cm</label><input type="number" class="field-input num" id="hCm" placeholder="175" inputmode="decimal" min="0" step="any"></div>
+        <div class="field"><label class="field-label" for="hWt" id="hWtLabel">Weight lb</label><input type="number" class="field-input num" id="hWt" placeholder="170" inputmode="decimal" min="0" step="any"></div>
+      </div>
+      <fieldset class="helper-group">
+        <legend class="field-label">Sex <small>(the formula needs it; Other uses the average)</small></legend>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="hSex" value="male"><span>Male</span></label>
+          <label class="chip"><input type="radio" name="hSex" value="female"><span>Female</span></label>
+          <label class="chip"><input type="radio" name="hSex" value="other"><span>Other</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="helper-group">
+        <legend class="field-label">How active are you?</legend>
+        <div class="opts" id="hActivity"></div>
+      </fieldset>
+      <fieldset class="helper-group">
+        <legend class="field-label">What are you aiming for?</legend>
+        <div class="opts" id="hAim"></div>
+      </fieldset>
+      <p class="helper-note" id="helperNote" style="margin:0"></p>
+      <button type="button" class="btn-secondary" id="helperFill">Fill in my goals</button>
+      <p class="helper-result" id="helperResult" role="status" aria-live="polite" style="margin:0"></p>
+    </div>
     <button class="btn-primary" id="saveGoals">Save goals</button>
   </div>
 </div>
@@ -927,7 +1003,7 @@ const FOOD_COLS = 'id, owner_id, name, calories, protein, carbs, fat, alcohol, f
 function makeLocalClient() {
   let store = {};
   try { store = JSON.parse(localStorage.getItem(GUEST_STORE_KEY)) || {}; } catch (e) { store = {}; }
-  for (const t of ['foods', 'favourites', 'log_entries', 'goals', 'quick_adds']) if (!Array.isArray(store[t])) store[t] = [];
+  for (const t of ['foods', 'favourites', 'log_entries', 'goals', 'quick_adds', 'profiles']) if (!Array.isArray(store[t])) store[t] = [];
   let standard = null;
 
   const nowIso = () => new Date().toISOString();
@@ -939,13 +1015,14 @@ function makeLocalClient() {
   };
   const fail = (code, message) => ({ data: null, error: { code, message } });
 
-  const KEYS = { favourites: ['user_id', 'food_id'], goals: ['user_id'], quick_adds: ['user_id', 'slot'] };
+  const KEYS = { favourites: ['user_id', 'food_id'], goals: ['user_id'], profiles: ['user_id'], quick_adds: ['user_id', 'slot'] };
   const NUM0 = { calories: 0, protein: 0, carbs: 0, fat: 0, alcohol: 0, fluid_ml: 0, creatine_g: 0 };
   const DEFAULTS = {
     foods: () => ({ id: uuid(), ...NUM0, created_at: nowIso() }),
     log_entries: () => ({ id: uuid(), quantity: 1, ...NUM0, food_id: null, eaten_at: null, created_at: nowIso() }),
     favourites: () => ({ created_at: nowIso() }),
     goals: () => ({}),
+    profiles: () => ({}),
     quick_adds: () => ({}),
   };
 
@@ -1081,7 +1158,7 @@ function makeLocalClient() {
 
 // Copy the guest's local data into the account that just signed in. Ids are kept so a repeat
 // after a partial failure changes nothing. Guest foods whose name matches one the account
-// already has attach to that food. Goals and quick-adds are copied only if the account has none.
+// already has attach to that food. Goals, profile and quick-adds are copied only if the account has none.
 // The local copy is deleted only after everything uploaded; on any error it stays for next time.
 let merging = false;
 async function mergeGuestData(authUser) {
@@ -1090,7 +1167,7 @@ async function mergeGuestData(authUser) {
   try { store = JSON.parse(localStorage.getItem(GUEST_STORE_KEY)); } catch (e) { return; }
   if (!store) return;
   const g = t => (Array.isArray(store[t]) ? store[t] : []);
-  if (![g('foods'), g('favourites'), g('log_entries'), g('goals'), g('quick_adds')].some(a => a.length)) return;
+  if (![g('foods'), g('favourites'), g('log_entries'), g('goals'), g('quick_adds'), g('profiles')].some(a => a.length)) return;
   merging = true;
   try {
     const uid = authUser.id;
@@ -1127,6 +1204,11 @@ async function mergeGuestData(authUser) {
     if (goalRow && !(await must(supa.from('goals').select('user_id').maybeSingle()))) {
       const { user_id, ...rest } = goalRow;
       await must(supa.from('goals').upsert({ user_id: uid, ...rest }));
+    }
+    const profileRow = g('profiles')[0];
+    if (profileRow && !(await must(supa.from('profiles').select('user_id').maybeSingle()))) {
+      const { user_id, ...rest } = profileRow;
+      await must(supa.from('profiles').upsert({ user_id: uid, ...rest }));
     }
     const quick = g('quick_adds').map(q => ({ user_id: uid, slot: q.slot, food_id: mapFood(q.food_id), label: q.label })).filter(q => q.food_id);
     if (quick.length && !(await must(supa.from('quick_adds').select('slot'))).length) {
@@ -1312,9 +1394,9 @@ new ResizeObserver(() => {
 // Goals sheet
 const GOAL_DEFS = [
   { key: 'calories',   label: 'Calories', note: 'Limit · stay under it', unit: 'cal', scale: 1,    step: 50,  max: 20000 },
-  { key: 'protein',    label: 'Protein',  note: 'At least this much',    unit: 'g',   scale: 1,    step: 5,   max: 2000 },
-  { key: 'fluid_ml',   label: 'Fluids',   note: 'At least this much',    unit: 'L',   scale: 1000, step: 0.1, max: 10 },
-  { key: 'creatine_g', label: 'Creatine', note: 'At least this much',    unit: 'g',   scale: 1,    step: 1,   max: 100 },
+  { key: 'protein',    label: 'Protein',  note: 'At least · often 1.2–2 g/kg', unit: 'g', scale: 1,    step: 5,   max: 2000 },
+  { key: 'fluid_ml',   label: 'Fluids',   note: 'At least · most adults 2–3 L', unit: 'L',   scale: 1000, step: 0.1, max: 10 },
+  { key: 'creatine_g', label: 'Creatine', note: 'At least · usually 3–5 g', unit: 'g', scale: 1,    step: 1,   max: 100 },
 ];
 function openGoals() {
   document.getElementById('goalRows').innerHTML = GOAL_DEFS.map(d => `
@@ -1333,6 +1415,11 @@ function openGoals() {
       if (ev.target.checked && !input.value) input.value = GOAL_STARTERS[d.key] / d.scale;
     });
   }
+  setHelperOpen(false);
+  hEl('helperResult').textContent = '';
+  hEl('helperNote').textContent = 'An estimate, not medical advice. If you have a medical condition, are pregnant, or are under 18, ask a doctor or dietitian. '
+    + (guest ? 'Remembered on this device so it is filled in next time.' : 'Saved to your profile so it is filled in next time.');
+  loadProfile().then(fillHelperFromProfile);
   document.getElementById('goalsOverlay').classList.add('open');
 }
 document.getElementById('closeGoals').addEventListener('click', () => document.getElementById('goalsOverlay').classList.remove('open'));
@@ -1363,6 +1450,182 @@ document.getElementById('saveGoals').addEventListener('click', async () => {
     showToast('Could not save — try again');
   } finally {
     btn.disabled = false; btn.textContent = 'Save goals';
+  }
+});
+
+// Goals helper ("Help me choose"): estimates calories, protein and fluids from the person's size,
+// activity and aim, fills the goal boxes, and remembers the inputs in `profiles` (one row per user,
+// stored metric). Nothing here saves goals; "Save goals" still does that.
+const HELPER_ACTIVITY = [
+  { key: 'sitting',  label: 'Mostly sitting',  note: 'Desk job, little exercise', factor: 1.2 },
+  { key: 'light',    label: 'Lightly active',  note: '1–3 workouts a week',        factor: 1.375 },
+  { key: 'moderate', label: 'Active',          note: '3–5 workouts a week',        factor: 1.55 },
+  { key: 'very',     label: 'Very active',     note: 'Daily training or a physical job', factor: 1.725 },
+];
+const HELPER_AIMS = [
+  { key: 'lose_slow', label: 'Lose slowly',  note: 'Easier to keep up',                 adjust: -0.10, proteinPerKg: 2.0 },
+  { key: 'lose_fast', label: 'Lose faster',  note: 'Harder; keep protein high',         adjust: -0.20, proteinPerKg: 2.2 },
+  { key: 'maintain',  label: 'Maintain',     note: 'Stay where you are',                adjust: 0,     proteinPerKg: 1.6 },
+  { key: 'build',     label: 'Build muscle', note: 'Slow gain alongside strength training', adjust: 0.10, proteinPerKg: 2.0 },
+];
+const HELPER_SEX = { male: { s: 5, floor: 1500 }, female: { s: -161, floor: 1200 }, other: { s: -78, floor: 1350 } };
+const KG_PER_LB = 0.45359237, CM_PER_IN = 2.54;
+let profile;            // undefined = not loaded yet, null = none saved
+let helperUnits = 'us';
+
+const optRow = (name, o) => `
+  <label class="opt"><input type="radio" name="${name}" value="${o.key}"><span class="opt-dot" aria-hidden="true"></span>
+    <span class="opt-text">${o.label}<small id="${name}_${o.key}_note">${o.note}</small></span></label>`;
+document.getElementById('hActivity').innerHTML = HELPER_ACTIVITY.map(o => optRow('hActivity', o)).join('');
+document.getElementById('hAim').innerHTML = HELPER_AIMS.map(o => optRow('hAim', o)).join('');
+
+const hEl = id => document.getElementById(id);
+const radioVal = name => document.querySelector(`input[name="${name}"]:checked`)?.value || null;
+const setRadio = (name, v) => document.querySelectorAll(`input[name="${name}"]`).forEach(r => { r.checked = r.value === v; });
+const trimNum = (v, dp) => (v == null ? '' : String(Math.round(v * 10 ** dp) / 10 ** dp));
+
+// Show a height and weight (metric) in the current units.
+function helperShowSize(cm, kg) {
+  if (helperUnits === 'us') {
+    if (cm) { const inches = cm / CM_PER_IN; let ft = Math.floor(inches / 12), inch = Math.round(inches - ft * 12); if (inch === 12) { ft += 1; inch = 0; } hEl('hFt').value = ft; hEl('hIn').value = inch; }
+    else { hEl('hFt').value = ''; hEl('hIn').value = ''; }
+    hEl('hWt').value = kg ? trimNum(kg / KG_PER_LB, 0) : '';
+  } else {
+    hEl('hCm').value = cm ? trimNum(cm, 0) : '';
+    hEl('hWt').value = kg ? trimNum(kg, 1) : '';
+  }
+}
+// Read height and weight (metric) from the boxes; null where blank or not a number.
+function helperReadSize() {
+  const n = id => { const v = hEl(id).value.trim(); return v === '' ? null : Number(v); };
+  let cm, kg;
+  if (helperUnits === 'us') {
+    const ft = n('hFt'), inch = n('hIn');
+    cm = ft == null && inch == null ? null : ((ft || 0) * 12 + (inch || 0)) * CM_PER_IN;
+    kg = n('hWt') == null ? null : n('hWt') * KG_PER_LB;
+  } else { cm = n('hCm'); kg = n('hWt'); }
+  return { cm: Number.isFinite(cm) ? cm : null, kg: Number.isFinite(kg) ? kg : null };
+}
+function setHelperUnits(u) {
+  const { cm, kg } = helperReadSize();
+  helperUnits = u;
+  hEl('helperSize').classList.toggle('metric', u === 'metric');
+  hEl('hWtLabel').textContent = u === 'metric' ? 'Weight kg' : 'Weight lb';
+  hEl('hWt').placeholder = u === 'metric' ? '77' : '170';
+  document.querySelectorAll('#helperUnits button').forEach(b => { const on = b.dataset.units === u; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
+  helperShowSize(cm, kg);
+  updateHelperPace();
+}
+document.querySelectorAll('#helperUnits button').forEach(b => b.addEventListener('click', () => setHelperUnits(b.dataset.units)));
+
+// Check the inputs and work out the numbers. Returns { error } or the result.
+function helperCompute() {
+  const year = Number(hEl('hYear').value);
+  const { cm, kg } = helperReadSize();
+  const sex = radioVal('hSex'), activity = radioVal('hActivity'), aimKey = radioVal('hAim');
+  const age = new Date().getFullYear() - year;
+  if (!hEl('hYear').value.trim() || !Number.isInteger(year) || age > 110 || age < 0) return { error: 'Enter the year you were born', field: 'hYear' };
+  if (age < 18) return { error: 'This helper is for adults. Under 18, please ask a doctor or dietitian about goals.', field: 'hYear', warn: true };
+  if (!cm || cm < 120 || cm > 250) return { error: 'Enter your height', field: helperUnits === 'us' ? 'hFt' : 'hCm' };
+  if (!kg || kg < 30 || kg > 300) return { error: 'Enter your weight', field: 'hWt' };
+  if (!sex) return { error: 'Choose a sex option', field: null };
+  if (!activity) return { error: 'Choose how active you are', field: null };
+  if (!aimKey) return { error: 'Choose what you are aiming for', field: null };
+  const factor = HELPER_ACTIVITY.find(a => a.key === activity).factor;
+  const aim = HELPER_AIMS.find(a => a.key === aimKey);
+  const maintenance = (10 * kg + 6.25 * cm - 5 * age + HELPER_SEX[sex].s) * factor;
+  const floor = HELPER_SEX[sex].floor;
+  const calories = Math.max(floor, Math.round(maintenance * (1 + aim.adjust) / 50) * 50);
+  // Per-kg rules overshoot for people carrying a lot of fat, so cap the weight used at a BMI of 25.
+  const capKg = Math.min(kg, 25 * (cm / 100) ** 2);
+  const protein = Math.round(aim.proteinPerKg * capKg / 5) * 5;
+  const fluidMl = Math.round(35 * capKg / 100) * 100;
+  return { year, cm, kg, sex, activity, aim, maintenance, calories, protein, fluidMl };
+}
+
+// The lose options show the expected pace from the person's own numbers once everything needed is in.
+function updateHelperPace() {
+  const r = helperCompute();
+  for (const a of HELPER_AIMS) {
+    const el = hEl(`hAim_${a.key}_note`);
+    let note = a.note;
+    if (!r.error && a.adjust < 0) {
+      const cal = Math.max(HELPER_SEX[r.sex].floor, Math.round(r.maintenance * (1 + a.adjust) / 50) * 50);
+      const perWeekKg = Math.max(0, r.maintenance - cal) * 7 / 7700;
+      const pace = helperUnits === 'us' ? `${trimNum(perWeekKg / KG_PER_LB, 1)} lb` : `${trimNum(perWeekKg, 1)} kg`;
+      note = `About ${pace} a week · ${a.note.charAt(0).toLowerCase()}${a.note.slice(1)}`;
+    }
+    el.textContent = note;
+  }
+}
+hEl('helperBody').addEventListener('input', updateHelperPace);
+hEl('helperBody').addEventListener('change', updateHelperPace);
+
+async function loadProfile() {
+  if (profile !== undefined) return profile;
+  try {
+    profile = await must(sb.from('profiles').select('birth_year, sex, height_cm, weight_kg, units, activity, aim').maybeSingle());
+  } catch (err) {
+    console.error(err);
+    return null; // try again next time the sheet opens
+  }
+  return profile;
+}
+function fillHelperFromProfile(p) {
+  helperUnits = p?.units === 'metric' ? 'metric' : 'us';
+  hEl('hYear').value = p?.birth_year || '';
+  setRadio('hSex', p?.sex); setRadio('hActivity', p?.activity); setRadio('hAim', p?.aim);
+  ['hFt', 'hIn', 'hCm', 'hWt'].forEach(id => { hEl(id).value = ''; hEl(id).removeAttribute('aria-invalid'); });
+  hEl('hYear').removeAttribute('aria-invalid');
+  setHelperUnits(helperUnits);
+  helperShowSize(p?.height_cm ? Number(p.height_cm) : null, p?.weight_kg ? Number(p.weight_kg) : null);
+  updateHelperPace();
+  hEl('helperResult').textContent = '';
+}
+function setHelperOpen(open) {
+  hEl('helperBody').style.display = open ? '' : 'none';
+  hEl('helperToggle').classList.toggle('open', open);
+  hEl('helperToggle').setAttribute('aria-expanded', open);
+}
+hEl('helperToggle').addEventListener('click', () => setHelperOpen(hEl('helperBody').style.display === 'none'));
+
+hEl('helperFill').addEventListener('click', async () => {
+  const out = hEl('helperResult');
+  ['hYear', 'hFt', 'hIn', 'hCm', 'hWt'].forEach(id => hEl(id).removeAttribute('aria-invalid'));
+  const r = helperCompute();
+  if (r.error) {
+    out.textContent = r.error;
+    out.classList.add('warn');
+    if (r.field) { hEl(r.field).setAttribute('aria-invalid', 'true'); hEl(r.field).focus(); }
+    return;
+  }
+  out.classList.remove('warn');
+  const set = (key, v) => {
+    const d = GOAL_DEFS.find(x => x.key === key);
+    hEl('goalOn_' + key).checked = true;
+    hEl('goalRow_' + key).classList.remove('off');
+    const input = hEl('goalVal_' + key);
+    input.disabled = false; input.removeAttribute('aria-invalid');
+    input.value = v / d.scale;
+  };
+  set('calories', r.calories); set('protein', r.protein); set('fluid_ml', r.fluidMl);
+  // Fold the helper away and bring the filled goals back into view; the boxes speak for themselves.
+  out.textContent = '';
+  setHelperOpen(false);
+  hEl('helperToggle').focus({ preventScroll: true });
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  hEl('helperToggle').closest('.sheet').scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  showToast('Goals filled in. Check them, then Save goals.');
+
+  const row = {
+    birth_year: r.year, sex: r.sex, height_cm: Math.round(r.cm * 10) / 10, weight_kg: Math.round(r.kg * 10) / 10,
+    units: helperUnits, activity: r.activity, aim: r.aim.key,
+  };
+  try {
+    await must(sb.from('profiles').upsert({ user_id: user.id, ...row, updated_at: new Date().toISOString() }));
+    profile = row;
+  } catch (err) {
+    console.error('Could not save profile', err);
   }
 });
 
@@ -2618,6 +2881,7 @@ function showApp(sessionUser, isGuest) {
     foods = []; entries = [];
     goals = { ...DEFAULT_GOALS };
     quickAdds = [];
+    profile = undefined;
     trendCreatineStart = null;
     document.getElementById('profileMenu').style.display = 'none';
     currentDate = todayStr();

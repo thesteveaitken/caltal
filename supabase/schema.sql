@@ -180,6 +180,28 @@ create policy "quick_adds: own rows" on public.quick_adds
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- ---------- Profile (per user, one row) ----------
+-- What the Goals helper ("Help me choose") was last given, so it is prefilled next time.
+-- Always stored metric; `units` is only how the helper shows height and weight.
+create table if not exists public.profiles (
+  user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  birth_year smallint check (birth_year between 1900 and 2100),
+  sex        text check (sex in ('male', 'female', 'other')),
+  height_cm  numeric check (height_cm between 50 and 275),
+  weight_kg  numeric check (weight_kg between 20 and 400),
+  units      text not null default 'us' check (units in ('us', 'metric')),
+  activity   text check (activity in ('sitting', 'light', 'moderate', 'very')),
+  aim        text check (aim in ('lose_slow', 'lose_fast', 'maintain', 'build')),
+  updated_at timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+
+drop policy if exists "profiles: own row" on public.profiles;
+create policy "profiles: own row" on public.profiles
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
 -- ---------- Daily totals (History view) ----------
 -- New columns must be added at the END of the select list (create or replace view).
 -- security_invoker makes the view respect the caller's RLS on log_entries.

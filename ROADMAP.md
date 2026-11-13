@@ -1,12 +1,13 @@
 # CalTal roadmap
 
-## Where we left off (2026-11-11)
+## Where we left off (2026-11-12)
 Everything below marked built is committed and live. Latest: guest mode with merge on sign-in, goals defaults, grouped entries, Trends (7d/4w).
 **Pick up with:**
 1. **(Done)** Guest merge tested with a real sign-in.
 2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6.
 3. **Section 0 housekeeping** below (archive the old Apps Script, second-account isolation test).
-4. Then, in rough order: goals helper (2a-quater), revisit the creatine strip (2b), Day view for Trends (2b), weight (4), pace tick on the summary bars (2a-bis).
+4. **Goals helper (2a-quater): built, not yet live.** Run the new `profiles` section of `supabase/schema.sql` in the SQL editor before pushing (signed-in saves fail without it; guests are fine).
+5. Then, in rough order: revisit the creatine strip (2b), Day view for Trends (2b), weight (4), pace tick on the summary bars (2a-bis).
 Suggested order for the older items below is historical; the list above is current.
 
 ## Ledger redesign (done and live 2026-11-11)
@@ -76,13 +77,13 @@ Built: header profile menu (photo or initial; email, Goals, Sign out), Goals she
   - Alcohol is NOT on the daily summary: it is a trend over time, so it belongs on the Trends page.
 - **Later:** a pace tick on each bar (where you'd be by this time of day), using a waking-hours window.
 
-### 2a-quater. Goals helper (planned, not started)
-A collapsed "Help me choose" section in the Goals sheet for people who are unsure. Inputs: age, sex, height, weight, activity level, and a goal (lose, maintain or gain). It calculates in the browser (nothing stored or sent) and fills the goal boxes, which stay editable.
-- **Calories:** estimated daily needs (Mifflin-St Jeor times an activity factor), adjusted a little for the chosen goal, with a sensible lower limit.
-- **Protein:** about 1.6 g per kg of body weight. **Fluids:** about 30-35 ml per kg.
-- **Creatine:** no suggestion (typical doses are 3-5 g a day; it is a personal choice).
-- **Wording:** an estimate, not medical advice; point people with medical conditions or under 18 to a professional. Add short hint text under each goal (for example "Most adults aim for 2-3 L a day").
-- Later, the weight could come from weight tracking (section 4).
+### 2a-quater. Goals helper (built 2026-11-12)
+A collapsed "Help me choose" section in the Goals sheet. Inputs: year born, sex (Male / Female / Other, where Other averages the formula), height and weight with a US / Metric switch (US default), activity (4 levels) and an aim. "Fill in my goals" fills the calorie, protein and fluid boxes and switches them on (not creatine); nothing is saved as goals until "Save goals". Fill then folds the helper away, scrolls back to the goals and shows a toast (no explanation text: the boxes show what changed). Input problems show in red under the button.
+- **Remembered:** the inputs are saved to a new `profiles` table (one row per user, own-row RLS, stored metric) when you tap Fill, and prefill the helper next time. Guests keep it on the device; it merges on sign-in. Later, weight tracking (section 4) can supply the weight.
+- **Calories:** Mifflin-St Jeor x activity (1.2 / 1.375 / 1.55 / 1.725), then the aim as a percentage of maintenance, rounded to 50, never below 1,500 (male), 1,200 (female), 1,350 (other).
+- **Aims (decided):** Lose slowly -10% with 2.0 g/kg protein; Lose faster -20% with 2.2 g/kg; Maintain with 1.6 g/kg; Build muscle +10% with 2.0 g/kg. The lose options show the expected weekly pace from the person's own numbers. Percentages rather than a fixed -500 so the change scales with the person; "aggressive" avoided on purpose; a "recomp" option left out (it is Maintain with high protein).
+- **Protein and fluids** (35 ml/kg) use the weight for a BMI of 25 when the person is heavier, since per-kg rules overshoot.
+- **Wording:** an estimate, not medical advice; under 18 it does not calculate. Goal rows now carry hints ("often 1.2–2 g/kg", "most adults 2–3 L", "usually 3–5 g").
 
 ### 2a-ter. Configurable quick-add buttons (built and live)
 **Decided:** 6 slots (3 x 2, 34px tall buttons), 10-character labels, grid directly under the search box (search stays first), with no heading. Editing: a "Quick-add buttons" item in the avatar menu, plus dotted "+ Add" cells that complete a partly filled row (shown at 1, 2, 4 or 5 buttons) and open the editor on the first empty slot. Water (250 ml) is a virtual default for slot 0 until the user saves buttons (clearing every slot brings that default back). The old water-row is removed.
