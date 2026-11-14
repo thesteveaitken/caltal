@@ -1,20 +1,23 @@
 # CalTal roadmap
 
 ## Where we left off (2026-11-14)
-Everything below marked built is committed and live. Latest: weight tracking stage 1, with the interpolated 7-day average line.
+Everything below marked built is committed and live. Weight is finished: stages 1-3, the Today summary cell, goal weight in both sheets.
 **Pick up with:**
-1. **(Done)** Guest merge tested with a real sign-in.
-2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6.
-3. **Section 0 housekeeping** below (archive the old Apps Script, second-account isolation test).
-4. **(Done)** Goals helper (2a-quater), live with the `profiles` table.
-5. **(Done)** Creatine card: streak and 4-week grid (2b).
-6. **Weight stage 1 (section 4): done.** The Trends line is a 7-day average that fills missed days by straight-line interpolation (even long gaps for now; might cap later) and stops at the latest weigh-in.
-7. **(Done)** Weight stage 2: the Log weight Shortcut works (SETUP.md section 6).
-8. **Weight stage 3 (section 4): script written, not yet run.** Export from Health, then `python3 scripts/import_health_weight.py <export.zip>` (dry run), then add `--apply`. Plan: import everything from 2015 (trim later if wanted).
-9. **(Done)** Weight on the Today summary (section 4), and the desktop summary is one row from 1100px.
-10. Then: a long Trends view (1 year / all time) so the history shows, pace tick on the summary bars (2a-bis).
+1. **Section 0 housekeeping** below: archive the old Apps Script first (live URLs in public history), then the second-account isolation test. (Checked 2026-11-14: the publishable key alone reads nothing private; every private table returns empty.)
+2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6. Only basic email/profile scopes, so it should not need Google's review.
+3. **Backups.** The free Supabase plan has no downloadable backups, and the database now holds years of weight history. Idea: `scripts/backup.py` (same `scripts/.env`) dumps every table to a dated JSON file outside the repo, run now and then.
+4. Pace tick on the summary bars (2a-bis).
+
+**Done recently:** guest merge test, Goals helper (2a-quater), creatine streak and grid (2b), weight stage 1 (7-day average line that fills gaps by straight lines and stops at the latest weigh-in; might cap long gaps later), stage 2 (Log weight Shortcut, SETUP.md section 6), stage 3 (Health history imported from 2015), Weight on the Today summary, one-row desktop summary from 1100px.
+
+**Future consideration** (discussed 2026-11-14, nothing decided):
+- **A real domain** (for example a .com or .app). Keep GitHub Pages, which supports custom domains with free HTTPS. Update the Supabase Site URL and redirect URLs, the Google authorized origins and CLAUDE.md. Catch: browsers keep guest data and home-screen installs per address, so switch before friends rely on guest mode or install it. Keep the repo **public**: it shows employers the code, and going private hides nothing that matters (the publishable key is in the page anyway; old history may already be copied) while needing a paid GitHub plan or a move to Cloudflare Pages / Netlify.
+- **Install as an app (PWA).** Add a web app manifest (name, icons, colours, opens without browser bars) so Chrome, Edge and Android offer a real install; then an "Install app" item in the profile menu: Chrome/Edge show their own prompt, iPhone gets a two-step sheet (Share, then Add to Home Screen), Mac Safari gets "File > Add to Dock", hidden once installed. Maybe a one-time, dismissible hint after a few days of use (never on a first visit). Decide the domain first, since installs are tied to the address.
+- **Switch commits to the GitHub noreply email** (GitHub Settings > Emails, then set `git config user.email` to the noreply address). The Gmail address is on every public commit; changing it only affects future commits.
+- **Native App Store app.** Not worth it for a few friends ($99/year, review, a second codebase to maintain). The one real gain is Apple Health sync for everyone; reconsider only if people ask for that.
 
 **Maybe later** (not sure they are worth it):
+- **Long Trends view** (1 year / all time). Not important for now (decided 2026-11-14); the imported history is there if it is ever wanted.
 - **Day view on Trends.** Today already shows a day's entries and times, so a one-day chart adds little. If it comes back, make it a pattern over the window instead ("most of your calories land after 7pm"), read from `log_entries.eaten_at`.
 Suggested order for the older items below is historical; the list above is current.
 
@@ -36,8 +39,7 @@ Found in the public-repo review. These are dashboard steps, not code.
 - [ ] **Archive the old Apps Script deployment** (Deploy > Manage deployments > Archive). Two old web app URLs are in the public git history and work like passwords for the old sheet. Then delete the local `AppsScript.gs`.
 - [x] **Disable Supabase Email sign-in** (Authentication > Sign In / Providers > Email). It is on by default, and the publishable key is public, so anyone could sign up by email directly. Re-enable it when adding magic links. Also check that anonymous sign-ins are off.
 - [ ] **Test data isolation with a second Google account** (must be on the consent screen's test-user list). It should see the standard foods but none of your foods or log entries. Also try querying another user's rows from the browser console: it should return nothing.
-- [ ] **Check the live site** (https://thesteveaitken.github.io/caltal/): sign in, and confirm the imported history and foods appear.
-- [ ] Optional: switch git commits to your GitHub noreply email (GitHub Settings > Emails). The Gmail address is visible on every commit. This only affects new commits.
+- [x] **Check the live site** (https://thesteveaitken.github.io/caltal/): sign in, and confirm the imported history and foods appear.
 - [ ] Optional: add a license if you want others to be able to reuse the code. With none, all rights are reserved.
 
 ## 1. Logo and desktop layout (done)
@@ -66,8 +68,8 @@ Database changes, so edit `supabase/schema.sql` (re-runnable) and run it in the 
 **App changes for 2a.** All in `index.html`. Update `CLAUDE.md` and tick items off here in the same commit as each change.
 1. **(Done) Eaten-at time on the log sheet.** Time is picked with a stepper: `(−) [editable time] (+)` in 30 minute steps. Defaults to now when logging today and blank for past days (stored as null). Each entry has a copy-icon button ("log again") that copies it as a new row at the current time. One-off cleanup: `supabase/backfill_eaten_at.sql` (run). Entries show the time. One-offs get the current time when logged for today. Also done: entries now copy `alcohol` and `fluid_ml` from the food. **Original spec:** Add a time field that defaults to now and is editable (for backfilling past days). Save it as `eaten_at`. For a past date, combine the chosen date with the time. Entries from before this change keep `eaten_at` null.
 2. **(Done) Water quick-add.** A "+ Water 250 ml" pill under the totals logs the standard "Water (250 ml)" food at the current time, and the day's fluids show in the summary. (Log-again already covers repeat servings; group water rows in the list later if they clutter.) A one-tap button on Today that logs "Water (250 ml)" (a standard food, already seeded) with `eaten_at` = now. Check that the log insert copies `alcohol` and `fluid_ml` from the food, times quantity, the same way the macros are totalled.
-3. **(Built, needs a test) Alcohol, fluid and creatine fields** on the new-food form (Fluid ml, Alcohol std drinks, Creatine g; blank = 0), tucked in a collapsed "Drinks & supplements" section. A dim pencil icon in the log sheet corner (next to the star) (your own foods only) reopens the same form to change a food (built, needs a test); past entries keep their values. Before that, private foods such as "Coffee with milk" still have 0 fluid until changed in the Supabase table editor (or a food edit screen is added). `supabase/backfill_fluids_alcohol.sql` (one-off, run) sets fluid/alcohol on your own foods and copies fluid, alcohol and creatine onto past log entries.
-4. **(Built, see 2a-bis) Goals setting.** A simple form for calorie and protein targets (one row in `goals`, upsert on `user_id`), probably reachable from the header menu. Then use the goals as the denominators for the totals bars.
+3. **(Done) Alcohol, fluid and creatine fields** on the new-food form (Fluid ml, Alcohol std drinks, Creatine g; blank = 0), tucked in a collapsed "Drinks & supplements" section. A dim pencil icon in the log sheet corner (next to the star) (your own foods only) reopens the same form to change a food; past entries keep their values. `supabase/backfill_fluids_alcohol.sql` (one-off, run) sets fluid/alcohol on your own foods and copies fluid, alcohol and creatine onto past log entries.
+4. **(Done, see 2a-bis) Goals setting.** A simple form for calorie and protein targets (one row in `goals`, upsert on `user_id`), probably reachable from the header menu. Then use the goals as the denominators for the totals bars.
 5. (Done, fluids only) Daily summary totals. Alcohol is left for the Trends page.
 
 Checks after each step: load the app, log an entry, and confirm the row in the Supabase table editor has the expected columns. Remember the supabase-js rule about calling other methods inside `onAuthStateChange`.
@@ -113,7 +115,7 @@ Inspired by the Garmin/Apple Health style. Charts are hand-drawn inline SVG (no 
 - **One rule for every chart:** bars are coloured by whether the day met its goal. Calories: success is under the ceiling (amber if over). Protein, fluids, creatine: success is at or above the goal (slate when missed). Goal line is always drawn. Each card has stat tiles: average daily and "days under/at goal". Days with no calories logged are gaps (a water-only day is not a tracked day). Today is in progress: drawn with a grey ghost up to the goal, and left out of the averages and counts. A 7-day average line sits over calories and protein.
 - **Tap a bar** to select a day: the readout shows its value with an "Open day" link into Today.
 - **Step 1 (done):** Trends tab (replaces History), toggle, range arrows, calories and protein cards.
-- **Step 2 (built, needs a test):** fluids (bars, goal line, average), one stacked carbs and fat chart (no goal, no colouring), creatine as a compact one-row dot strip (purple = taken, dim slate = missed, dashed ring = today still to do; weekday letters in 7d; "N of M days at goal" in the card header; days before your first logged creatine are not counted; hidden if the creatine goal is off), weekly alcohol totals (last 8 calendar weeks Mon-Sun ending at the window's week, current week dashed outline; no guideline line, maybe an optional weekly limit in Goals later).
+- **Step 2 (done):** fluids (bars, goal line, average), one stacked carbs and fat chart (no goal, no colouring), creatine as a compact one-row dot strip (purple = taken, dim slate = missed, dashed ring = today still to do; weekday letters in 7d; "N of M days at goal" in the card header; days before your first logged creatine are not counted; hidden if the creatine goal is off), weekly alcohol totals (last 8 calendar weeks Mon-Sun ending at the window's week, current week dashed outline; no guideline line, maybe an optional weekly limit in Goals later).
 - The old Past days list is removed (tap a bar, then Open day). Day (1d) view moved to "Maybe later" at the top.
 - **Creatine card (done 2026-11-13):** the header adds a current streak ("N days in a row", shown from 2) after "N of M days at goal". The streak counts back from today, or from yesterday while today is still to do, and ignores the window, so it is always "now" (its own `daily_totals` query, up to 400 days). On the 4-week view the dots are a grid of 4 rows of 7 consecutive days (each column one weekday, rows labelled with their first date), so a habitually skipped weekday shows as a column. 7 days stays one row.
 - Data: `daily_totals` has everything, no schema change. The later Day view reads `log_entries` directly.
