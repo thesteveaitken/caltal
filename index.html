@@ -256,8 +256,7 @@
 
   /* ---------- Quick-adds on Today (amber text links) ---------- */
   .quick-wrap { margin: 2px 20px 0; display: flex; align-items: center; font-size: 14px; color: var(--text-dim); overflow-x: auto; white-space: nowrap; }
-  .quick-label { margin-right: 4px; flex-shrink: 0; }
-  .quick-grid { display: flex; align-items: center; gap: 2px; }
+  .quick-grid { display: flex; align-items: center; gap: 2px; margin-left: -8px; } /* first label lines up with the search box edge */
   .quick-btn {
     height: 40px; padding: 0 8px; background: none; border: none; border-radius: 6px;
     color: var(--accent-text); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -592,6 +591,7 @@
     body.adding { overflow: hidden; }
     body.adding .add-panel { top: 0; bottom: 0; z-index: 45; background: var(--bg); border-top: none; padding: calc(12px + env(safe-area-inset-top)) 0 env(safe-area-inset-bottom); }
     body.adding .add-cancel { display: block; }
+    body.adding .quick-wrap { display: none; } /* phones: out of the way as soon as search opens */
     body.adding .add-panel .food-list { display: flex; flex: 1; min-height: 0; }
     body.adding .add-panel .add-new-row { display: block; }
   }
@@ -694,8 +694,7 @@
       </label>
       <button type="button" class="add-cancel" id="addCancel">Cancel</button>
     </div>
-    <div class="quick-wrap" id="quickWrap">
-      <span class="quick-label">Quick:</span>
+    <div class="quick-wrap" id="quickWrap" role="group" aria-label="Quick add">
       <div class="quick-grid" id="quickGrid"></div>
     </div>
     <div class="food-list" id="foodList">
