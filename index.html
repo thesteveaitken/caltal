@@ -1135,6 +1135,7 @@ function makeLocalClient() {
     eq(c, v) { this.filters.push(r => r[c] === v); return this; }
     in(c, a) { this.filters.push(r => a.includes(r[c])); return this; }
     gt(c, v) { this.filters.push(r => r[c] > v); return this; }
+    lt(c, v) { this.filters.push(r => r[c] < v); return this; }
     gte(c, v) { this.filters.push(r => r[c] >= v); return this; }
     lte(c, v) { this.filters.push(r => r[c] <= v); return this; }
     order(c, o) { this.orders.push([c, o || {}]); return this; }
@@ -1691,6 +1692,7 @@ hEl('helperFill').addEventListener('click', async () => {
 // The Weight sheet logs for the day being viewed; the optional goal weight lives on `goals.weight_kg`.
 let latestWeight = null;        // { date, weight_kg } of the newest weigh-in, or null
 let trendWeights = new Map();   // date -> kg, for the Trends window
+let trendWeightEdges = [];      // [date, kg] of the nearest weigh-in before and after that window
 let weightDate = null;          // day the Weight sheet is editing
 let weightSheetUnits = 'us';
 let weightLoadedKg = null;      // the day's saved weight when the sheet opened, so an unchanged value isn't re-rounded
@@ -2787,12 +2789,20 @@ async function loadTrends() {
       .gte('date', from).lte('date', to).order('date'));
     if (req !== trendReq) return;
     trendRows = new Map(rows.map(r => [r.date, numeric(r)]));
-    // Weigh-ins, with 6 days before the window for the 7-day average. A failure only empties the card.
+    // Weigh-ins, with 6 days before the window for the 7-day average, plus the nearest weigh-in on
+    // each side of that range so gaps at the edges can be interpolated. A failure only empties the card.
     try {
-      const w = await must(sb.from('daily_metrics').select('date, weight_kg').gte('date', addDays(days[0], -6)).lte('date', days[days.length - 1]));
+      const wFrom = addDays(days[0], -6), wTo = days[days.length - 1];
+      const q = () => sb.from('daily_metrics').select('date, weight_kg').gt('weight_kg', 0);
+      const [w, before, after] = await Promise.all([
+        must(q().gte('date', wFrom).lte('date', wTo)),
+        must(q().lt('date', wFrom).order('date', { ascending: false }).limit(1)),
+        must(q().gt('date', wTo).order('date').limit(1)),
+      ]);
       if (req !== trendReq) return;
-      trendWeights = new Map(w.filter(r => r.weight_kg != null).map(r => [r.date, Number(r.weight_kg)]));
-    } catch (err) { console.error('Could not load weights', err); trendWeights = new Map(); }
+      trendWeights = new Map(w.map(r => [r.date, Number(r.weight_kg)]));
+      trendWeightEdges = [...before, ...after].map(r => [r.date, Number(r.weight_kg)]);
+    } catch (err) { console.error('Could not load weights', err); trendWeights = new Map(); trendWeightEdges = []; }
     if (!trendCreatineStart && goals.creatine_g) {
       const first = await must(sb.from('log_entries').select('date').gt('creatine_g', 0).order('date').limit(1));
       if (req !== trendReq) return;
@@ -2904,12 +2914,25 @@ function renderTrends() {
     }
 
     if (cfg.kind === 'weight') {
-      // Dots are weigh-ins; the line is the average of the weigh-ins in the 7 days up to each day.
+      // Dots are weigh-ins. The line is a 7-day rolling average where days without a weigh-in are
+      // filled by a straight line between the weigh-ins either side (any gap length). Days before the
+      // first weigh-in are left out, and the line stops at the latest weigh-in.
       const u = unitsNow();
+      const known = [...trendWeightEdges, ...trendWeights].sort((a, b) => a[0] < b[0] ? -1 : 1);
+      const dayNum = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5;
+      const filled = d => {
+        let i = known.findIndex(([kd]) => kd >= d);
+        if (i < 0) return null;                    // after the latest weigh-in
+        if (known[i][0] === d) return known[i][1];
+        if (i === 0) return null;                  // before the first weigh-in
+        const [d0, v0] = known[i - 1], [d1, v1] = known[i];
+        return v0 + (v1 - v0) * (dayNum(d) - dayNum(d0)) / (dayNum(d1) - dayNum(d0));
+      };
+      const last = known.length ? known[known.length - 1][0] : null;
       const items = days.map(d => {
         const kg = trendWeights.get(d);
         const near = [];
-        for (let k = 0; k < 7; k++) { const v = trendWeights.get(addDays(d, -k)); if (v != null) near.push(v); }
+        if (last && d <= last) for (let k = 0; k < 7; k++) { const v = filled(addDays(d, -k)); if (v != null) near.push(v); }
         return { id: d, val: kg == null ? null : kgTo(kg, u), avg: near.length ? kgTo(mean(near), u) : null, live: d === today };
       });
       const goalV = goals.weight_kg ? kgTo(goals.weight_kg, u) : null;
@@ -3249,6 +3272,7 @@ function showApp(sessionUser, isGuest) {
     profile = undefined;
     latestWeight = null;
     trendWeights = new Map();
+    trendWeightEdges = [];
     trendCreatineStart = null;
     creatineStreak = 0;
     document.getElementById('profileMenu').style.display = 'none';

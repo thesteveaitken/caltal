@@ -1,15 +1,15 @@
 # CalTal roadmap
 
-## Where we left off (2026-11-13)
-Everything below marked built is committed and live. Latest: weight tracking stage 1 (built, not yet live).
+## Where we left off (2026-11-14)
+Everything below marked built is committed and live. Latest: weight tracking stage 1, with the interpolated 7-day average line.
 **Pick up with:**
 1. **(Done)** Guest merge tested with a real sign-in.
 2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6.
 3. **Section 0 housekeeping** below (archive the old Apps Script, second-account isolation test).
 4. **(Done)** Goals helper (2a-quater), live with the `profiles` table.
 5. **(Done)** Creatine card: streak and 4-week grid (2b).
-6. **Weight stage 1 (section 4): built, not yet live.** Run the new `daily_metrics` section of `supabase/schema.sql` (it also adds `goals.weight_kg`) before pushing.
-7. Then: weight stage 2 (your Apple Health Shortcut), stage 3 (history import), pace tick on the summary bars (2a-bis).
+6. **Weight stage 1 (section 4): done.** The Trends line is a 7-day average that fills missed days by straight-line interpolation (even long gaps for now; might cap later) and stops at the latest weigh-in.
+7. Then: weight stage 2 (your Apple Health Shortcut; design is in section 4), stage 3 (history import), pace tick on the summary bars (2a-bis).
 
 **Maybe later** (not sure they are worth it):
 - **Day view on Trends.** Today already shows a day's entries and times, so a one-day chart adds little. If it comes back, make it a pattern over the window instead ("most of your calories land after 7pm"), read from `log_entries.eaten_at`.
