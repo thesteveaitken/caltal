@@ -224,6 +224,59 @@ create policy "daily_metrics: own rows" on public.daily_metrics
 -- Optional goal weight, kept with the other goals (null = no goal).
 alter table public.goals add column if not exists weight_kg numeric check (weight_kg between 20 and 400);
 
+-- ---------- Sync keys and log_weight (Apple Health Shortcut) ----------
+-- One personal key per user, stored only as a SHA-256 hash. RLS is on with
+-- no policies, so the app can never read it; only log_weight() (security
+-- definer) looks keys up. Make or replace a key with supabase/new_sync_key.sql.
+create table if not exists public.sync_keys (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  key_hash   text not null unique,
+  created_at timestamptz not null default now()
+);
+alter table public.sync_keys enable row level security;
+
+-- Called by the Shortcut with the publishable key (role anon):
+--   POST /rest/v1/rpc/log_weight  {"p_key":"...","p_date":"2026-11-14","p_value":180.4,"p_unit":"lb"}
+-- Upserts that day's weight with source 'shortcut' (a later entry replaces it).
+create or replace function public.log_weight(p_key text, p_date date, p_value numeric, p_unit text default 'lb')
+returns json
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid;
+  v_kg   numeric;
+begin
+  select user_id into v_user from public.sync_keys
+   where key_hash = encode(sha256(convert_to(coalesce(p_key, ''), 'UTF8')), 'hex');
+  if v_user is null then
+    raise exception 'Unknown sync key' using errcode = '28000';
+  end if;
+  if p_date is null or p_date > current_date + 1 or p_date < current_date - 3660 then
+    raise exception 'Bad date: %', p_date using errcode = '22008';
+  end if;
+  if p_unit is null or p_unit not in ('kg', 'lb') then
+    raise exception 'Unit must be kg or lb' using errcode = '22023';
+  end if;
+  v_kg := round(case when p_unit = 'lb' then p_value * 0.45359237 else p_value end, 3);
+  if v_kg is null or v_kg < 20 or v_kg > 400 then
+    raise exception 'Weight out of range: % %', p_value, p_unit using errcode = '22003';
+  end if;
+
+  insert into public.daily_metrics (user_id, date, weight_kg, source, updated_at)
+  values (v_user, p_date, v_kg, 'shortcut', now())
+  on conflict (user_id, date) do update
+    set weight_kg = excluded.weight_kg, source = 'shortcut', updated_at = now();
+
+  return json_build_object('ok', true, 'date', p_date, 'weight_kg', v_kg);
+end;
+$$;
+
+revoke all on function public.log_weight(text, date, numeric, text) from public;
+grant execute on function public.log_weight(text, date, numeric, text) to anon, authenticated;
+
 -- ---------- Daily totals (History view) ----------
 -- New columns must be added at the END of the select list (create or replace view).
 -- security_invoker makes the view respect the caller's RLS on log_entries.

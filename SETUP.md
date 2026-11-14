@@ -78,6 +78,24 @@ Admins maintain the standard list in **Table Editor → foods** (rows where `own
 - Local: `python3 -m http.server 8000`, then open http://localhost:8000.
 - Deploy: commit and push to the GitHub Pages repo as before.
 
+## 6. "Log weight" Shortcut (Apple Health and CalTal in one step)
+Private to one account. It asks for your weight, saves it to Apple Health and posts it to CalTal through `log_weight()`.
+
+1. **Database (once):** run the "Sync keys and log_weight" section of `supabase/schema.sql` in the SQL editor (re-running the whole file is fine).
+2. **Your key:** open `supabase/new_sync_key.sql`, change `you@example.com` to your sign-in email **in the SQL editor only** (don't save that change to the repo), and run it. Copy the `paste_into_shortcut` value. It is shown only this once; if you lose it, run the file again to make a new one (the old one stops working).
+3. **Build the Shortcut** (Shortcuts app, + , name it "Log weight"):
+   1. **Ask for Input**: Input Type *Number*, prompt "Weight (lb)", allow decimals on.
+   2. **Log Health Sample**: Type *Weight*, Value *Provided Input*, Unit *lb*, Date *Current Date*. (Allow Health access when asked.)
+   3. **Format Date**: *Current Date*, Date Format *Custom*, format `yyyy-MM-dd`.
+   4. **Get Contents of URL**: `https://virurqttoukgzrpdsizs.supabase.co/rest/v1/rpc/log_weight`
+      - Method *POST*.
+      - Headers: `apikey` = the publishable key from `index.html` (`sb_publishable_...`, never the secret key), and `Content-Type` = `application/json`.
+      - Request Body *JSON*: `p_key` (Text) = your key; `p_date` (Text) = *Formatted Date*; `p_value` (Number) = *Provided Input*; `p_unit` (Text) = `lb`.
+   5. **Show Result** (or Show Notification) with *Contents of URL*. Success looks like `{"ok": true, "date": "...", "weight_kg": ...}`; a mistake shows a message such as "Unknown sync key".
+4. Add it to the home screen or a widget, or say "Hey Siri, log weight".
+
+Notes: one weight per day, so a second run that day replaces the first (source `shortcut`). Weights typed in CalTal itself don't reach Apple Health. For kg, change the prompt, the Health unit and `p_unit` to `kg`.
+
 ## Notes
 - **Free tier pausing:** Supabase pauses free projects after about 7 days with no activity. If the app stops loading after a quiet week, open the Supabase dashboard and click **Restore**.
 - **Adding email magic links later:** enable Email in Supabase Auth and add an email field that calls `sb.auth.signInWithOtp({ email })`. No database changes are needed.
