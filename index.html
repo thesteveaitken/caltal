@@ -160,8 +160,12 @@
   .g-bar { height: 3px; border-radius: 2px; background: var(--ghost); margin-top: 3px; overflow: hidden; }
   .g-bar i { display: block; height: 100%; background: var(--text); border-radius: 2px; transition: width 0.3s ease; }
   .g-cell.done .g-bar i { background: var(--accent); }
-  .g-weight { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 6px; align-items: flex-start; }
+  /* Padding with a matching negative margin, so the hover/press highlight has room without moving the text. */
+  .g-weight { background: none; border: 0; padding: 4px 6px; margin: -4px -6px; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 6px; align-items: flex-start; }
   .g-weight:active { background: var(--accent-dim); }
+  @media (hover: hover) { .g-weight:hover { background: var(--accent-dim); } }
+  .g-weight .g-l { display: inline-flex; align-items: center; gap: 4px; }
+  .g-ico { width: 12px; height: 12px; flex-shrink: 0; }
   .g-weight.est .g-v { color: var(--text-dim); }
   .g-s { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
@@ -409,18 +413,6 @@
   .weight-entry .field-input { flex: 1; min-width: 0; height: 64px; text-align: center; font-family: var(--font-num); font-size: 36px; font-weight: 600; }
   .weight-entry .seg { flex: none; }
   #weightGoalRow { border-top: 1px solid var(--border); }
-  .weight-recent { margin-top: 22px; }
-  .weight-recent .field-label { display: block; margin-bottom: 6px; }
-  .wr-row {
-    width: 100%; display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0; box-sizing: border-box;
-    background: none; border: none; border-bottom: 1px solid var(--border); font: inherit; color: var(--text); text-align: left; cursor: pointer;
-  }
-  .weight-recent > div { border-top: 1px solid var(--border); }
-  .wr-date { flex: 1; font-size: 15px; }
-  .wr-val { font-family: var(--font-num); font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .wr-val small { font-family: var(--font); font-size: 13px; font-weight: 400; color: var(--text-dim); margin-left: 3px; }
-  .wr-row.current .wr-date { font-weight: 700; }
-  .wr-row.current { box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
   .tw-dot { fill: var(--accent); stroke: var(--miss-cap); stroke-width: 1; }
   .tw-line { fill: none; stroke: var(--text); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 
@@ -878,6 +870,12 @@
       <button class="icon-btn" id="closeGoals" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div id="goalRows"></div>
+    <div class="goal-row" id="goalRow_weight">
+      <label class="switch"><input type="checkbox" role="switch" aria-label="Goal weight" id="goalOn_weight"><span></span></label>
+      <div class="goal-name">Goal weight<small>Optional · also in the Weight sheet</small></div>
+      <input type="number" class="field-input goal-input" id="goalVal_weight" aria-label="Goal weight" inputmode="decimal" min="0" step="0.1">
+      <span class="goal-unit" id="goalUnit_weight">lb</span>
+    </div>
     <button type="button" class="more-toggle" id="helperToggle" aria-expanded="false" aria-controls="helperBody">
       <span>Help me choose <small>· from your size and activity</small></span>
       <svg class="more-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -946,10 +944,6 @@
     </div>
     <button class="btn-primary" id="saveWeight">Save weight</button>
     <button type="button" class="btn-remove" id="removeWeight" style="display:none">Remove this weigh-in</button>
-    <div class="weight-recent" id="weightRecentBox" style="display:none">
-      <span class="field-label">Recent</span>
-      <div id="weightRecent"></div>
-    </div>
   </div>
 </div>
 
@@ -1339,6 +1333,7 @@ async function loadEntriesForDate(date) {
 
 // ---------- Rendering: totals ----------
 // ---------- Goals ----------
+const hEl = id => document.getElementById(id);
 // A null goal means "off": it is hidden from the summary. Creatine defaults to off.
 // Someone with no saved goals gets only a neutral calorie ceiling; everything else is off until they turn it on.
 const DEFAULT_GOALS = { calories: 2000, protein: null, fluid_ml: null, creatine_g: null, weight_kg: null };
@@ -1490,9 +1485,35 @@ function openGoals() {
   hEl('helperResult').textContent = '';
   hEl('helperNote').textContent = 'An estimate, not medical advice. If you have a medical condition, are pregnant, or are under 18, ask a doctor or dietitian. '
     + (guest ? 'Remembered on this device so it is filled in next time.' : 'Saved to your profile so it is filled in next time.');
-  loadProfile().then(fillHelperFromProfile);
+  goalWeightTouched = false;
+  fillGoalWeightRow();
+  // Units come from the profile; refill once it's loaded unless the row has been changed meanwhile.
+  loadProfile().then(p => { fillHelperFromProfile(p); if (!goalWeightTouched) fillGoalWeightRow(); });
   document.getElementById('goalsOverlay').classList.add('open');
 }
+// Goal weight: a normal goal row here, and also in the Weight sheet (both edit goals.weight_kg).
+// Stored in kg, shown in the profile's units; an unchanged value is saved as it was, not re-rounded.
+let goalWeightTouched = false;
+let goalWeightUnits = 'us';
+function fillGoalWeightRow() {
+  goalWeightUnits = unitsNow();
+  const on = !!goals.weight_kg, input = hEl('goalVal_weight');
+  hEl('goalOn_weight').checked = on;
+  hEl('goalRow_weight').classList.toggle('off', !on);
+  input.disabled = !on;
+  input.value = on ? kgTo(goals.weight_kg, goalWeightUnits).toFixed(1) : '';
+  input.removeAttribute('aria-invalid');
+  input.setAttribute('aria-label', `Goal weight in ${wUnit(goalWeightUnits)}`);
+  hEl('goalUnit_weight').textContent = wUnit(goalWeightUnits);
+}
+hEl('goalOn_weight').addEventListener('change', ev => {
+  goalWeightTouched = true;
+  const on = ev.target.checked, input = hEl('goalVal_weight');
+  input.disabled = !on;
+  hEl('goalRow_weight').classList.toggle('off', !on);
+  if (on && !input.value && latestWeight) input.value = kgTo(latestWeight.weight_kg, goalWeightUnits).toFixed(1);
+});
+hEl('goalVal_weight').addEventListener('input', () => { goalWeightTouched = true; });
 document.getElementById('closeGoals').addEventListener('click', () => document.getElementById('goalsOverlay').classList.remove('open'));
 document.getElementById('saveGoals').addEventListener('click', async () => {
   const next = {};
@@ -1508,12 +1529,24 @@ document.getElementById('saveGoals').addEventListener('click', async () => {
     }
     next[d.key] = on ? Math.round(v * d.scale * 100) / 100 : null;
   }
+  {
+    const on = hEl('goalOn_weight').checked, input = hEl('goalVal_weight'), u = goalWeightUnits;
+    const v = Number(input.value), [minKg, maxKg] = WEIGHT_LIMITS_KG;
+    if (on) {
+      const msg = input.value.trim() === '' || !Number.isFinite(v) ? 'Enter a number for goal weight'
+        : (toKg(v, u) < minKg || toKg(v, u) > maxKg) ? `Goal weight needs to be ${Math.ceil(kgTo(minKg, u))}–${Math.floor(kgTo(maxKg, u))} ${wUnit(u)}` : '';
+      if (msg) { input.setAttribute('aria-invalid', 'true'); input.focus(); showToast(msg); return; }
+      const unchanged = goals.weight_kg && input.value === kgTo(goals.weight_kg, u).toFixed(1);
+      next.weight_kg = unchanged ? goals.weight_kg : Math.round(toKg(v, u) * 1000) / 1000;
+    } else next.weight_kg = null;
+  }
   const btn = document.getElementById('saveGoals');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     await must(sb.from('goals').upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() }));
     goals = { ...goals, ...next };
     renderTotals();
+    if (trendsVisible()) renderTrends();
     document.getElementById('goalsOverlay').classList.remove('open');
     showToast('Goals saved');
   } catch (err) {
@@ -1550,7 +1583,6 @@ const optRow = (name, o) => `
 document.getElementById('hActivity').innerHTML = HELPER_ACTIVITY.map(o => optRow('hActivity', o)).join('');
 document.getElementById('hAim').innerHTML = HELPER_AIMS.map(o => optRow('hAim', o)).join('');
 
-const hEl = id => document.getElementById(id);
 const radioVal = name => document.querySelector(`input[name="${name}"]:checked`)?.value || null;
 const setRadio = (name, v) => document.querySelectorAll(`input[name="${name}"]`).forEach(r => { r.checked = r.value === v; });
 const trimNum = (v, dp) => (v == null ? '' : String(Math.round(v * 10 ** dp) / 10 ** dp));
@@ -1775,9 +1807,13 @@ async function loadDayWeight(date) {
 function weightCellHtml() {
   const u = unitsNow(), unit = wUnit(u);
   const fig = kg => `${kgTo(kg, u).toFixed(1)}<small> ${unit}</small>`;
+  // The icon says it's tappable: a pencil to change the day's weigh-in, a plus to add one.
+  const PENCIL = '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>';
+  const PLUS = '<path d="M12 5v14M5 12h14"/>';
   const cell = (cls, value, sub, label) =>
     `<button type="button" class="g-cell g-weight${cls}" data-weight-open aria-label="Weight: ${label}">` +
-    `<span class="g-l">Weight</span><span class="g-v">${value}</span>${sub ? `<span class="g-s">${sub}</span>` : ''}</button>`;
+    `<span class="g-l">Weight<svg class="g-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cls ? PLUS : PENCIL}</svg></span>` +
+    `<span class="g-v">${value}</span>${sub ? `<span class="g-s">${sub}</span>` : ''}</button>`;
   const d = currentDate;
   if (!dayWeight || dayWeight.date !== d) return cell(' est', '…', '', 'loading');
   const known = dayWeight.known;
@@ -1801,7 +1837,7 @@ function weightCellHtml() {
       return cell(' est', fig(prev[1]), when, `${fmtWeight(prev[1], u)}, ${when}. Add weight`);
     }
   }
-  return cell(' est', '+ Add', '', 'none logged this day. Add weight');
+  return cell(' est', 'Add', '', 'none logged this day. Add weight');
 }
 
 async function loadLatestWeight() {
@@ -1856,34 +1892,18 @@ async function openWeight(date) {
   hEl('removeWeight').style.display = 'none';
   hEl('weightOverlay').classList.add('open');
   try {
-    const [day, recent] = await Promise.all([
-      must(sb.from('daily_metrics').select('date, weight_kg').eq('date', date).maybeSingle()),
-      must(sb.from('daily_metrics').select('date, weight_kg').order('date', { ascending: false }).limit(10)),
-    ]);
+    const day = await must(sb.from('daily_metrics').select('date, weight_kg').eq('date', date).maybeSingle());
     if (weightDate !== date) return;
     if (day && day.weight_kg != null) {
       weightLoadedKg = Number(day.weight_kg);
       hEl('weightVal').value = kgTo(weightLoadedKg, weightSheetUnits).toFixed(1);
       hEl('removeWeight').style.display = '';
     }
-    renderWeightRecent(recent.filter(r => r.weight_kg != null));
   } catch (err) {
     console.error(err);
     showToast('Could not load weights');
   }
 }
-function renderWeightRecent(rows) {
-  hEl('weightRecentBox').style.display = rows.length ? '' : 'none';
-  hEl('weightRecent').innerHTML = rows.map(r => {
-    const d = new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-    return `<button type="button" class="wr-row${r.date === weightDate ? ' current' : ''}" data-date="${r.date}">
-      <span class="wr-date">${d}</span><span class="wr-val">${kgTo(Number(r.weight_kg), weightSheetUnits).toFixed(1)}<small>${wUnit(weightSheetUnits)}</small></span></button>`;
-  }).join('');
-}
-hEl('weightRecent').addEventListener('click', ev => {
-  const row = ev.target.closest('.wr-row');
-  if (row && row.dataset.date !== weightDate) openWeight(row.dataset.date);
-});
 hEl('closeWeight').addEventListener('click', () => hEl('weightOverlay').classList.remove('open'));
 
 // After any weight change: refresh what shows it.
