@@ -95,6 +95,31 @@
     out.steps.trends28 = [q('#trendRange').textContent, q('#trendSeg').innerHTML, clean(q('#trendCards').innerHTML)];
     q('#trendPrev').click(); await sleep(800);
     out.steps.trendsPrev = [q('#trendRange').textContent, clean(q('#trendCards').innerHTML)];
+    // goal weight row, shared by the Weight and Goals sheets: range and blank messages, kg rounding,
+    // and an unchanged box keeping the stored value
+    const goalKg = () => (JSON.parse(localStorage.getItem('caltal_guest_v1')).goals[0] || {}).weight_kg;
+    const toastAfter = async () => { await sleep(100); return q('#toast').textContent; };
+    q('#menuWeight').click(); await sleep(400);
+    q('#weightUnits [data-units="us"]').click();
+    set('weightVal', '999'); q('#saveWeight').click();
+    const weightRange = await toastAfter();
+    set('weightVal', ''); set('weightGoalVal', '5000'); q('#saveWeight').click();
+    const goalRangeW = await toastAfter();
+    set('weightGoalVal', '170.3'); q('#saveWeight').click();
+    await until(() => !q('#weightOverlay').classList.contains('open'), 'weight goal saved');
+    const kgW = goalKg();
+    q('#menuGoals').click(); await sleep(400);
+    const shownG = [q('#goalVal_weight').value, q('#goalUnit_weight').textContent, q('#goalVal_weight').getAttribute('aria-label')];
+    set('goalVal_weight', '5000'); q('#saveGoals').click();
+    const goalRangeG = await toastAfter();
+    set('goalVal_weight', ''); q('#saveGoals').click();
+    const goalBlankG = await toastAfter();
+    set('goalVal_weight', '170.37'); q('#saveGoals').click();
+    await until(() => !q('#goalsOverlay').classList.contains('open'), 'goals weight saved');
+    const kgG = goalKg();
+    q('#menuGoals').click(); await sleep(400); q('#saveGoals').click();
+    await until(() => !q('#goalsOverlay').classList.contains('open'), 'goals saved unchanged');
+    out.steps.goalWeight = [weightRange, goalRangeW, kgW, shownG, goalRangeG, goalBlankG, kgG, goalKg()];
     out.steps.store = clean(localStorage.getItem('caltal_guest_v1') || '').replace(/"\d{4}-\d\d-\d\dT[\d:.]+Z"/g, '"TS"');
   } catch (e) { out.errors.push('test threw: ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
   const pre = document.createElement('pre'); pre.id = '__out'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);

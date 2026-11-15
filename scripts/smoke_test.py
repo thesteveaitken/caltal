@@ -7,6 +7,7 @@ rendered and saved, step by step. Use it after any change that should not alter 
 
     python3 scripts/smoke_test.py              # HEAD against the working tree
     python3 scripts/smoke_test.py --base main  # another ref against the working tree
+    python3 scripts/smoke_test.py --show store # also print a step in full from both runs
 
 "SAME" on every step and no errors means the two behave alike for this session. A deliberate
 change to the UI will show as DIFF; read the excerpt and judge. It covers guest mode on a
@@ -57,6 +58,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--base', default='HEAD', help='git ref to compare the working tree against (default HEAD)')
     ap.add_argument('--port', type=int, default=8765)
+    ap.add_argument('--show', action='append', default=[], metavar='STEP', help='also print this step in full from both runs (repeatable)')
     args = ap.parse_args()
     if not os.path.exists(CHROME): sys.exit(f'Chrome not found at {CHROME}. Set CHROME to its path.')
 
@@ -84,6 +86,8 @@ def main():
         ok = False
         i = next((i for i in range(min(len(a), len(b))) if a[i] != b[i]), min(len(a), len(b)))
         print(f'DIFF  {step}\n   {args.base}: …{a[max(0, i - 80):i + 120]}\n   working tree: …{b[max(0, i - 80):i + 120]}')
+    for step in args.show:
+        print(f'\n{step}\n   {args.base}: {json.dumps(old["steps"].get(step))}\n   working tree: {json.dumps(new["steps"].get(step))}')
     print('\nNo differences.' if ok else '\nDifferences or errors found (see above).')
     sys.exit(0 if ok else 1)
 

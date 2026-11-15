@@ -159,34 +159,21 @@ function openGoals() {
   $('helperNote').textContent = 'An estimate, not medical advice. If you have a medical condition, are pregnant, or are under 18, ask a doctor or dietitian. '
     + (guest ? 'Remembered on this device so it is filled in next time.' : 'Saved to your profile so it is filled in next time.');
   goalWeightTouched = false;
-  fillGoalWeightRow();
+  fillGoalsWeightRow();
   // Units come from the profile; refill once it's loaded unless the row has been changed meanwhile.
-  loadProfile().then(p => { fillHelperFromProfile(p); if (!goalWeightTouched) fillGoalWeightRow(); });
+  loadProfile().then(p => { fillHelperFromProfile(p); if (!goalWeightTouched) fillGoalsWeightRow(); });
   openSheet('goalsOverlay');
 }
-// Goal weight: a normal goal row here, and also in the Weight sheet (both edit goals.weight_kg).
-// Stored in kg, shown in the profile's units; an unchanged value is saved as it was, not re-rounded.
+// Goal weight: a normal goal row here, and also in the Weight sheet. The row's code is shared
+// (`GOAL_WEIGHT_ROWS` in js/weight.js, which also wires up its switch).
 let goalWeightTouched = false;
 let goalWeightUnits = 'us';
-function fillGoalWeightRow() {
+function fillGoalsWeightRow() {
   goalWeightUnits = unitsNow();
-  const on = !!goals.weight_kg, input = $('goalVal_weight');
-  $('goalOn_weight').checked = on;
-  $('goalRow_weight').classList.toggle('off', !on);
-  input.disabled = !on;
-  input.value = on ? kgTo(goals.weight_kg, goalWeightUnits).toFixed(1) : '';
-  input.removeAttribute('aria-invalid');
-  input.setAttribute('aria-label', `Goal weight in ${wUnit(goalWeightUnits)}`);
-  $('goalUnit_weight').textContent = wUnit(goalWeightUnits);
+  fillGoalWeightRow(GOAL_WEIGHT_ROWS.goals, goalWeightUnits);
 }
-$('goalOn_weight').addEventListener('change', ev => {
-  goalWeightTouched = true;
-  const on = ev.target.checked, input = $('goalVal_weight');
-  input.disabled = !on;
-  $('goalRow_weight').classList.toggle('off', !on);
-  if (on && !input.value && latestWeight) input.value = kgTo(latestWeight.weight_kg, goalWeightUnits).toFixed(1);
-});
-$('goalVal_weight').addEventListener('input', () => { goalWeightTouched = true; });
+// On the row, not its controls: weight.js writes the row's markup after this file loads.
+['change', 'input'].forEach(t => $('goalRow_weight').addEventListener(t, () => { goalWeightTouched = true; }));
 $('closeGoals').addEventListener('click', () => closeSheet('goalsOverlay'));
 $('saveGoals').addEventListener('click', async () => {
   const next = {};
@@ -202,16 +189,12 @@ $('saveGoals').addEventListener('click', async () => {
     }
     next[d.key] = on ? Math.round(v * d.scale * 100) / 100 : null;
   }
-  {
-    const on = $('goalOn_weight').checked, input = $('goalVal_weight'), u = goalWeightUnits;
-    const v = Number(input.value), [minKg, maxKg] = WEIGHT_LIMITS_KG;
-    if (on) {
-      const msg = input.value.trim() === '' || !Number.isFinite(v) ? 'Enter a number for goal weight'
-        : (toKg(v, u) < minKg || toKg(v, u) > maxKg) ? `Goal weight needs to be ${Math.ceil(kgTo(minKg, u))}–${Math.floor(kgTo(maxKg, u))} ${wUnit(u)}` : '';
-      if (msg) { input.setAttribute('aria-invalid', 'true'); input.focus(); showToast(msg); return; }
-      const unchanged = goals.weight_kg && input.value === kgTo(goals.weight_kg, u).toFixed(1);
-      next.weight_kg = unchanged ? goals.weight_kg : Math.round(toKg(v, u) * 1000) / 1000;
-    } else next.weight_kg = null;
+  try {
+    next.weight_kg = readGoalWeight(GOAL_WEIGHT_ROWS.goals, goalWeightUnits);
+  } catch (err) {
+    if (!(err instanceof InvalidField)) throw err;
+    showToast(err.message);
+    return;
   }
   await withBusy($('saveGoals'), 'Saving…', async () => {
     try {

@@ -131,36 +131,88 @@ async function loadWeightState() {
   if (trendsVisible()) renderTrends();
 }
 
+// A weight box in units `u`, as kg to 2 decimals; null when blank. Throws InvalidField when out of range.
+function readWeight(el, u, what) {
+  const raw = el.value.trim();
+  if (raw === '') return null;
+  const v = Number(raw), [minKg, maxKg] = WEIGHT_LIMITS_KG;
+  if (!Number.isFinite(v) || toKg(v, u) < minKg || toKg(v, u) > maxKg) {
+    el.setAttribute('aria-invalid', 'true'); el.focus();
+    throw new InvalidField(`${what} needs to be between ${Math.ceil(kgTo(minKg, u))} and ${Math.floor(kgTo(maxKg, u))} ${wUnit(u)}`);
+  }
+  return Math.round(toKg(v, u) * 100) / 100;
+}
+
+// ---------- Goal weight row ----------
+// The same row is in the Goals sheet and the Weight sheet; both edit goals.weight_kg. It shows 1 decimal
+// in the person's units and stores kg to 2 decimals (not 1: 0.1 lb is about 0.045 kg, so pounds would
+// not round-trip). A box that still shows the stored value saves it as it was, not re-rounded.
+const GOAL_WEIGHT_ROWS = {
+  goals:  { row: 'goalRow_weight', on: 'goalOn_weight', val: 'goalVal_weight', unit: 'goalUnit_weight', note: 'Optional · also in the Weight sheet' },
+  weight: { row: 'weightGoalRow',  on: 'weightGoalOn',  val: 'weightGoalVal',  unit: 'weightGoalUnit',  note: 'Optional · a line on Trends' },
+};
+// Both rows' markup, written into their empty containers in index.html at load.
+for (const r of Object.values(GOAL_WEIGHT_ROWS)) {
+  $(r.row).innerHTML = `
+      <label class="switch"><input type="checkbox" role="switch" aria-label="Goal weight" id="${r.on}"><span></span></label>
+      <div class="goal-name">Goal weight<small>${r.note}</small></div>
+      <input type="number" class="field-input goal-input" id="${r.val}" aria-label="Goal weight" inputmode="decimal" min="0" step="0.1">
+      <span class="goal-unit" id="${r.unit}">lb</span>`;
+}
+function setGoalWeightOn(r, on) {
+  $(r.on).checked = on;
+  $(r.row).classList.toggle('off', !on);
+  $(r.val).disabled = !on;
+}
+function setGoalWeightUnits(r, u) {
+  $(r.unit).textContent = wUnit(u);
+  $(r.val).setAttribute('aria-label', `Goal weight in ${wUnit(u)}`);
+}
+function fillGoalWeightRow(r, u) {
+  setGoalWeightOn(r, !!goals.weight_kg);
+  $(r.val).value = goals.weight_kg ? kgTo(goals.weight_kg, u).toFixed(1) : '';
+  $(r.val).removeAttribute('aria-invalid');
+  setGoalWeightUnits(r, u);
+}
+// The kg to save: null when switched off. Throws InvalidField when on without a valid weight.
+function readGoalWeight(r, u) {
+  if (!$(r.on).checked) return null;
+  const el = $(r.val);
+  if (goals.weight_kg && el.value.trim() === kgTo(goals.weight_kg, u).toFixed(1)) return goals.weight_kg;
+  const kg = readWeight(el, u, 'Goal weight');
+  if (kg === null) { el.setAttribute('aria-invalid', 'true'); el.focus(); throw new InvalidField('Enter a goal weight, or switch it off'); }
+  return kg;
+}
+// Switching the goal on with an empty box suggests a value: `suggest()` returns text in the row's units.
+function wireGoalWeightRow(r, suggest) {
+  $(r.on).addEventListener('change', ev => {
+    setGoalWeightOn(r, ev.target.checked);
+    if (ev.target.checked && !$(r.val).value) $(r.val).value = suggest();
+  });
+}
+wireGoalWeightRow(GOAL_WEIGHT_ROWS.goals, () => (latestWeight ? kgTo(latestWeight.weight_kg, goalWeightUnits).toFixed(1) : ''));
+wireGoalWeightRow(GOAL_WEIGHT_ROWS.weight, () => $('weightVal').value);
+
 function setWeightSheetUnits(u) {
   const input = $('weightVal'), goalInput = $('weightGoalVal');
   const conv = el => { if (el.value.trim() !== '' && Number.isFinite(Number(el.value))) el.value = kgTo(toKg(Number(el.value), weightSheetUnits), u).toFixed(1); };
   if (u !== weightSheetUnits) { conv(input); conv(goalInput); }
   weightSheetUnits = u;
   setSeg('weightUnits', b => b.dataset.units === u);
-  $('weightGoalUnit').textContent = wUnit(u);
+  setGoalWeightUnits(GOAL_WEIGHT_ROWS.weight, u);
   input.setAttribute('aria-label', `Weight in ${wUnit(u)}`);
 }
 document.querySelectorAll('#weightUnits button').forEach(b => b.addEventListener('click', () => setWeightSheetUnits(b.dataset.units)));
-$('weightGoalOn').addEventListener('change', ev => {
-  const on = ev.target.checked, input = $('weightGoalVal');
-  input.disabled = !on;
-  $('weightGoalRow').classList.toggle('off', !on);
-  if (on && !input.value && $('weightVal').value) input.value = $('weightVal').value;
-});
 
 async function openWeight(date) {
   weightDate = date;
   const label = formatDateLabel(date);
   $('weightSub').textContent = date === todayStr() ? 'For today. One weigh-in a day.' : `For ${label}. One weigh-in a day.`;
-  ['weightVal', 'weightGoalVal'].forEach(id => $(id).removeAttribute('aria-invalid'));
+  $('weightVal').removeAttribute('aria-invalid');
   await loadProfile();
   weightSheetUnits = unitsNow();
   setWeightSheetUnits(weightSheetUnits);
-  const goalOn = !!goals.weight_kg;
-  $('weightGoalOn').checked = goalOn;
-  $('weightGoalRow').classList.toggle('off', !goalOn);
-  $('weightGoalVal').disabled = !goalOn;
-  $('weightGoalVal').value = goalOn ? kgTo(goals.weight_kg).toFixed(1) : '';
+  fillGoalWeightRow(GOAL_WEIGHT_ROWS.weight, weightSheetUnits);
   $('weightVal').value = '';
   $('weightVal').placeholder = latestWeight ? kgTo(latestWeight.weight_kg, weightSheetUnits).toFixed(1) : '';
   weightLoadedKg = null;
@@ -189,31 +241,17 @@ async function weightChanged() {
 }
 
 $('saveWeight').addEventListener('click', async () => {
-  const u = weightSheetUnits, unit = wUnit(u);
-  const [minKg, maxKg] = WEIGHT_LIMITS_KG;
-  const range = `${Math.ceil(kgTo(minKg, u))}–${Math.floor(kgTo(maxKg, u))} ${unit}`;
-  const read = (id, what) => {
-    const el = $(id), raw = el.value.trim();
-    if (raw === '') return null;
-    const v = Number(raw);
-    if (!Number.isFinite(v) || toKg(v, u) < minKg || toKg(v, u) > maxKg) {
-      el.setAttribute('aria-invalid', 'true'); el.focus();
-      throw new InvalidField(`${what} should be between ${range}`);
-    }
-    return Math.round(toKg(v, u) * 100) / 100;
-  };
+  const u = weightSheetUnits;
   let kg, goalKg;
   try {
-    kg = read('weightVal', 'Weight');
-    goalKg = $('weightGoalOn').checked ? read('weightGoalVal', 'Goal weight') : null;
-    if ($('weightGoalOn').checked && goalKg === null) { $('weightGoalVal').setAttribute('aria-invalid', 'true'); $('weightGoalVal').focus(); throw new InvalidField('Enter a goal weight, or switch it off'); }
+    kg = readWeight($('weightVal'), u, 'Weight');
+    goalKg = readGoalWeight(GOAL_WEIGHT_ROWS.weight, u);
   } catch (err) {
     if (err instanceof InvalidField) { showToast(err.message); return; }
     throw err;
   }
   // Showing a weight in other units rounds it; if the box still shows the saved value, keep it exactly.
   if (kg !== null && weightLoadedKg !== null && kgTo(weightLoadedKg, u).toFixed(1) === $('weightVal').value.trim()) kg = null;
-  if (goalKg !== null && goals.weight_kg && kgTo(goals.weight_kg, u).toFixed(1) === $('weightGoalVal').value.trim()) goalKg = goals.weight_kg;
   const goalChanged = (goalKg ?? null) !== (goals.weight_kg ?? null)
     && !(goalKg && goals.weight_kg && Math.abs(goalKg - goals.weight_kg) < 0.05);
   const unitsChanged = u !== unitsNow();
