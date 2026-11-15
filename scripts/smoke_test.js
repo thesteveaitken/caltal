@@ -1,0 +1,102 @@
+// Smoke test driven by scripts/smoke_test.py. It is injected into a copy of the app, runs one
+// guest-mode session (nothing is written to Supabase; only the standard foods are read) and
+// leaves what it saw in <pre id="__out"> as JSON. Ids and clock times are masked so two runs compare.
+(async () => {
+  const out = { errors: [], steps: {} };
+  window.addEventListener('error', e => out.errors.push(String(e.message)));
+  window.addEventListener('unhandledrejection', e => out.errors.push('rej: ' + String(e.reason && e.reason.message || e.reason)));
+  const origErr = console.error; console.error = (...a) => { out.errors.push('console: ' + a.map(x => x && x.message || String(x)).join(' ')); origErr(...a); };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (f, label) => { for (let i = 0; i < 100; i++) { if (f()) return; await sleep(100); } out.errors.push('timeout: ' + label); };
+  const q = s => document.querySelector(s);
+  const clean = h => h.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, 'ID').replace(/\d+:\d\d[ap]/g, 'TIME');
+  const snap = name => { out.steps[name] = clean(['entryList', 'goalGrid', 'totalCal', 'calLeft', 'quickGrid', 'tally'].map(id => document.getElementById(id).innerHTML).join('\n||')); };
+  const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+  const nEntries = () => document.querySelectorAll('#entryList .entry').length;
+  try {
+    await until(() => document.querySelectorAll('#foodList .food-item').length > 5, 'foods');
+    out.steps.foodCount = document.querySelectorAll('#foodList .food-item').length;
+    out.steps.first5 = [...document.querySelectorAll('#foodList .food-item')].slice(0, 5).map(e => e.textContent.replace(/\s+/g, ' ').trim());
+    await until(() => q('#quickGrid .quick-btn[data-food]'), 'quick');
+    q('#quickGrid .quick-btn[data-food]').click();
+    await until(() => nEntries() === 1, 'quick logged');
+    q('#quickGrid .quick-btn[data-food]').click();
+    await until(() => document.querySelector('#entryList .group-head'), 'grouped');
+    snap('afterQuick');
+    // log sheet: second food, 2.5 servings
+    document.querySelectorAll('#foodList .food-item')[7].click();
+    await sleep(50);
+    for (let i = 0; i < 3; i++) q('#qtyPlus').click();
+    q('#timeMinus').click();
+    out.steps.logSheet = [q('#logSheetTitle').textContent, q('#logSheetSub').textContent, q('#qtyValue').textContent, q('#prevCal').textContent, q('#prevMacros').textContent, q('#logAfter').textContent, q('#logSheetOverlay').className];
+    q('#confirmLog').click();
+    await until(() => nEntries() === 2 && !q('#logSheetOverlay').classList.contains('open'), 'logged');
+    // new food, save and log
+    q('#addNewFoodLink').click();
+    set('newFoodName', 'Test bar 50g'); set('newFoodCal', '210'); set('newFoodP', '12'); set('newFoodC', '20'); set('newFoodF', '9');
+    q('#moreToggle').click(); set('newFoodFluid', '100'); set('newFoodCr', '5');
+    q('#saveNewFood').click();
+    await until(() => nEntries() === 3, 'food saved+logged');
+    // one-off
+    q('#logOneOffLink').click();
+    set('oneOffName', 'Cake'); set('oneOffCal', '300'); set('oneOffF', '15');
+    q('#saveOneOff').click();
+    await until(() => nEntries() === 4, 'one-off');
+    snap('afterLogs');
+    // edit an entry
+    [...document.querySelectorAll('#entryList .entry[data-id]')].pop().click();
+    await sleep(50);
+    out.steps.editSheet = [q('#logSheetTitle').textContent, q('#logSheetSub').textContent, q('#qtyValue').textContent, q('#prevMacros').textContent, q('#logTime').value ? 'has time' : 'no time', q('#removeEntry').style.display];
+    q('#qtyPlus').click(); q('#confirmLog').click();
+    await sleep(600);
+    // log again on the Test bar
+    const again = [...document.querySelectorAll('#entryList .entry-again')].find(b => b.getAttribute('aria-label').includes('Test bar'));
+    again.click();
+    await until(() => document.querySelectorAll('#entryList .group-head').length === 2, 'log again');
+    // remove + undo
+    [...document.querySelectorAll('#entryList .entry[data-id]')].pop().click(); await sleep(50);
+    q('#removeEntry').click();
+    await until(() => q('#toast button'), 'undo toast');
+    out.steps.toast = q('#toast').textContent;
+    q('#toast button').click();
+    await sleep(600);
+    snap('afterEdit');
+    // goals: helper + save
+    q('#menuGoals').click(); await sleep(300);
+    q('#helperToggle').click();
+    q('#helperUnits [data-units="metric"]').click();
+    set('hYear', '1990'); set('hCm', '180'); set('hWt', '80');
+    q('input[name="hSex"][value="male"]').click(); q('input[name="hActivity"][value="light"]').click(); q('input[name="hAim"][value="lose_slow"]').click();
+    out.steps.helper = [q('#hAim_lose_slow_note').textContent, q('#helperUnits').innerHTML, q('#hWtLabel').textContent];
+    q('#helperFill').click(); await sleep(300);
+    q('#goalOn_creatine_g').click();
+    out.steps.goalVals = ['calories', 'protein', 'fluid_ml', 'creatine_g', 'weight'].map(k => document.getElementById('goalVal_' + k).value);
+    q('#saveGoals').click();
+    await until(() => !q('#goalsOverlay').classList.contains('open'), 'goals saved');
+    // weight
+    q('#menuWeight').click(); await sleep(400);
+    out.steps.weightSheet = [q('#weightSub').textContent, q('#weightUnits').innerHTML, q('#weightGoalUnit').textContent];
+    set('weightVal', '81.5'); q('#weightGoalOn').click();
+    set('weightGoalVal', '78'); q('#saveWeight').click();
+    await until(() => !q('#weightOverlay').classList.contains('open'), 'weight saved');
+    await sleep(600);
+    snap('afterGoals');
+    // previous day and back
+    q('#prevDay').click(); await sleep(400);
+    out.steps.yesterday = [q('#dateLabel').textContent, clean(q('#entryList').innerHTML), clean(q('#goalGrid').innerHTML)];
+    q('#nextDay').click(); await sleep(400);
+    // trends
+    q('#tabTrends').click();
+    await until(() => document.querySelectorAll('#trendCards svg').length >= 5, 'trends');
+    await sleep(500);
+    document.querySelector('#trendCards .tb-hit').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    out.steps.trends7 = [q('#trendRange').textContent, q('#trendSeg').innerHTML, clean(q('#trendCards').innerHTML)];
+    q('#trendSeg [data-days="28"]').click(); await sleep(800);
+    out.steps.trends28 = [q('#trendRange').textContent, q('#trendSeg').innerHTML, clean(q('#trendCards').innerHTML)];
+    q('#trendPrev').click(); await sleep(800);
+    out.steps.trendsPrev = [q('#trendRange').textContent, clean(q('#trendCards').innerHTML)];
+    out.steps.store = clean(localStorage.getItem('caltal_guest_v1') || '').replace(/"\d{4}-\d\d-\d\dT[\d:.]+Z"/g, '"TS"');
+  } catch (e) { out.errors.push('test threw: ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
+  const pre = document.createElement('pre'); pre.id = '__out'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
+  document.title = 'DONE';
+})();

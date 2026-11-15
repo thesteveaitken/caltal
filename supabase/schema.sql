@@ -25,7 +25,7 @@ as $$
 $$;
 
 -- ---------- Foods ----------
--- owner_id IS NULL  → standard food, visible to every signed-in user.
+-- owner_id IS NULL  → standard food, visible to every signed-in user and to signed-out guests.
 -- owner_id = a user → private food, visible only to that user.
 -- Nutrition values are per serving; the serving is described in the name
 -- (e.g. "1 large egg", "6oz steak").
@@ -169,9 +169,14 @@ create table if not exists public.quick_adds (
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   slot    smallint not null check (slot between 0 and 5),
   food_id uuid not null references public.foods (id) on delete cascade,
-  label   text not null check (length(trim(label)) between 1 and 12),
+  label   text not null check (length(trim(label)) between 1 and 10),
   primary key (user_id, slot)
 );
+-- The table was first created allowing 12 characters; the app has always capped labels at 10.
+-- Re-runnable: shorten any longer label, then replace the check.
+update public.quick_adds set label = trim(left(trim(label), 10)) where length(trim(label)) > 10;
+alter table public.quick_adds drop constraint if exists quick_adds_label_check;
+alter table public.quick_adds add constraint quick_adds_label_check check (length(trim(label)) between 1 and 10);
 alter table public.quick_adds enable row level security;
 
 drop policy if exists "quick_adds: own rows" on public.quick_adds;
@@ -277,7 +282,7 @@ $$;
 revoke all on function public.log_weight(text, date, numeric, text) from public;
 grant execute on function public.log_weight(text, date, numeric, text) to anon, authenticated;
 
--- ---------- Daily totals (History view) ----------
+-- ---------- Daily totals (read by the Trends tab) ----------
 -- New columns must be added at the END of the select list (create or replace view).
 -- security_invoker makes the view respect the caller's RLS on log_entries.
 create or replace view public.daily_totals

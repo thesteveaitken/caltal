@@ -1,13 +1,13 @@
 # CalTal setup: Supabase + Google sign-in
 
-CalTal is a single static `index.html` hosted on GitHub Pages. It talks directly to Supabase:
+CalTal is a set of static files (`index.html`, `styles.css`, `js/`) hosted on GitHub Pages. It talks directly to Supabase:
 
 - **Postgres** stores the foods, favourites and log entries.
 - **Supabase Auth** handles Google sign-in.
 - **Row-level security** makes sure each user sees only the standard foods plus their own foods and logs.
 
 ```
-index.html                    the whole app
+index.html, styles.css, js/   the whole app (no build step)
 supabase/schema.sql           tables + security policies (run once)
 supabase/seed_foods.sql       standard food list (review, then run)
 scripts/migrate_from_sheet.py one-off import of the old Google Sheet
@@ -18,7 +18,7 @@ AppsScript.gs                 old backend; delete once migrated
 1. Go to [supabase.com](https://supabase.com) → New project. Pick a region near you and save the database password somewhere.
 2. Open **SQL Editor → New query**, paste in `supabase/schema.sql` and click **Run**.
 3. Review `supabase/seed_foods.sql`: edit values and add any foods you want promoted from your old sheet. Then paste it in and **Run** it. You can re-run it safely, because existing names are skipped.
-4. Put two values into `index.html`:
+4. Put two values into `js/core.js`:
    ```js
    const SUPABASE_URL = 'https://xxxx.supabase.co';
    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_...';
@@ -26,7 +26,7 @@ AppsScript.gs                 old backend; delete once migrated
    - **Publishable key** (`sb_publishable_...`): **Project Settings → API Keys**. Supabase is retiring the older `anon` and `service_role` keys in early 2027, so use the new key types.
    - **URL:** the new API Keys page doesn't show it. It is always `https://<project-ref>.supabase.co`, where the project ref is the **Project ID** under **Project Settings → General**. It's also the last part of your dashboard address (`supabase.com/dashboard/project/<project-ref>`). The **Connect** button at the top of the dashboard shows the full URL too.
 
-   The publishable key is safe to commit, because RLS protects the data. **Never** put the secret key (`sb_secret_...`) in `index.html`.
+   The publishable key is safe to commit, because RLS protects the data. **Never** put the secret key (`sb_secret_...`) in `js/core.js` or any other file in the repo.
 
 ## 2. Google sign-in
 1. In [Google Cloud Console](https://console.cloud.google.com/), create or select a project, then go to **APIs & Services**.
@@ -58,7 +58,7 @@ Admins maintain the standard list in **Table Editor → foods** (rows where `own
    SUPABASE_SECRET_KEY=sb_secret_...
    CALTAL_USER_ID=<your user UID>
    ```
-   - `SUPABASE_URL`: the same URL you put in `index.html`.
+   - `SUPABASE_URL`: the same URL you put in `js/core.js`.
    - `SUPABASE_SECRET_KEY`: **Project Settings → API Keys**, the secret key (`sb_secret_...`). It bypasses the security rules so the script can write on your behalf. Keep it only in this file. `.env` is gitignored, so don't paste the key into `index.html` or any other file.
    - `CALTAL_USER_ID`: **Authentication → Users**, the **User UID** on your row (a UUID like `3f2b8c1e-9a4d-...`). You must have signed in to the app once for it to exist. Everything imported is attached to this user.
    No quotes are needed around any of the values.
@@ -89,7 +89,7 @@ Private to one account. It asks for your weight, saves it to Apple Health and po
    3. **Format Date**: *Current Date*, Date Format *Custom*, format `yyyy-MM-dd`.
    4. **Get Contents of URL**: `https://virurqttoukgzrpdsizs.supabase.co/rest/v1/rpc/log_weight`
       - Method *POST*.
-      - Headers: `apikey` = the publishable key from `index.html` (`sb_publishable_...`, never the secret key), and `Content-Type` = `application/json`.
+      - Headers: `apikey` = the publishable key from `js/core.js` (`sb_publishable_...`, never the secret key), and `Content-Type` = `application/json`.
       - Request Body *JSON*: `p_key` (Text) = your key; `p_date` (Text) = *Formatted Date*; `p_value` (Number) = *Provided Input*; `p_unit` (Text) = `lb`.
    5. **Show Result** (or Show Notification) with *Contents of URL*. Success looks like `{"ok": true, "date": "...", "weight_kg": ...}`; a mistake shows a message such as "Unknown sync key".
 4. Add it to the home screen or a widget, or say "Hey Siri, log weight".
