@@ -103,6 +103,20 @@ function showToast(msg, action) {
   toastTimer = setTimeout(() => t.classList.remove('show', 'actionable'), action ? 5000 : 1800);
 }
 
+// Run `work` with `btn` disabled (and its text swapped to `busyText`, if given), then put it back.
+// Handlers keep their own try/catch inside `work`, since several map error codes to messages.
+async function withBusy(btn, busyText, work) {
+  const label = btn.textContent;
+  btn.disabled = true;
+  if (busyText) btn.textContent = busyText;
+  try {
+    return await work();
+  } finally {
+    if (busyText) btn.textContent = label;
+    btn.disabled = false;
+  }
+}
+
 // ---------- Data access ----------
 // Supabase calls resolve to { data, error } rather than throwing; this turns
 // errors into exceptions so the existing try/catch + toast pattern works.

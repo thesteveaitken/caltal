@@ -223,32 +223,30 @@ $('saveWeight').addEventListener('click', async () => {
     closeSheet('weightOverlay');
     return;
   }
-  const btn = $('saveWeight');
-  btn.disabled = true; btn.textContent = 'Saving…';
-  try {
-    const now = new Date().toISOString();
-    if (kg !== null) {
-      await must(sb.from('daily_metrics').upsert({ user_id: user.id, date: weightDate, weight_kg: kg, source: 'manual', updated_at: now }, { onConflict: 'user_id,date' }));
+  await withBusy($('saveWeight'), 'Saving…', async () => {
+    try {
+      const now = new Date().toISOString();
+      if (kg !== null) {
+        await must(sb.from('daily_metrics').upsert({ user_id: user.id, date: weightDate, weight_kg: kg, source: 'manual', updated_at: now }, { onConflict: 'user_id,date' }));
+      }
+      if (goalChanged) {
+        // Send every goal, so a first goals row doesn't switch the others off.
+        const { calories, protein, fluid_ml, creatine_g } = goals;
+        await must(sb.from('goals').upsert({ user_id: user.id, calories, protein, fluid_ml, creatine_g, weight_kg: goalKg, updated_at: now }));
+        goals = { ...goals, weight_kg: goalKg };
+      }
+      if (unitsChanged) {
+        await must(sb.from('profiles').upsert({ user_id: user.id, units: u, updated_at: now }));
+        profile = { ...(profile || {}), units: u };
+      }
+      closeSheet('weightOverlay');
+      showToast(kg !== null ? `Weight saved: ${fmtWeight(kg, u)}` : 'Saved');
+      weightChanged();
+    } catch (err) {
+      console.error(err);
+      showToast('Could not save. Try again.');
     }
-    if (goalChanged) {
-      // Send every goal, so a first goals row doesn't switch the others off.
-      const { calories, protein, fluid_ml, creatine_g } = goals;
-      await must(sb.from('goals').upsert({ user_id: user.id, calories, protein, fluid_ml, creatine_g, weight_kg: goalKg, updated_at: now }));
-      goals = { ...goals, weight_kg: goalKg };
-    }
-    if (unitsChanged) {
-      await must(sb.from('profiles').upsert({ user_id: user.id, units: u, updated_at: now }));
-      profile = { ...(profile || {}), units: u };
-    }
-    closeSheet('weightOverlay');
-    showToast(kg !== null ? `Weight saved: ${fmtWeight(kg, u)}` : 'Saved');
-    weightChanged();
-  } catch (err) {
-    console.error(err);
-    showToast('Could not save. Try again.');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Save weight';
-  }
+  });
 });
 
 $('removeWeight').addEventListener('click', async () => {
@@ -260,6 +258,6 @@ $('removeWeight').addEventListener('click', async () => {
     weightChanged();
   } catch (err) {
     console.error(err);
-    showToast('Could not remove it. Try again.');
+    showToast('Could not remove. Try again.');
   }
 });

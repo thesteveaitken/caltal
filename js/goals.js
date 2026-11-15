@@ -213,21 +213,19 @@ $('saveGoals').addEventListener('click', async () => {
       next.weight_kg = unchanged ? goals.weight_kg : Math.round(toKg(v, u) * 1000) / 1000;
     } else next.weight_kg = null;
   }
-  const btn = $('saveGoals');
-  btn.disabled = true; btn.textContent = 'Saving…';
-  try {
-    await must(sb.from('goals').upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() }));
-    goals = { ...goals, ...next };
-    renderTotals();
-    if (trendsVisible()) renderTrends();
-    closeSheet('goalsOverlay');
-    showToast('Goals saved');
-  } catch (err) {
-    console.error(err);
-    showToast('Could not save — try again');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Save goals';
-  }
+  await withBusy($('saveGoals'), 'Saving…', async () => {
+    try {
+      await must(sb.from('goals').upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() }));
+      goals = { ...goals, ...next };
+      renderTotals();
+      if (trendsVisible()) renderTrends();
+      closeSheet('goalsOverlay');
+      showToast('Goals saved');
+    } catch (err) {
+      console.error(err);
+      showToast('Could not save. Try again.');
+    }
+  });
 });
 
 // Goals helper ("Help me choose"): estimates calories, protein and fluids from the person's size,

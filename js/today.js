@@ -171,7 +171,7 @@ function renderEntries() {
       } catch (err) {
         console.error(err);
         btn.disabled = false;
-        showToast('Could not log — try again');
+        showToast('Could not log. Try again.');
       }
     });
   });
@@ -279,18 +279,17 @@ function updateQuickVisibility() {
 async function quickLog(btn) {
   const food = foods.find(f => f.id === btn.dataset.food);
   if (!food) return;
-  btn.disabled = true;
-  try {
-    await must(sb.from('log_entries').insert({ date: currentDate, ...servingOf(food), eaten_at: eatenNow(currentDate) }));
-    noteRecent(food.id);
-    await loadEntriesForDate(currentDate);
-    showToast(`Logged ${food.name}`);
-  } catch (err) {
-    console.error(err);
-    showToast('Could not log — try again');
-  } finally {
-    btn.disabled = false;
-  }
+  await withBusy(btn, null, async () => {
+    try {
+      await must(sb.from('log_entries').insert({ date: currentDate, ...servingOf(food), eaten_at: eatenNow(currentDate) }));
+      noteRecent(food.id);
+      await loadEntriesForDate(currentDate);
+      showToast(`Logged ${food.name}`);
+    } catch (err) {
+      console.error(err);
+      showToast('Could not log. Try again.');
+    }
+  });
 }
 
 function openQuickEdit(focusEmpty = false) {
@@ -332,21 +331,19 @@ $('saveQuick').addEventListener('click', async () => {
     const label = ($('quickLabel_' + i).value.trim() || food.name).slice(0, QUICK_LABEL_MAX).trim();
     rows.push({ user_id: user.id, slot: i, food_id: food.id, label });
   }
-  const btn = $('saveQuick');
-  btn.disabled = true; btn.textContent = 'Saving…';
-  try {
-    if (rows.length) await must(sb.from('quick_adds').upsert(rows));
-    if (emptySlots.length) await must(sb.from('quick_adds').delete().in('slot', emptySlots));
-    quickAdds = rows.map(({ slot, food_id, label }) => ({ slot, food_id, label }));
-    renderQuickAdds();
-    closeSheet('quickOverlay');
-    showToast('Buttons saved');
-  } catch (err) {
-    console.error(err);
-    showToast(err.code === 'PGRST205' ? 'Quick-add table missing — run schema.sql' : 'Could not save — try again');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Save buttons';
-  }
+  await withBusy($('saveQuick'), 'Saving…', async () => {
+    try {
+      if (rows.length) await must(sb.from('quick_adds').upsert(rows));
+      if (emptySlots.length) await must(sb.from('quick_adds').delete().in('slot', emptySlots));
+      quickAdds = rows.map(({ slot, food_id, label }) => ({ slot, food_id, label }));
+      renderQuickAdds();
+      closeSheet('quickOverlay');
+      showToast('Buttons saved');
+    } catch (err) {
+      console.error(err);
+      showToast(err.code === 'PGRST205' ? 'Quick-add table missing. Run schema.sql.' : 'Could not save. Try again.');
+    }
+  });
 });
 
 // ---------- Eaten-at time ----------
@@ -496,55 +493,49 @@ function scaledMacros() {
 }
 
 $('confirmLog').addEventListener('click', async () => {
-  const btn = $('confirmLog');
   const isEdit = editingId !== null;
-  btn.textContent = isEdit ? 'Saving…' : 'Logging…';
-  btn.disabled = true;
-  try {
-    if (isEdit) {
-      await must(sb.from('log_entries').update(scaledMacros()).eq('id', editingId));
-    } else {
-      await must(sb.from('log_entries').insert({
-        date: currentDate,
-        food_id: activeFood.id,
-        food_name: activeFood.name,
-        ...scaledMacros(),
-      }));
-      recentFoodIds = [activeFood.id, ...recentFoodIds.filter(id => id !== activeFood.id)];
+  await withBusy($('confirmLog'), isEdit ? 'Saving…' : 'Logging…', async () => {
+    try {
+      if (isEdit) {
+        await must(sb.from('log_entries').update(scaledMacros()).eq('id', editingId));
+      } else {
+        await must(sb.from('log_entries').insert({
+          date: currentDate,
+          food_id: activeFood.id,
+          food_name: activeFood.name,
+          ...scaledMacros(),
+        }));
+        recentFoodIds = [activeFood.id, ...recentFoodIds.filter(id => id !== activeFood.id)];
+      }
+      closeSheet('logSheetOverlay');
+      $('searchInput').value = '';
+      renderFoodList();
+      await loadEntriesForDate(currentDate);
+      showToast(isEdit ? 'Changes saved' : `Logged ${activeFood.name}`);
+      editingId = null;
+    } catch (err) {
+      console.error(err);
+      showToast(isEdit ? 'Could not save. Try again.' : 'Could not log. Try again.');
     }
-    closeSheet('logSheetOverlay');
-    $('searchInput').value = '';
-    renderFoodList();
-    await loadEntriesForDate(currentDate);
-    showToast(isEdit ? 'Changes saved' : `Logged ${activeFood.name}`);
-    editingId = null;
-  } catch (err) {
-    console.error(err);
-    showToast(isEdit ? 'Could not save — try again' : 'Could not log — try again');
-  } finally {
-    btn.textContent = isEdit ? 'Save changes' : 'Log it';
-    btn.disabled = false;
-  }
+  });
 });
 
 // Remove lives in the edit sheet (not on the row), and the toast offers Undo.
 $('removeEntry').addEventListener('click', async () => {
   const entry = entries.find(e => e.id === editingId);
   if (!entry) return;
-  const btn = $('removeEntry');
-  btn.disabled = true;
-  try {
-    await must(sb.from('log_entries').delete().eq('id', entry.id));
-    closeSheet('logSheetOverlay');
-    editingId = null;
-    await loadEntriesForDate(currentDate);
-    showToast(`Removed ${entry.food_name}`, { label: 'Undo', run: () => restoreEntry(entry) });
-  } catch (err) {
-    console.error(err);
-    showToast('Could not remove. Try again.');
-  } finally {
-    btn.disabled = false;
-  }
+  await withBusy($('removeEntry'), null, async () => {
+    try {
+      await must(sb.from('log_entries').delete().eq('id', entry.id));
+      closeSheet('logSheetOverlay');
+      editingId = null;
+      await loadEntriesForDate(currentDate);
+      showToast(`Removed ${entry.food_name}`, { label: 'Undo', run: () => restoreEntry(entry) });
+    } catch (err) {
+      console.error(err);
+      showToast('Could not remove. Try again.');
+    }
+  });
 });
 
 // Put a removed entry back exactly as it was (same id, time and values).
@@ -679,33 +670,28 @@ async function saveFood(logIt) {
   }
 
   const editing = !!editingFoodId;
-  const btn = $(logIt ? 'saveNewFood' : 'saveFoodOnly');
-  const label = btn.textContent;
-  btn.textContent = 'Saving…';
-  btn.disabled = true;
-  try {
-    if (editing) {
-      await must(sb.from('foods').update(values).eq('id', editingFoodId).select('id'));
-    } else {
-      // New foods are always private to the signed-in user.
-      const [food] = await must(sb.from('foods').insert({ owner_id: user.id, ...values }).select('id'));
-      if (newFoodFavourite) await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
-      if (logIt) {
-        await must(sb.from('log_entries').insert({ date: currentDate, ...servingOf({ id: food.id, ...values }), eaten_at: eatenNow(currentDate) }));
+  await withBusy($(logIt ? 'saveNewFood' : 'saveFoodOnly'), 'Saving…', async () => {
+    try {
+      if (editing) {
+        await must(sb.from('foods').update(values).eq('id', editingFoodId).select('id'));
+      } else {
+        // New foods are always private to the signed-in user.
+        const [food] = await must(sb.from('foods').insert({ owner_id: user.id, ...values }).select('id'));
+        if (newFoodFavourite) await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
+        if (logIt) {
+          await must(sb.from('log_entries').insert({ date: currentDate, ...servingOf({ id: food.id, ...values }), eaten_at: eatenNow(currentDate) }));
+        }
       }
+      closeSheet('addFoodOverlay');
+      await loadFoods();
+      if (logIt && !editing) await loadEntriesForDate(currentDate);
+      showToast(editing ? 'Food updated' : logIt ? `Saved and logged ${name}` : 'Food saved');
+    } catch (err) {
+      console.error(err);
+      showToast(err.code === '23505' ? 'You already have a food with that name'
+        : err.code === '23514' ? 'Values can’t be negative' : 'Could not save. Try again.');
     }
-    closeSheet('addFoodOverlay');
-    await loadFoods();
-    if (logIt && !editing) await loadEntriesForDate(currentDate);
-    showToast(editing ? 'Food updated' : logIt ? `Saved and logged ${name}` : 'Food saved');
-  } catch (err) {
-    console.error(err);
-    showToast(err.code === '23505' ? 'You already have a food with that name'
-      : err.code === '23514' ? 'Values can’t be negative' : 'Could not save. Try again.');
-  } finally {
-    btn.textContent = label;
-    btn.disabled = false;
-  }
+  });
 }
 // In edit mode the primary button just saves.
 $('saveNewFood').addEventListener('click', () => saveFood(!editingFoodId));
@@ -740,28 +726,24 @@ $('saveOneOff').addEventListener('click', async () => {
     return;
   }
 
-  const btn = $('saveOneOff');
-  btn.textContent = 'Logging…';
-  btn.disabled = true;
-  try {
-    await must(sb.from('log_entries').insert({
-      date: currentDate,
-      food_id: null,
-      food_name: name,
-      quantity: 1,
-      calories, protein, carbs, fat,
-      eaten_at: eatenNow(currentDate),
-    }));
-    closeSheet('oneOffOverlay');
-    await loadEntriesForDate(currentDate);
-    showToast(`Logged ${name}`);
-  } catch (err) {
-    console.error(err);
-    showToast('Could not log — try again');
-  } finally {
-    btn.textContent = 'Log it';
-    btn.disabled = false;
-  }
+  await withBusy($('saveOneOff'), 'Logging…', async () => {
+    try {
+      await must(sb.from('log_entries').insert({
+        date: currentDate,
+        food_id: null,
+        food_name: name,
+        quantity: 1,
+        calories, protein, carbs, fat,
+        eaten_at: eatenNow(currentDate),
+      }));
+      closeSheet('oneOffOverlay');
+      await loadEntriesForDate(currentDate);
+      showToast(`Logged ${name}`);
+    } catch (err) {
+      console.error(err);
+      showToast('Could not log. Try again.');
+    }
+  });
 });
 
 

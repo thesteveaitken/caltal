@@ -138,7 +138,7 @@ function enterGuest() {
 
 async function startGoogleSignIn() {
   if (SUPABASE_URL.includes('YOUR-PROJECT')) {
-    showToast('Supabase isn’t configured yet — set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in js/core.js.');
+    showToast('Supabase isn’t configured yet. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in js/core.js.');
     return;
   }
   const { error } = await supa.auth.signInWithOAuth({
@@ -146,7 +146,7 @@ async function startGoogleSignIn() {
     // Return to wherever the app is served (GitHub Pages or localhost).
     options: { redirectTo: location.origin + location.pathname },
   });
-  if (error) showToast('Sign-in failed — please try again');
+  if (error) showToast('Sign-in failed. Try again.');
 }
 $('guestSignIn').addEventListener('click', startGoogleSignIn);
 
