@@ -128,17 +128,33 @@ function renderTrends() {
   const today = todayStr();
   const cards = TREND_CARDS.filter(c => (c.kind !== 'dots' || goals.creatine_g) && (c.kind !== 'weight' || latestWeight || goals.weight_kg));
   const box = $('trendCards');
-  box.innerHTML = cards.map(cfg => {
-    const goal = cfg.goalKey ? goals[cfg.goalKey] : null;
-    let title = cfg.title, legend = '';
-    if (cfg.stack) legend = cfg.stack.map(([k, , lab]) => `<span class="sw" style="background:var(--${k})"></span>${lab}`).join('');
-    else if (cfg.kind === 'weight') legend = ['line: 7-day avg', goals.weight_kg ? `goal ${fmtWeight(goals.weight_kg)}` : ''].filter(Boolean).join(' · ');
-    else if (cfg.kind === 'weekly') { title = trendDays === 7 ? 'Alcohol' : 'Alcohol, by week'; legend = 'standard drinks'; }
-    else if (cfg.kind !== 'dots') {
-      const g = !goal ? '' : cfg.dir === 'ceil' ? `limit ${fmtNum(goal)}` : `goal ${fmtV(cfg, goal)}`;
-      legend = [g, cfg.avg ? 'line: 7-day avg' : ''].filter(Boolean).join(' · ');
-    }
-    return `
+  box.innerHTML = cards.map(trendCardShell).join('');
+
+  box.querySelectorAll('.trend-card').forEach(card => {
+    const cfg = TREND_CARDS.find(c => c.id === card.dataset.card);
+    TREND_RENDERERS[trendCardKind(cfg)]({
+      card, cfg, days, today,
+      goal: cfg.goalKey ? (goals[cfg.goalKey] || null) : null,
+      chart: card.querySelector('.trend-chart'),
+      ro: card.querySelector('.trend-readout'),
+      stats: card.querySelector('.trend-stats'),
+      foot: card.querySelector('.trend-foot'),
+    });
+  });
+}
+
+// One card's markup: title and legend, then empty rows its renderer fills.
+function trendCardShell(cfg) {
+  const goal = cfg.goalKey ? goals[cfg.goalKey] : null;
+  let title = cfg.title, legend = '';
+  if (cfg.stack) legend = cfg.stack.map(([k, , lab]) => `<span class="sw" style="background:var(--${k})"></span>${lab}`).join('');
+  else if (cfg.kind === 'weight') legend = ['line: 7-day avg', goals.weight_kg ? `goal ${fmtWeight(goals.weight_kg)}` : ''].filter(Boolean).join(' · ');
+  else if (cfg.kind === 'weekly') { title = trendDays === 7 ? 'Alcohol' : 'Alcohol, by week'; legend = 'standard drinks'; }
+  else if (cfg.kind !== 'dots') {
+    const g = !goal ? '' : cfg.dir === 'ceil' ? `limit ${fmtNum(goal)}` : `goal ${fmtV(cfg, goal)}`;
+    legend = [g, cfg.avg ? 'line: 7-day avg' : ''].filter(Boolean).join(' · ');
+  }
+  return `
     <div class="trend-card" data-card="${cfg.id}">
       <div class="trend-head"><span class="trend-title">${title}</span><span class="trend-legend">${legend}</span></div>
       <div class="trend-stats"></div>
@@ -146,131 +162,131 @@ function renderTrends() {
       <div class="trend-chart"></div>
       <div class="trend-foot"></div>
     </div>`;
-  }).join('');
-
-  box.querySelectorAll('.trend-card').forEach(card => {
-    const cfg = TREND_CARDS.find(c => c.id === card.dataset.card);
-    const goal = cfg.goalKey ? (goals[cfg.goalKey] || null) : null;
-    const chart = card.querySelector('.trend-chart');
-    const ro = card.querySelector('.trend-readout');
-    const stats = card.querySelector('.trend-stats');
-    const foot = card.querySelector('.trend-foot');
-    const tile = (n, l) => `<div><div class="stat-n">${n}</div><div class="stat-l">${l}</div></div>`;
-    const openLink = d => `<a data-open="${d}">Open day ›</a>`;
-    const dayLabel = d => dayStart(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-
-    if (cfg.kind === 'weekly' && trendDays === 7) {
-      const items = days.map(d => { const r = trendRows.get(d); return { id: d, val: r ? (r.alcohol || 0) : null, live: d === today }; });
-      drawTrendChart(chart, { ...cfg, kind: 'alcDay' }, items, null);
-      const si = days.indexOf(trendSel);
-      ro.innerHTML = si >= 0 ? `<b>${dayLabel(trendSel)}</b> · ${items[si].val === null ? 'no entries' : fmtV(cfg, items[si].val)}${openLink(trendSel)}` : '';
-      const total = items.reduce((a, i) => a + (i.val || 0), 0);
-      stats.innerHTML = tile(String(+total.toFixed(1)), 'drinks, these 7 days') +
-        tile(`${items.filter(i => i.val > 0).length} of 7`, 'days with a drink');
-      foot.textContent = 'By week on the 4 weeks view.';
-      return;
-    }
-
-    if (cfg.kind === 'weekly') {
-      const weeks = trendWeeks();
-      const items = weeks.map(w => {
-        let sum = 0, logged = false;
-        for (let k = 0; k < 7; k++) {
-          const r = trendRows.get(addDays(w, k));
-          if (r && r.calories > 0) logged = true;
-          if (r) sum += r.alcohol || 0;
-        }
-        return { id: w, val: logged || sum > 0 ? sum : null, live: addDays(w, 6) >= today, lab: fmtMD(w) };
-      });
-      drawTrendChart(chart, cfg, items, null);
-      const sel = items.find(i => i.id === trendSelWk);
-      ro.innerHTML = sel ? `<b>Week of ${dayLabel(sel.id)}</b> · ${sel.val === null ? 'no entries' : fmtV(cfg, sel.val)}` : '';
-      const done = items.filter(i => i.val !== null && !i.live).map(i => i.val);
-      const last = items[items.length - 1];
-      stats.innerHTML = tile(done.length ? String(+mean(done).toFixed(1)) : '—', 'avg a week') +
-        tile(last.val === null ? '—' : String(+last.val.toFixed(1)), last.live ? 'this week so far' : 'latest week');
-      return;
-    }
-
-    if (cfg.kind === 'weight') {
-      // Dots are weigh-ins. The line is the 7-day average (weightAvgOn: gaps filled by straight lines,
-      // stops at the latest weigh-in).
-      const u = unitsNow();
-      const known = [...trendWeightEdges, ...trendWeights].sort((a, b) => a[0] < b[0] ? -1 : 1);
-      const items = days.map(d => {
-        const kg = trendWeights.get(d);
-        const avg = weightAvgOn(known, d);
-        return { id: d, val: kg == null ? null : kgTo(kg, u), avg: avg == null ? null : kgTo(avg, u), live: d === today };
-      });
-      const goalV = goals.weight_kg ? kgTo(goals.weight_kg, u) : null;
-      drawWeightChart(chart, cfg, items, goalV, wUnit(u));
-      const si = days.indexOf(trendSel);
-      const editLink = d => `<a data-weight="${d}">${trendWeights.has(d) ? 'Edit' : 'Add weight'} ›</a>`;
-      ro.innerHTML = si >= 0 ? `<b>${dayLabel(trendSel)}</b> · ${items[si].val == null ? 'no weigh-in' : `${items[si].val.toFixed(1)} ${wUnit(u)}`}${items[si].avg != null ? ` · avg ${items[si].avg.toFixed(1)}` : ''}${editLink(trendSel)}` : '';
-      const withAvg = items.filter(i => i.avg != null);
-      const latest = latestWeight ? kgTo(latestWeight.weight_kg, u) : null;
-      const sign = v => (v > 0.05 ? '+' : v < -0.05 ? '−' : '±') + Math.abs(v).toFixed(1);
-      const tiles = [];
-      if (latest != null) tiles.push(tile(latest.toFixed(1), `latest, ${wUnit(u)}`));
-      if (withAvg.length >= 2) tiles.push(tile(sign(withAvg[withAvg.length - 1].avg - withAvg[0].avg), 'change in avg'));
-      if (latest != null && goalV) tiles.push(tile(Math.abs(latest - goalV) < 0.05 ? 'At goal' : Math.abs(latest - goalV).toFixed(1), Math.abs(latest - goalV) < 0.05 ? 'nice work' : `${wUnit(u)} to goal`));
-      stats.innerHTML = tiles.join('');
-      foot.textContent = items.some(i => i.val != null) ? '' : 'No weigh-ins in this window.';
-      return;
-    }
-
-    const vals = days.map(d => dayVal(cfg, d));
-
-    if (cfg.kind === 'dots') {
-      // Compact habit strip: no readout/stat rows, the summary lives in the header.
-      const eff = vals.map((v, i) => (trendCreatineStart && days[i] >= trendCreatineStart) ? v : null);
-      drawDotStrip(chart, cfg, days, eff, goal, today);
-      const head = card.querySelector('.trend-legend');
-      const si = days.indexOf(trendSel);
-      const done = eff.filter((v, i) => v !== null && days[i] !== today);
-      if (si >= 0) head.innerHTML = `${dayLabel(trendSel)} · ${eff[si] === null ? 'not tracked' : (eff[si] > 0 ? fmtV(cfg, eff[si]) : 'none')} ${openLink(trendSel)}`;
-      else head.innerHTML = !trendCreatineStart ? 'No creatine logged yet' : [
-        done.length ? `<b>${done.filter(v => v >= goal).length} of ${done.length}</b> days at goal` : '',
-        creatineStreak >= 2 ? `<b>${creatineStreak}</b> days in a row` : '',
-      ].filter(Boolean).join(' · ');
-      ro.innerHTML = ''; stats.innerHTML = '';
-      return;
-    }
-
-    if (cfg.stack) {
-      const parts = days.map(d => { const r = trendRows.get(d); return vals[days.indexOf(d)] === null ? null : cfg.stack.map(([k]) => r[k]); });
-      const items = days.map((d, i) => ({ id: d, val: vals[i], parts: parts[i], live: d === today }));
-      drawTrendChart(chart, cfg, items, null);
-      const si = days.indexOf(trendSel);
-      ro.innerHTML = si >= 0 ? `<b>${dayLabel(trendSel)}</b> · ${parts[si] ? cfg.stack.map(([, , lab], j) => `${lab} ${fmtNum(parts[si][j])} g`).join(' · ') : 'no entries'}${openLink(trendSel)}` : '';
-      const done = days.map((d, i) => (parts[i] && d !== today) ? parts[i] : null).filter(Boolean);
-      stats.innerHTML = cfg.stack.map(([, , lab], j) => tile(done.length ? fmtNum(mean(done.map(p => p[j]))) + ' g' : '—', `${lab.toLowerCase()}, avg a day`)).join('');
-      return;
-    }
-
-    // Goal bar charts (calories, protein, fluids)
-    const div = cfg.div || 1;
-    const avgs = days.map(d => {
-      const w = [];
-      for (let k = 0; k < 7; k++) {
-        const dd = addDays(d, -k);
-        if (dd === today) continue;
-        const v = dayVal(cfg, dd);
-        if (v !== null) w.push(v);
-      }
-      return mean(w);
-    });
-    const items = days.map((d, i) => ({ id: d, val: vals[i] === null ? null : vals[i] / div, live: d === today, avg: avgs[i] === null ? null : avgs[i] / div }));
-    drawTrendChart(chart, cfg, items, goal ? goal / div : null);
-    const si = days.indexOf(trendSel);
-    ro.innerHTML = si >= 0 ? `<b>${dayLabel(trendSel)}</b> · ${vals[si] === null ? 'no entries' : fmtV(cfg, vals[si])}${openLink(trendSel)}` : '';
-    const done = vals.filter((v, i) => v !== null && days[i] !== today);
-    const avg = mean(done);
-    const ok = done.filter(v => cfg.dir === 'ceil' ? v <= goal : v >= goal).length;
-    stats.innerHTML = tile(avg === null ? '—' : fmtV(cfg, avg), 'avg a day') +
-      (goal ? tile(done.length ? ok + ' of ' + done.length : '—', cfg.tile) : '');
-  });
 }
+
+// Which renderer draws a card. Alcohol is by day on the 7-day view and by week on the 4-week view.
+function trendCardKind(cfg) {
+  if (cfg.kind === 'weekly') return trendDays === 7 ? 'alcDay' : 'alcWeek';
+  return cfg.kind || (cfg.stack ? 'stack' : 'goal');
+}
+
+// Shared pieces of a card: a stat tile, the readout's "Open day" link, and a long day label.
+const statTile = (n, l) => `<div><div class="stat-n">${n}</div><div class="stat-l">${l}</div></div>`;
+const openDayLink = d => `<a data-open="${d}">Open day ›</a>`;
+const longDayLabel = d => dayStart(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+// Each renderer gets the card's parts: { card, cfg, goal, days, today, chart, ro (readout), stats, foot }.
+function renderAlcoholByDay({ cfg, days, today, chart, ro, stats, foot }) {
+  const items = days.map(d => { const r = trendRows.get(d); return { id: d, val: r ? (r.alcohol || 0) : null, live: d === today }; });
+  drawTrendChart(chart, { ...cfg, kind: 'alcDay' }, items, null);
+  const si = days.indexOf(trendSel);
+  ro.innerHTML = si >= 0 ? `<b>${longDayLabel(trendSel)}</b> · ${items[si].val === null ? 'no entries' : fmtV(cfg, items[si].val)}${openDayLink(trendSel)}` : '';
+  const total = items.reduce((a, i) => a + (i.val || 0), 0);
+  stats.innerHTML = statTile(String(+total.toFixed(1)), 'drinks, these 7 days') +
+    statTile(`${items.filter(i => i.val > 0).length} of 7`, 'days with a drink');
+  foot.textContent = 'By week on the 4 weeks view.';
+}
+
+function renderAlcoholByWeek({ cfg, today, chart, ro, stats }) {
+  const items = trendWeeks().map(w => {
+    let sum = 0, logged = false;
+    for (let k = 0; k < 7; k++) {
+      const r = trendRows.get(addDays(w, k));
+      if (r && r.calories > 0) logged = true;
+      if (r) sum += r.alcohol || 0;
+    }
+    return { id: w, val: logged || sum > 0 ? sum : null, live: addDays(w, 6) >= today, lab: fmtMD(w) };
+  });
+  drawTrendChart(chart, cfg, items, null);
+  const sel = items.find(i => i.id === trendSelWk);
+  ro.innerHTML = sel ? `<b>Week of ${longDayLabel(sel.id)}</b> · ${sel.val === null ? 'no entries' : fmtV(cfg, sel.val)}` : '';
+  const done = items.filter(i => i.val !== null && !i.live).map(i => i.val);
+  const last = items[items.length - 1];
+  stats.innerHTML = statTile(done.length ? String(+mean(done).toFixed(1)) : '—', 'avg a week') +
+    statTile(last.val === null ? '—' : String(+last.val.toFixed(1)), last.live ? 'this week so far' : 'latest week');
+}
+
+// Dots are weigh-ins. The line is the 7-day average (weightAvgOn: gaps filled by straight lines,
+// stops at the latest weigh-in).
+function renderWeightCard({ cfg, days, today, chart, ro, stats, foot }) {
+  const u = unitsNow();
+  const known = [...trendWeightEdges, ...trendWeights].sort((a, b) => a[0] < b[0] ? -1 : 1);
+  const items = days.map(d => {
+    const kg = trendWeights.get(d);
+    const avg = weightAvgOn(known, d);
+    return { id: d, val: kg == null ? null : kgTo(kg, u), avg: avg == null ? null : kgTo(avg, u), live: d === today };
+  });
+  const goalV = goals.weight_kg ? kgTo(goals.weight_kg, u) : null;
+  drawWeightChart(chart, cfg, items, goalV, wUnit(u));
+  const si = days.indexOf(trendSel);
+  const editLink = d => `<a data-weight="${d}">${trendWeights.has(d) ? 'Edit' : 'Add weight'} ›</a>`;
+  ro.innerHTML = si >= 0 ? `<b>${longDayLabel(trendSel)}</b> · ${items[si].val == null ? 'no weigh-in' : `${items[si].val.toFixed(1)} ${wUnit(u)}`}${items[si].avg != null ? ` · avg ${items[si].avg.toFixed(1)}` : ''}${editLink(trendSel)}` : '';
+  const withAvg = items.filter(i => i.avg != null);
+  const latest = latestWeight ? kgTo(latestWeight.weight_kg, u) : null;
+  const sign = v => (v > 0.05 ? '+' : v < -0.05 ? '−' : '±') + Math.abs(v).toFixed(1);
+  const tiles = [];
+  if (latest != null) tiles.push(statTile(latest.toFixed(1), `latest, ${wUnit(u)}`));
+  if (withAvg.length >= 2) tiles.push(statTile(sign(withAvg[withAvg.length - 1].avg - withAvg[0].avg), 'change in avg'));
+  if (latest != null && goalV) tiles.push(statTile(Math.abs(latest - goalV) < 0.05 ? 'At goal' : Math.abs(latest - goalV).toFixed(1), Math.abs(latest - goalV) < 0.05 ? 'nice work' : `${wUnit(u)} to goal`));
+  stats.innerHTML = tiles.join('');
+  foot.textContent = items.some(i => i.val != null) ? '' : 'No weigh-ins in this window.';
+}
+
+// Compact habit strip: no readout/stat rows, the summary lives in the header.
+function renderCreatineCard({ card, cfg, goal, days, today, chart, ro, stats }) {
+  const eff = days.map(d => (trendCreatineStart && d >= trendCreatineStart) ? dayVal(cfg, d) : null);
+  drawDotStrip(chart, cfg, days, eff, goal, today);
+  const head = card.querySelector('.trend-legend');
+  const si = days.indexOf(trendSel);
+  const done = eff.filter((v, i) => v !== null && days[i] !== today);
+  if (si >= 0) head.innerHTML = `${longDayLabel(trendSel)} · ${eff[si] === null ? 'not tracked' : (eff[si] > 0 ? fmtV(cfg, eff[si]) : 'none')} ${openDayLink(trendSel)}`;
+  else head.innerHTML = !trendCreatineStart ? 'No creatine logged yet' : [
+    done.length ? `<b>${done.filter(v => v >= goal).length} of ${done.length}</b> days at goal` : '',
+    creatineStreak >= 2 ? `<b>${creatineStreak}</b> days in a row` : '',
+  ].filter(Boolean).join(' · ');
+  ro.innerHTML = ''; stats.innerHTML = '';
+}
+
+// Carbs and fat: stacked bars, no goal.
+function renderStackCard({ cfg, days, today, chart, ro, stats }) {
+  const parts = days.map(d => (dayVal(cfg, d) === null ? null : cfg.stack.map(([k]) => trendRows.get(d)[k])));
+  const items = days.map((d, i) => ({ id: d, val: dayVal(cfg, d), parts: parts[i], live: d === today }));
+  drawTrendChart(chart, cfg, items, null);
+  const si = days.indexOf(trendSel);
+  ro.innerHTML = si >= 0 ? `<b>${longDayLabel(trendSel)}</b> · ${parts[si] ? cfg.stack.map(([, , lab], j) => `${lab} ${fmtNum(parts[si][j])} g`).join(' · ') : 'no entries'}${openDayLink(trendSel)}` : '';
+  const done = days.map((d, i) => (parts[i] && d !== today) ? parts[i] : null).filter(Boolean);
+  stats.innerHTML = cfg.stack.map(([, , lab], j) => statTile(done.length ? fmtNum(mean(done.map(p => p[j]))) + ' g' : '—', `${lab.toLowerCase()}, avg a day`)).join('');
+}
+
+// Goal bar charts (calories, protein, fluids), with the 7-day average line.
+function renderGoalCard({ cfg, goal, days, today, chart, ro, stats }) {
+  const vals = days.map(d => dayVal(cfg, d));
+  const div = cfg.div || 1;
+  const avgs = days.map(d => {
+    const w = [];
+    for (let k = 0; k < 7; k++) {
+      const dd = addDays(d, -k);
+      if (dd === today) continue;
+      const v = dayVal(cfg, dd);
+      if (v !== null) w.push(v);
+    }
+    return mean(w);
+  });
+  const items = days.map((d, i) => ({ id: d, val: vals[i] === null ? null : vals[i] / div, live: d === today, avg: avgs[i] === null ? null : avgs[i] / div }));
+  drawTrendChart(chart, cfg, items, goal ? goal / div : null);
+  const si = days.indexOf(trendSel);
+  ro.innerHTML = si >= 0 ? `<b>${longDayLabel(trendSel)}</b> · ${vals[si] === null ? 'no entries' : fmtV(cfg, vals[si])}${openDayLink(trendSel)}` : '';
+  const done = vals.filter((v, i) => v !== null && days[i] !== today);
+  const avg = mean(done);
+  const ok = done.filter(v => cfg.dir === 'ceil' ? v <= goal : v >= goal).length;
+  stats.innerHTML = statTile(avg === null ? '—' : fmtV(cfg, avg), 'avg a day') +
+    (goal ? statTile(done.length ? ok + ' of ' + done.length : '—', cfg.tile) : '');
+}
+
+const TREND_RENDERERS = {
+  alcDay: renderAlcoholByDay, alcWeek: renderAlcoholByWeek, weight: renderWeightCard,
+  dots: renderCreatineCard, stack: renderStackCard, goal: renderGoalCard,
+};
 
 // "Mo".."Su", or "Today".
 function dayAbbr(date, isToday) {
