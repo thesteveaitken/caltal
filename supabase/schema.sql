@@ -2,6 +2,9 @@
 -- CalTal — Supabase schema
 -- Run once in the Supabase dashboard: SQL Editor → New query → paste → Run.
 -- Safe to re-run: everything is "if not exists" / "or replace".
+-- Each "create table" shows the table's full, current shape. Columns added after a table
+-- first shipped also have an "alter table ... add column if not exists" line right under it,
+-- so databases created before them catch up when this file is re-run.
 -- =========================================================
 
 -- ---------- Admins ----------
@@ -37,15 +40,14 @@ create table if not exists public.foods (
   protein    numeric not null default 0 check (protein  >= 0),
   carbs      numeric not null default 0 check (carbs    >= 0),
   fat        numeric not null default 0 check (fat      >= 0),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  alcohol    numeric not null default 0 check (alcohol    >= 0),  -- standard drinks per serving
+  fluid_ml   numeric not null default 0 check (fluid_ml   >= 0),  -- ml of fluid (water, coffee...; alcohol stays 0)
+  creatine_g numeric not null default 0 check (creatine_g >= 0)   -- grams of creatine, for the daily creatine check
 );
-
--- Extra per-serving amounts (added after launch, so added with alter).
---   alcohol  = standard drinks per serving
---   fluid_ml = millilitres of fluid per serving (water, coffee, juice...; alcohol stays 0)
-alter table public.foods add column if not exists alcohol  numeric not null default 0 check (alcohol  >= 0);
-alter table public.foods add column if not exists fluid_ml numeric not null default 0 check (fluid_ml >= 0);
--- creatine_g = grams of creatine per serving (for the daily creatine check)
+-- Added after launch:
+alter table public.foods add column if not exists alcohol    numeric not null default 0 check (alcohol    >= 0);
+alter table public.foods add column if not exists fluid_ml   numeric not null default 0 check (fluid_ml   >= 0);
 alter table public.foods add column if not exists creatine_g numeric not null default 0 check (creatine_g >= 0);
 
 -- One name per owner (case-insensitive); standard foods share the "nil" owner.
@@ -100,9 +102,11 @@ create policy "favourites: own rows" on public.favourites
   with check (user_id = auth.uid());
 
 -- ---------- Log entries ----------
--- Macros are stored as TOTALS (per-serving × quantity), same as the old sheet.
+-- Amounts are stored as TOTALS (per-serving × quantity), same as the old sheet.
 -- food_name is a snapshot so entries survive food edits/deletes, and covers
 -- one-off entries (food_id null).
+-- eaten_at is when the food was actually eaten (created_at is only insert time).
+-- It is null for imported history; time-of-day charts skip null rows.
 create table if not exists public.log_entries (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -114,18 +118,22 @@ create table if not exists public.log_entries (
   protein    numeric not null default 0,
   carbs      numeric not null default 0,
   fat        numeric not null default 0,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  alcohol    numeric not null default 0,
+  fluid_ml   numeric not null default 0,
+  eaten_at   timestamptz,
+  creatine_g numeric not null default 0,
+  constraint log_entries_amounts_nonneg
+    check (calories >= 0 and protein >= 0 and carbs >= 0 and fat >= 0
+           and alcohol >= 0 and fluid_ml >= 0 and creatine_g >= 0)
 );
--- Totals for the extra amounts (per-serving x quantity), like the macros.
--- eaten_at is when the food was actually eaten (created_at is only insert time).
--- It is null for imported history; time-of-day charts skip null rows.
-alter table public.log_entries add column if not exists alcohol  numeric not null default 0;
-alter table public.log_entries add column if not exists fluid_ml numeric not null default 0;
-alter table public.log_entries add column if not exists eaten_at timestamptz;
+-- Added after launch:
+alter table public.log_entries add column if not exists alcohol    numeric not null default 0;
+alter table public.log_entries add column if not exists fluid_ml   numeric not null default 0;
+alter table public.log_entries add column if not exists eaten_at   timestamptz;
 alter table public.log_entries add column if not exists creatine_g numeric not null default 0;
-create index if not exists log_entries_user_date_idx on public.log_entries (user_id, date);
--- No negative amounts on entries (foods already have these checks). NOT VALID: applies to new and
--- edited rows without re-checking history. Re-runnable: skipped if the constraint already exists.
+-- The no-negatives check, for tables made before it. NOT VALID there: it applies to new and
+-- edited rows without re-checking history. Skipped if the constraint already exists.
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'log_entries_amounts_nonneg') then
@@ -134,6 +142,7 @@ begin
              and alcohol >= 0 and fluid_ml >= 0 and creatine_g >= 0) not valid;
   end if;
 end $$;
+create index if not exists log_entries_user_date_idx on public.log_entries (user_id, date);
 
 alter table public.log_entries enable row level security;
 
@@ -144,17 +153,21 @@ create policy "log_entries: own rows" on public.log_entries
   with check (user_id = auth.uid());
 
 -- ---------- Goals (per user, one row) ----------
+-- A null goal means off. calories is a ceiling; the others are floors. weight_kg is the optional
+-- goal weight, edited in both the Goals and Weight sheets.
 create table if not exists public.goals (
   user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
   calories   numeric check (calories > 0),
   protein    numeric check (protein  > 0),
   fluid_ml   numeric check (fluid_ml > 0),
   creatine_g numeric check (creatine_g > 0),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  weight_kg  numeric check (weight_kg between 20 and 400)
 );
--- Tables that already exist (goals was created before these two columns):
+-- Added after launch:
 alter table public.goals add column if not exists fluid_ml   numeric check (fluid_ml   > 0);
 alter table public.goals add column if not exists creatine_g numeric check (creatine_g > 0);
+alter table public.goals add column if not exists weight_kg  numeric check (weight_kg between 20 and 400);
 alter table public.goals enable row level security;
 
 drop policy if exists "goals: own row" on public.goals;
@@ -225,9 +238,6 @@ create policy "daily_metrics: own rows" on public.daily_metrics
   for all to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
-
--- Optional goal weight, kept with the other goals (null = no goal).
-alter table public.goals add column if not exists weight_kg numeric check (weight_kg between 20 and 400);
 
 -- ---------- Sync keys and log_weight (Apple Health Shortcut) ----------
 -- One personal key per user, stored only as a SHA-256 hash. RLS is on with
