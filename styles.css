@@ -61,6 +61,8 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* Hidden means hidden, whatever display a class or layout rule gives the element (show() in js/core.js). */
+[hidden] { display: none !important; }
 
 html, body {
   margin: 0;
@@ -596,7 +598,6 @@ header {
   .hdr-tabs button.active { color: var(--accent-text); background: var(--bg-card); }
   .tabbar { display: none !important; }
   #view-today { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
-  #view-today[style*="none"] { display: none; }
   #view-trends { flex: 1; min-height: 0; overflow-y: auto; }
   .trend-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
   .col-left, .add-panel { display: flex; flex-direction: column; min-height: 0; }

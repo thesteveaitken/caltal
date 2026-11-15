@@ -272,7 +272,7 @@ function renderQuickAdds() {
 // The buttons step aside while the user is searching.
 function updateQuickVisibility() {
   const searching = $('searchInput').value.trim() !== '';
-  $('quickWrap').style.display = searching ? 'none' : '';
+  show($('quickWrap'), !searching);
 }
 
 // One tap logs one serving at the current time (no time on past days).
@@ -381,8 +381,8 @@ function openLogSheet(foodId) {
   $('logSheetTitle').textContent = activeFood.name;
   $('logSheetSub').textContent = `${fmtNum(activeFood.calories)} cal a serving`;
   $('confirmLog').textContent = 'Log it';
-  $('removeEntry').style.display = 'none';
-  $('editFoodLink').style.display = activeFood.mine ? '' : 'none';
+  show($('removeEntry'), false);
+  show($('editFoodLink'), !!activeFood.mine);
   // Default to now when logging today; for past days leave it blank (stored as no time).
   setLogTime(currentDate === todayStr() ? nowHHMM() : '');
   updateQtyDisplay();
@@ -401,8 +401,8 @@ function openEditSheet(entry) {
   $('logSheetTitle').textContent = entry.food_name;
   $('logSheetSub').textContent = `${fmtNum(activeFood.calories)} cal a serving`;
   $('confirmLog').textContent = 'Save changes';
-  $('removeEntry').style.display = '';
-  $('editFoodLink').style.display = 'none';
+  show($('removeEntry'));
+  show($('editFoodLink'), false);
   setLogTime(entry.eaten_at ? hhmmFromIso(entry.eaten_at) : '');
   updateQtyDisplay();
   openSheet('logSheetOverlay');
@@ -446,7 +446,7 @@ $('closeLogSheet').addEventListener('click', () => {
 function updateFavButton() {
   const btn = $('logSheetFav');
   const food = activeFood && activeFood.id ? foods.find(f => f.id === activeFood.id) : null;
-  btn.style.display = food ? '' : 'none'; // hidden for one-offs / deleted foods
+  show(btn, !!food); // hidden for one-offs / deleted foods
   const on = !!(food && food.favourite);
   btn.classList.toggle('on', on);
   btn.setAttribute('aria-pressed', on);
@@ -559,19 +559,19 @@ function setFoodSheetMode(editing) {
   $('foodSheetSub').textContent = editing
     ? 'Changes apply to future logs. Entries you already logged keep their values.'
     : 'One serving, the way you usually log it. Only you see it.';
-  $('favToggle').style.display = editing ? 'none' : '';
-  $('saveFoodOnly').style.display = editing ? 'none' : '';
+  show($('favToggle'), !editing);
+  show($('saveFoodOnly'), !editing);
   $('saveNewFood').textContent = editing ? 'Save changes' : 'Save and log 1 serving';
 }
 
 function setMoreOpen(open) {
-  $('moreFields').style.display = open ? '' : 'none';
+  show($('moreFields'), open);
   const t = $('moreToggle');
   t.classList.toggle('open', open);
   t.setAttribute('aria-expanded', open);
 }
 $('moreToggle').addEventListener('click', () => {
-  setMoreOpen($('moreFields').style.display === 'none');
+  setMoreOpen($('moreFields').hidden);
 });
 
 $('addNewFoodLink').addEventListener('click', () => {
@@ -628,7 +628,7 @@ function readAmount(id, label, max, unit = '') {
   const raw = el.value.trim();
   const fail = (msg) => {
     // A field in the collapsed "Drinks and supplements" section can't take focus until it's shown.
-    if (el.closest('#moreFields')?.style.display === 'none') setMoreOpen(true);
+    if (el.closest('#moreFields')?.hidden) setMoreOpen(true);
     el.setAttribute('aria-invalid', 'true');
     el.focus();
     throw new InvalidField(msg);

@@ -43,7 +43,7 @@ function renderTotals() {
   $('totalCal').textContent = fmtNum(t.cal);
   $('calGoal').textContent = goal ? '/ ' + fmtNum(goal) : 'cal';
   const leftWrap = $('calLeftWrap');
-  leftWrap.style.display = goal ? '' : 'none';
+  show(leftWrap, !!goal);
   if (goal) {
     const remaining = Math.round(goal - t.cal);
     $('calLeft').textContent = Math.abs(remaining).toLocaleString();
@@ -340,11 +340,11 @@ function fillHelperFromProfile(p) {
   $('helperResult').textContent = '';
 }
 function setHelperOpen(open) {
-  $('helperBody').style.display = open ? '' : 'none';
+  show($('helperBody'), open);
   $('helperToggle').classList.toggle('open', open);
   $('helperToggle').setAttribute('aria-expanded', open);
 }
-$('helperToggle').addEventListener('click', () => setHelperOpen($('helperBody').style.display === 'none'));
+$('helperToggle').addEventListener('click', () => setHelperOpen($('helperBody').hidden));
 
 $('helperFill').addEventListener('click', async () => {
   const out = $('helperResult');

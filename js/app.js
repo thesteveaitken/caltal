@@ -3,35 +3,36 @@
 
 // ---------- Profile menu ----------
 const profileMenu = $('profileMenu');
+// Open or close the menu; the button's aria-expanded follows.
+function setMenuOpen(open) {
+  show(profileMenu, open);
+  $('profileBtn').setAttribute('aria-expanded', open);
+}
 $('profileBtn').addEventListener('click', (ev) => {
   ev.stopPropagation();
-  const opening = profileMenu.style.display === 'none';
+  const opening = profileMenu.hidden;
   if (opening) {
     $('menuGoalsVal').textContent = goals.calories ? `${fmtNum(goals.calories)} cal` : '';
     const n = effectiveQuickAdds().filter(q => foods.some(f => f.id === q.food_id)).length;
     $('menuQuickVal').textContent = `${n} of ${QUICK_SLOTS}`;
     $('menuWeightVal').textContent = latestWeight ? fmtWeight(latestWeight.weight_kg) : '';
   }
-  profileMenu.style.display = opening ? '' : 'none';
+  setMenuOpen(opening);
 });
 document.addEventListener('click', (ev) => {
-  if (!ev.target.closest('#profile')) profileMenu.style.display = 'none';
+  if (!ev.target.closest('#profile')) setMenuOpen(false);
 });
-// Keep the button's aria-expanded in step however the menu is shown or hidden.
-new MutationObserver(() => {
-  $('profileBtn').setAttribute('aria-expanded', profileMenu.style.display !== 'none');
-}).observe(profileMenu, { attributes: true, attributeFilter: ['style'] });
 document.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Escape' && profileMenu.style.display !== 'none') {
-    profileMenu.style.display = 'none';
+  if (ev.key === 'Escape' && !profileMenu.hidden) {
+    setMenuOpen(false);
     $('profileBtn').focus();
   }
 });
-$('menuGoals').addEventListener('click', () => { profileMenu.style.display = 'none'; openGoals(); });
-$('menuQuick').addEventListener('click', () => { profileMenu.style.display = 'none'; openQuickEdit(); });
-$('menuWeight').addEventListener('click', () => { profileMenu.style.display = 'none'; openWeight(currentDate); });
+$('menuGoals').addEventListener('click', () => { setMenuOpen(false); openGoals(); });
+$('menuQuick').addEventListener('click', () => { setMenuOpen(false); openQuickEdit(); });
+$('menuWeight').addEventListener('click', () => { setMenuOpen(false); openWeight(currentDate); });
 $('menuSignOut').addEventListener('click', async () => {
-  profileMenu.style.display = 'none';
+  setMenuOpen(false);
   if (guest) startGoogleSignIn(); else await supa.auth.signOut();
 });
 
@@ -72,9 +73,9 @@ document.addEventListener('keydown', (ev) => {
 
 // ---------- Tabs ----------
 function switchView(view) {
-  $('view-today').style.display = view === 'today' ? '' : 'none';
-  $('view-trends').style.display = view === 'trends' ? '' : 'none';
-  $('dateNav').style.display = view === 'today' ? 'flex' : 'none';
+  show($('view-today'), view === 'today');
+  show($('view-trends'), view === 'trends');
+  show($('dateNav'), view === 'today');
   $('tabToday').classList.toggle('active', view === 'today');
   $('tabTrends').classList.toggle('active', view === 'trends');
   $('hdrToday').classList.toggle('active', view === 'today');
@@ -93,9 +94,8 @@ function showApp(sessionUser, isGuest) {
   guest = isGuest;
   const firstLoad = !user || user.id !== sessionUser.id;
   user = sessionUser;
-  $('app').style.display = '';
-  $('tabbar').style.display = '';
-  $('guestBanner').style.display = guest ? '' : 'none';
+  show($('app'));
+  show($('guestBanner'), guest);
   $('profileName').textContent = guest ? 'Guest' : (user.user_metadata?.full_name || 'Signed in');
   $('profileEmail').textContent = guest ? 'Saved on this device only' : (user.email || '');
   $('menuSignOutText').textContent = guest ? 'Sign in with Google' : 'Sign out';
@@ -113,7 +113,7 @@ function showApp(sessionUser, isGuest) {
     resetGoalsState();
     resetWeightState();
     resetTrendsState();
-    $('profileMenu').style.display = 'none';
+    setMenuOpen(false);
     (async () => {
       if (!guest) await mergeGuestData(user); // no-op unless a guest left local data behind
       switchView('today');

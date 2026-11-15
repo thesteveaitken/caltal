@@ -46,7 +46,7 @@
     // edit an entry
     [...document.querySelectorAll('#entryList .entry[data-id]')].pop().click();
     await sleep(50);
-    out.steps.editSheet = [q('#logSheetTitle').textContent, q('#logSheetSub').textContent, q('#qtyValue').textContent, q('#prevMacros').textContent, q('#logTime').value ? 'has time' : 'no time', q('#removeEntry').style.display];
+    out.steps.editSheet = [q('#logSheetTitle').textContent, q('#logSheetSub').textContent, q('#qtyValue').textContent, q('#prevMacros').textContent, q('#logTime').value ? 'has time' : 'no time', getComputedStyle(q('#removeEntry')).display === 'none' ? 'hidden' : 'shown'];
     q('#qtyPlus').click(); q('#confirmLog').click();
     await sleep(600);
     // log again on the Test bar

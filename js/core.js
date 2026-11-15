@@ -50,7 +50,10 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-const trendsVisible = () => $('view-trends').style.display !== 'none';
+// Show or hide an element with the `hidden` attribute (styles.css makes [hidden] always win).
+function show(el, on = true) { el.hidden = !on; }
+
+const trendsVisible = () => !$('view-trends').hidden;
 
 // Thrown by form readers when a field's value is not acceptable; the message goes in a toast.
 class InvalidField extends Error {}

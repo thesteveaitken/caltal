@@ -14,9 +14,9 @@
 </head>
 <body>
 
-<div id="app" style="display:none;">
+<div id="app" hidden>
 
-  <aside class="guest-banner" id="guestBanner" aria-label="Guest mode" style="display:none;">
+  <aside class="guest-banner" id="guestBanner" aria-label="Guest mode" hidden>
     <span>Saved on this device only.</span>
     <button id="guestSignIn">Sign in to keep it</button>
   </aside>
@@ -36,7 +36,7 @@
     </div>
     <div class="profile" id="profile">
       <button class="profile-btn" id="profileBtn" aria-label="Account menu" aria-haspopup="true" aria-expanded="false"><span id="profileInitial">?</span></button>
-      <div class="profile-menu" id="profileMenu" role="menu" style="display:none;">
+      <div class="profile-menu" id="profileMenu" role="menu" hidden>
         <div class="profile-who"><b id="profileName"></b><span id="profileEmail"></span></div>
         <button class="profile-item" id="menuGoals" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg><span>Goals</span><span class="pv" id="menuGoalsVal"></span></button>
         <button class="profile-item" id="menuWeight" role="menuitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 9.5a5 5 0 0 1 7 0M12 9.5l1.5-1.5"/></svg><span>Weight</span><span class="pv" id="menuWeightVal"></span></button>
@@ -87,7 +87,7 @@
   </div>
 
   <!-- TRENDS VIEW -->
-  <div id="view-trends" style="display:none;">
+  <div id="view-trends" hidden>
     <div class="trend-top">
       <div class="seg" id="trendSeg" aria-label="Range">
         <button data-days="7" class="active" aria-pressed="true">7 days</button>
@@ -119,7 +119,7 @@
         <div class="sheet-title" id="logSheetTitle">Food name</div>
         <div class="sheet-sub" id="logSheetSub">per serving</div>
       </div>
-      <button class="icon-btn" id="editFoodLink" style="display:none" aria-label="Edit food" title="Edit food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+      <button class="icon-btn" id="editFoodLink" hidden aria-label="Edit food" title="Edit food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
       <button class="icon-btn" id="logSheetFav" aria-label="Add to favourites" aria-pressed="false"></button>
       <button class="icon-btn" id="closeLogSheet" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
@@ -150,7 +150,7 @@
     <div class="sheet-after" id="logAfter"></div>
 
     <button class="btn-primary" id="confirmLog">Log it</button>
-    <button type="button" class="btn-remove" id="removeEntry" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Remove entry</button>
+    <button type="button" class="btn-remove" id="removeEntry" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Remove entry</button>
   </div>
 </div>
 
@@ -180,7 +180,7 @@
           <span>Drinks and supplements <small>· fluid, alcohol, creatine</small></span>
           <svg class="more-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </button>
-        <div class="field-grid three" id="moreFields" style="display:none">
+        <div class="field-grid three" id="moreFields" hidden>
           <div class="field"><label class="field-label" for="newFoodFluid">Fluid ml</label><input type="number" class="field-input num" id="newFoodFluid" placeholder="0" inputmode="decimal" min="0" step="any"></div>
           <div class="field"><label class="field-label" for="newFoodAlc">Alcohol (std)</label><input type="number" class="field-input num" id="newFoodAlc" placeholder="0" inputmode="decimal" min="0" step="any"></div>
           <div class="field"><label class="field-label" for="newFoodCr">Creatine g</label><input type="number" class="field-input num" id="newFoodCr" placeholder="0" inputmode="decimal" min="0" step="any"></div>
@@ -254,7 +254,7 @@
       <span>Help me choose <small>· from your size and activity</small></span>
       <svg class="more-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
     </button>
-    <div class="helper-body" id="helperBody" style="display:none">
+    <div class="helper-body" id="helperBody" hidden>
       <div class="helper-top">
         <span class="field-label">About you</span>
         <div class="seg" id="helperUnits" aria-label="Units">
@@ -312,7 +312,7 @@
     </div>
     <div class="goal-row" id="weightGoalRow"></div><!-- filled by js/weight.js (GOAL_WEIGHT_ROWS) -->
     <button class="btn-primary" id="saveWeight">Save weight</button>
-    <button type="button" class="btn-remove" id="removeWeight" style="display:none">Remove this weigh-in</button>
+    <button type="button" class="btn-remove" id="removeWeight" hidden>Remove this weigh-in</button>
   </div>
 </div>
 

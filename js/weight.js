@@ -216,7 +216,7 @@ async function openWeight(date) {
   $('weightVal').value = '';
   $('weightVal').placeholder = latestWeight ? kgTo(latestWeight.weight_kg, weightSheetUnits).toFixed(1) : '';
   weightLoadedKg = null;
-  $('removeWeight').style.display = 'none';
+  show($('removeWeight'), false);
   openSheet('weightOverlay');
   try {
     const day = await must(sb.from('daily_metrics').select('date, weight_kg').eq('date', date).maybeSingle());
@@ -224,7 +224,7 @@ async function openWeight(date) {
     if (day && day.weight_kg != null) {
       weightLoadedKg = Number(day.weight_kg);
       $('weightVal').value = kgTo(weightLoadedKg, weightSheetUnits).toFixed(1);
-      $('removeWeight').style.display = '';
+      show($('removeWeight'));
     }
   } catch (err) {
     console.error(err);
@@ -255,7 +255,7 @@ $('saveWeight').addEventListener('click', async () => {
   const goalChanged = (goalKg ?? null) !== (goals.weight_kg ?? null)
     && !(goalKg && goals.weight_kg && Math.abs(goalKg - goals.weight_kg) < 0.05);
   const unitsChanged = u !== unitsNow();
-  const hadWeight = $('removeWeight').style.display !== 'none';
+  const hadWeight = !$('removeWeight').hidden;
   if (kg === null && !goalChanged && !unitsChanged) {
     if (!hadWeight || weightLoadedKg === null) { $('weightVal').setAttribute('aria-invalid', 'true'); $('weightVal').focus(); showToast('Enter a weight'); return; }
     closeSheet('weightOverlay');
