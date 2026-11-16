@@ -578,7 +578,16 @@ header {
   body.adding .add-cancel { display: block; }
   body.adding .quick-wrap { display: none; } /* phones: out of the way as soon as search opens */
   body.adding .add-panel .food-list { display: flex; flex: 1; min-height: 0; }
-  body.adding .add-panel .add-new-row { display: block; }
+  /* phones: New food / One-off sit right under the search box, above the keyboard, as two small buttons */
+  body.adding .add-panel .add-new-row { display: flex; gap: 8px; order: 1; margin-top: 10px; padding: 0; }
+  body.adding .add-panel .food-list { order: 2; }
+  body.adding .add-new-lead, body.adding .add-new-sep { display: none; }
+  body.adding .add-new-row a {
+    display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border: 1.5px solid var(--accent); border-radius: 18px;
+    font-size: 14.5px; text-decoration: none;
+  }
+  body.adding .add-new-row a:active { background: var(--accent-dim); }
+  body.adding #addNewFoodLink::before { content: "+"; margin-right: 5px; font-size: 17px; font-weight: 600; }
 }
 
 /* ---------- Desktop-only header controls (hidden on mobile) ---------- */

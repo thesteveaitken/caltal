@@ -37,6 +37,19 @@
     q('#moreToggle').click(); set('newFoodFluid', '100'); set('newFoodCr', '5');
     q('#saveNewFood').click();
     await until(() => nEntries() === 3, 'food saved+logged');
+    // phone search screen: New food / One-off sit between the search box and the list; One-off takes the search text
+    q('#searchInput').focus();
+    set('searchInput', 'birthday cake');
+    await sleep(50);
+    const top = sel => Math.round(q(sel).getBoundingClientRect().top);
+    out.steps.addingRow = [document.body.classList.contains('adding') ? 'adding' : 'not adding',
+      top('#searchInput') < top('#addNewFoodLink') && top('#addNewFoodLink') < top('#foodList') ? 'row under search' : 'row elsewhere',
+      getComputedStyle(q('#addNewFoodLink')).borderTopStyle];
+    q('#logOneOffLink').click();
+    out.steps.addingRow.push(q('#oneOffName').value);
+    q('#closeOneOff').click();
+    q('#addCancel').click();
+    await sleep(50);
     // one-off
     q('#logOneOffLink').click();
     set('oneOffName', 'Cake'); set('oneOffCal', '300'); set('oneOffF', '15');

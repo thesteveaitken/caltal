@@ -699,7 +699,7 @@ $('saveFoodOnly').addEventListener('click', () => saveFood(false));
 
 // ---------- Log a one-off (skips Foods entirely, logs straight to today's entries) ----------
 $('logOneOffLink').addEventListener('click', () => {
-  $('oneOffName').value = '';
+  $('oneOffName').value = $('searchInput').value.trim();
   $('oneOffCal').value = '';
   $('oneOffP').value = '';
   $('oneOffC').value = '';
