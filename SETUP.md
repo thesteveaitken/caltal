@@ -95,6 +95,12 @@ Private to one account. It asks for your weight, saves it to Apple Health and po
 
 Notes: one weight per day, so a second run that day replaces the first (source `shortcut`). Weights typed in CalTal itself don't reach Apple Health. For kg, change the prompt, the Health unit and `p_unit` to `kg`.
 
+## 7. Backups
+The free Supabase plan has no backups you can download, so the repo has its own (needs `scripts/.env` from step 4):
+- `python3 scripts/backup.py --schedule` backs up now and then every Sunday at 10:00 (or when the Mac next wakes), into `CalTal_Backups` next to the repo folder. `--unschedule` stops it; `python3 scripts/backup.py` alone backs up once.
+- `python3 scripts/restore_backup.py` is a dry run against the newest backup: it says what is missing or different. Add `--apply` to put missing rows back (and `--overwrite` to also reset changed ones). It never deletes.
+- The files hold every user's data. Keep them out of the repo, and out of shared or synced folders.
+
 ## Notes
 - **Free tier pausing:** Supabase pauses free projects after about 7 days with no activity. If the app stops loading after a quiet week, open the Supabase dashboard and click **Restore**.
 - **Adding email magic links later:** enable Email in Supabase Auth and add an email field that calls `sb.auth.signInWithOtp({ email })`. No database changes are needed.

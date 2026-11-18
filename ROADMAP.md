@@ -3,10 +3,9 @@
 ## Where we left off (2026-11-17)
 Everything below marked built is committed and live. Weight is finished: stages 1-3, the Today summary cell, goal weight in both sheets.
 **Pick up with:**
-1. **Backups.** The free Supabase plan has no downloadable backups, and the database now holds years of weight history. Idea: `scripts/backup.py` (same `scripts/.env`) dumps every table to a dated JSON file outside the repo, run now and then.
-2. Pace tick on the summary bars (2a-bis).
+1. Pace tick on the summary bars (2a-bis).
 
-**Done recently:** Section 0 housekeeping and the Google consent screen published, with privacy policy and terms pages (2026-11-17), code cleanup A to F (2026-11-15/16, next section), guest merge test, Goals helper (2a-quater), creatine streak and grid (2b), weight stage 1 (7-day average line that fills gaps by straight lines and stops at the latest weigh-in; might cap long gaps later), stage 2 (Log weight Shortcut, SETUP.md section 6), stage 3 (Health history imported from 2015), Weight on the Today summary, one-row desktop summary from 1100px.
+**Done recently:** backups (2026-11-17: `scripts/backup.py` weekly via launchd, `scripts/restore_backup.py`; see CLAUDE.md), Section 0 housekeeping and the Google consent screen published, with privacy policy and terms pages (2026-11-17), code cleanup A to F (2026-11-15/16, next section), guest merge test, Goals helper (2a-quater), creatine streak and grid (2b), weight stage 1 (7-day average line that fills gaps by straight lines and stops at the latest weigh-in; might cap long gaps later), stage 2 (Log weight Shortcut, SETUP.md section 6), stage 3 (Health history imported from 2015), Weight on the Today summary, one-row desktop summary from 1100px.
 
 **Future consideration** (discussed 2026-11-14, nothing decided):
 - **A real domain** (for example a .com or .app). Keep GitHub Pages, which supports custom domains with free HTTPS. Update the Supabase Site URL and redirect URLs, the Google authorized origins and CLAUDE.md. Catch: browsers keep guest data and home-screen installs per address, so switch before friends rely on guest mode or install it. Keep the repo **public**: it shows employers the code, and going private hides nothing that matters (the publishable key is in the page anyway; old history may already be copied) while needing a paid GitHub plan or a move to Cloudflare Pages / Netlify.
