@@ -3,7 +3,7 @@
 ## Where we left off (2026-11-15)
 Everything below marked built is committed and live. Weight is finished: stages 1-3, the Today summary cell, goal weight in both sheets.
 **Pick up with:**
-1. **Section 0 housekeeping** below: archive the old Apps Script first (live URLs in public history), then the second-account isolation test. (Checked 2026-11-14: the publishable key alone reads nothing private; every private table returns empty.)
+1. **Section 0 housekeeping** below: the second-account isolation test (Apps Script archived 2026-11-17). (Checked 2026-11-14: the publishable key alone reads nothing private; every private table returns empty.)
 2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6. Only basic email/profile scopes, so it should not need Google's review.
 3. **Backups.** The free Supabase plan has no downloadable backups, and the database now holds years of weight history. Idea: `scripts/backup.py` (same `scripts/.env`) dumps every table to a dated JSON file outside the repo, run now and then.
 4. Pace tick on the summary bars (2a-bis).
@@ -59,7 +59,7 @@ Later passes:
 
 ## 0. Housekeeping (do first)
 Found in the public-repo review. These are dashboard steps, not code.
-- [ ] **Archive the old Apps Script deployment** (Deploy > Manage deployments > Archive). Two old web app URLs are in the public git history and work like passwords for the old sheet. Then delete the local `AppsScript.gs`.
+- [x] **Archive the old Apps Script deployment** (Done 2026-11-17: both web app URLs in the public git history now return Google's "unable to open the file" page; local `AppsScript.gs` deleted.)
 - [x] **Disable Supabase Email sign-in** (Authentication > Sign In / Providers > Email). It is on by default, and the publishable key is public, so anyone could sign up by email directly. Re-enable it when adding magic links. Also check that anonymous sign-ins are off.
 - [ ] **Test data isolation with a second Google account** (must be on the consent screen's test-user list). It should see the standard foods but none of your foods or log entries. Also try querying another user's rows from the browser console: it should return nothing.
 - [x] **Check the live site** (https://thesteveaitken.github.io/caltal/): sign in, and confirm the imported history and foods appear.

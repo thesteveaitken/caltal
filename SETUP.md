@@ -11,7 +11,6 @@ index.html, styles.css, js/   the whole app (no build step)
 supabase/schema.sql           tables + security policies (run once)
 supabase/seed_foods.sql       standard food list (review, then run)
 scripts/migrate_from_sheet.py one-off import of the old Google Sheet
-AppsScript.gs                 old backend; delete once migrated
 ```
 
 ## 1. Create the Supabase project

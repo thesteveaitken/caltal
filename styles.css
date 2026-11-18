@@ -563,6 +563,7 @@ header {
 .profile-item svg { flex-shrink: 0; color: var(--text-dim); }
 .profile-item .pv { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--text-dim); }
 .profile-item:hover, .profile-item:active { background: var(--bg-elevated); }
+.profile-foot { display: block; padding: 8px 12px 4px; font-size: 13px; color: var(--text-dim); text-underline-offset: 3px; }
 
 /* ---------- Mobile add band ---------- */
 @media (max-width: 899px) {
