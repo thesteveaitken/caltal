@@ -3,18 +3,22 @@
 ## Where we left off (2026-11-17)
 Everything below marked built is committed and live. Weight is finished: stages 1-3, the Today summary cell, goal weight in both sheets.
 **Pick up with:**
-1. Pace tick on the summary bars (2a-bis).
+1. Test `scripts/restore_backup.py --apply` once: log a throwaway entry, back up, remove it in the app, dry run (expect 1 missing), then `--apply`.
+2. Nothing else queued: pick from "Maybe later" or new ideas.
 
 **Done recently:** backups (2026-11-17: `scripts/backup.py` weekly via launchd, `scripts/restore_backup.py`; see CLAUDE.md), Section 0 housekeeping and the Google consent screen published, with privacy policy and terms pages (2026-11-17), code cleanup A to F (2026-11-15/16, next section), guest merge test, Goals helper (2a-quater), creatine streak and grid (2b), weight stage 1 (7-day average line that fills gaps by straight lines and stops at the latest weigh-in; might cap long gaps later), stage 2 (Log weight Shortcut, SETUP.md section 6), stage 3 (Health history imported from 2015), Weight on the Today summary, one-row desktop summary from 1100px.
 
-**Future consideration** (discussed 2026-11-14, nothing decided):
-- **A real domain** (for example a .com or .app). Keep GitHub Pages, which supports custom domains with free HTTPS. Update the Supabase Site URL and redirect URLs, the Google authorized origins and CLAUDE.md. Catch: browsers keep guest data and home-screen installs per address, so switch before friends rely on guest mode or install it. Keep the repo **public**: it shows employers the code, and going private hides nothing that matters (the publishable key is in the page anyway; old history may already be copied) while needing a paid GitHub plan or a move to Cloudflare Pages / Netlify.
-- **Install as an app (PWA).** Add a web app manifest (name, icons, colours, opens without browser bars) so Chrome, Edge and Android offer a real install; then an "Install app" item in the profile menu: Chrome/Edge show their own prompt, iPhone gets a two-step sheet (Share, then Add to Home Screen), Mac Safari gets "File > Add to Dock", hidden once installed. Maybe a one-time, dismissible hint after a few days of use (never on a first visit). Decide the domain first, since installs are tied to the address.
+**Audience (decided 2026-11-17):** realistically Steve plus a couple of friends; employers look at it but don't use it. Weigh new work against that.
+
+**Future consideration** (discussed 2026-11-14):
+- **A real domain** (not needed for now, decided 2026-11-17: `github.io` beside the public repo is fine for employers, and a later move would only cost Steve's own home-screen icons) (for example a .com or .app). Keep GitHub Pages, which supports custom domains with free HTTPS. Update the Supabase Site URL and redirect URLs, the Google authorized origins and CLAUDE.md. Catch: browsers keep guest data and home-screen installs per address, so switch before friends rely on guest mode or install it. Keep the repo **public**: it shows employers the code, and going private hides nothing that matters (the publishable key is in the page anyway; old history may already be copied) while needing a paid GitHub plan or a move to Cloudflare Pages / Netlify.
+- **Install as an app (PWA)** (dropped 2026-11-17: Steve already has CalTal on his iPhone and Mac home screens through Add to Home Screen / Add to Dock, and both work well; friends can do the same. Revisit only if friends ask, then start with the manifest and icons alone.) Original idea: add a web app manifest (name, icons, colours, opens without browser bars) so Chrome, Edge and Android offer a real install; then an "Install app" item in the profile menu: Chrome/Edge show their own prompt, iPhone gets a two-step sheet (Share, then Add to Home Screen), Mac Safari gets "File > Add to Dock", hidden once installed. Maybe a one-time, dismissible hint after a few days of use (never on a first visit). Decide the domain first, since installs are tied to the address.
 - **Switch commits to the GitHub noreply email** (GitHub Settings > Emails, then set `git config user.email` to the noreply address). The Gmail address is on every public commit; changing it only affects future commits.
 - **Native App Store app.** Not worth it for a few friends ($99/year, review, a second codebase to maintain). The one real gain is Apple Health sync for everyone; reconsider only if people ask for that.
 
 **Maybe later** (not sure they are worth it):
 - **Long Trends view** (1 year / all time). Not important for now (decided 2026-11-14); the imported history is there if it is ever wanted.
+- **Pace tick** (moved here 2026-11-17 from 2a-bis). A straight-line "where you'd be by now" mark misreads meal-shaped eating: you look behind all afternoon and ahead after a big lunch, being behind is good news for a calorie ceiling, creatine is one dose, and it needs waking hours as a setting. If it comes back: fluids only (sipped through the day, so a straight line fits), or a personal pace from `log_entries.eaten_at` ("by 3pm you've usually had 45%") once there are a few weeks of timed entries.
 - **Day view on Trends.** Today already shows a day's entries and times, so a one-day chart adds little. If it comes back, make it a pattern over the window instead ("most of your calories land after 7pm"), read from `log_entries.eaten_at`.
 Suggested order for the older items below is historical; the list above is current.
 
@@ -105,7 +109,7 @@ Built: header profile menu (photo or initial; email, Goals, Sign out), Goals she
   - Creatine: same bar style as the others, shows the logged grams ("10g"), with a check once the goal is reached.
   - Layout: two rows on the same three columns (Protein/Carbs/Fat, then Fluids/Creatine). Calorie bar is 4px like the rest.
   - Alcohol is NOT on the daily summary: it is a trend over time, so it belongs on the Trends page.
-- **Later:** a pace tick on each bar (where you'd be by this time of day), using a waking-hours window.
+- **Later:** a pace tick on each bar. Moved to "Maybe later" at the top (2026-11-17).
 
 ### 2a-quater. Goals helper (built 2026-11-12)
 A collapsed "Help me choose" section in the Goals sheet. Inputs: year born, sex (Male / Female / Other, where Other averages the formula), height and weight with a US / Metric switch (US default), activity (4 levels) and an aim. "Fill in my goals" fills the calorie, protein and fluid boxes and switches them on (not creatine); nothing is saved as goals until "Save goals". Fill then folds the helper away, scrolls back to the goals and shows a toast (no explanation text: the boxes show what changed). Input problems show in red under the button.
