@@ -25,7 +25,7 @@
   --fat: var(--bar-light);
   --creatine: var(--accent);
   --alcohol: var(--bar);
-  --danger: #9b1b4a;        /* over the limit */
+  --danger: #c8284f;        /* over the limit (5:1 on paper, 2.5:1 against amber) */
   --scrim: rgba(20, 22, 26, 0.5);
   --shadow: rgba(20, 22, 26, 0.18);
   --font: "Barlow", "Helvetica Neue", Arial, sans-serif;
