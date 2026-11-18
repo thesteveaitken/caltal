@@ -67,7 +67,7 @@ async function loadTrends() {
   const req = ++trendReq;
   $('trendRange').textContent = trendRangeLabel(days);
   $('trendNext').disabled = trendEnd >= todayStr();
-  const from = [addDays(days[0], -6), weeks[0]].sort()[0];
+  const from = [addDays(days[0], -6), addDays(weeks[0], -21)].sort()[0]; // 3 more weeks for the 4-week alcohol average
   const to = [addDays(weeks[7], 6), todayStr()].sort()[0];
   try {
     // 6 extra days before the window so the 7-day average is complete on the first bar.
@@ -149,7 +149,7 @@ function trendCardShell(cfg) {
   let title = cfg.title, legend = '';
   if (cfg.stack) legend = cfg.stack.map(([k, , lab]) => `<span class="sw" style="background:var(--${k})"></span>${lab}`).join('');
   else if (cfg.kind === 'weight') legend = ['line: 7-day avg', goals.weight_kg ? `goal ${fmtWeight(goals.weight_kg)}` : ''].filter(Boolean).join(' · ');
-  else if (cfg.kind === 'weekly') { title = trendDays === 7 ? 'Alcohol' : 'Alcohol, by week'; legend = 'standard drinks'; }
+  else if (cfg.kind === 'weekly') { title = trendDays === 7 ? 'Alcohol' : 'Alcohol, by week'; legend = `standard drinks · line: ${trendDays === 7 ? '7-day' : '4-week'} avg`; }
   else if (cfg.kind !== 'dots') {
     const g = !goal ? '' : cfg.dir === 'ceil' ? `limit ${fmtNum(goal)}` : `goal ${fmtV(cfg, goal)}`;
     legend = [g, cfg.avg ? 'line: 7-day avg' : ''].filter(Boolean).join(' · ');
@@ -176,9 +176,19 @@ const openDayLink = d => `<a data-open="${d}">Open day ›</a>`;
 const longDayLabel = d => dayStart(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
 // Each renderer gets the card's parts: { card, cfg, goal, days, today, chart, ro (readout), stats, foot }.
+// The line is the 7-day average of drinks a day, as on the goal charts: days with entries only, today left out.
 function renderAlcoholByDay({ cfg, days, today, chart, ro, stats, foot }) {
-  const items = days.map(d => { const r = trendRows.get(d); return { id: d, val: r ? (r.alcohol || 0) : null, live: d === today }; });
-  drawTrendChart(chart, { ...cfg, kind: 'alcDay' }, items, null);
+  const items = days.map(d => {
+    const r = trendRows.get(d), w = [];
+    for (let k = 0; k < 7; k++) {
+      const dd = addDays(d, -k);
+      if (dd === today) continue;
+      const v = dayVal(cfg, dd);
+      if (v !== null) w.push(v);
+    }
+    return { id: d, val: r ? (r.alcohol || 0) : null, live: d === today, avg: mean(w) };
+  });
+  drawTrendChart(chart, { ...cfg, kind: 'alcDay', avg: true }, items, null);
   const si = days.indexOf(trendSel);
   ro.innerHTML = si >= 0 ? `<b>${longDayLabel(trendSel)}</b> · ${items[si].val === null ? 'no entries' : fmtV(cfg, items[si].val)}${openDayLink(trendSel)}` : '';
   const total = items.reduce((a, i) => a + (i.val || 0), 0);
@@ -187,17 +197,25 @@ function renderAlcoholByDay({ cfg, days, today, chart, ro, stats, foot }) {
   foot.textContent = 'By week on the 4 weeks view.';
 }
 
+// Drinks in the week starting Monday w, or null if nothing was logged that week.
+function weekAlcohol(w) {
+  let sum = 0, logged = false;
+  for (let k = 0; k < 7; k++) {
+    const r = trendRows.get(addDays(w, k));
+    if (r && r.calories > 0) logged = true;
+    if (r) sum += r.alcohol || 0;
+  }
+  return logged || sum > 0 ? sum : null;
+}
+
+// The line is the 4-week average of weekly totals: logged weeks only, the current week left out.
 function renderAlcoholByWeek({ cfg, today, chart, ro, stats }) {
+  const over = w => addDays(w, 6) < today;
   const items = trendWeeks().map(w => {
-    let sum = 0, logged = false;
-    for (let k = 0; k < 7; k++) {
-      const r = trendRows.get(addDays(w, k));
-      if (r && r.calories > 0) logged = true;
-      if (r) sum += r.alcohol || 0;
-    }
-    return { id: w, val: logged || sum > 0 ? sum : null, live: addDays(w, 6) >= today, lab: fmtMD(w) };
+    const win = [0, 1, 2, 3].map(k => addDays(w, -7 * k)).filter(over).map(weekAlcohol).filter(v => v !== null);
+    return { id: w, val: weekAlcohol(w), live: !over(w), lab: fmtMD(w), avg: mean(win) };
   });
-  drawTrendChart(chart, cfg, items, null);
+  drawTrendChart(chart, { ...cfg, avg: true }, items, null);
   const sel = items.find(i => i.id === trendSelWk);
   ro.innerHTML = sel ? `<b>Week of ${longDayLabel(sel.id)}</b> · ${sel.val === null ? 'no entries' : fmtV(cfg, sel.val)}` : '';
   const done = items.filter(i => i.val !== null && !i.live).map(i => i.val);

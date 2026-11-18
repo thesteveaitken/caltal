@@ -134,6 +134,16 @@
     await until(() => !q('#goalsOverlay').classList.contains('open'), 'goals saved unchanged');
     out.steps.goalWeight = [weightRange, goalRangeW, kgW, shownG, goalRangeG, goalBlankG, kgG, goalKg()];
     out.steps.store = clean(localStorage.getItem('caltal_guest_v1') || '').replace(/"\d{4}-\d\d-\d\dT[\d:.]+Z"/g, '"TS"');
+    // alcohol on past days (after `store`, so it leaves earlier steps alone): the alcohol card in both views
+    const past = [1, 2, 4, 5, 8, 12, 15, 19, 26, 33, 40, 47, 54, 61].map((k, i) => ({
+      date: addDays(todayStr(), -k), food_name: 'Beer', quantity: 1, calories: 150, alcohol: 1 + (i % 3), fluid_ml: 0 }));
+    await sb.from('log_entries').insert(past);
+    const alcCard = () => clean(q('#trendCards [data-card="alc"]').innerHTML);
+    q('#tabTrends').click();
+    q('#trendSeg [data-days="7"]').click(); await sleep(800);
+    const alc7 = alcCard();
+    q('#trendSeg [data-days="28"]').click(); await sleep(800);
+    out.steps.alcLine = [alc7, alcCard()];
   } catch (e) { out.errors.push('test threw: ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
   const pre = document.createElement('pre'); pre.id = '__out'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
   document.title = 'DONE';
