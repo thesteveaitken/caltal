@@ -32,7 +32,7 @@ scripts/migrate_from_sheet.py one-off import of the old Google Sheet
 2. **OAuth consent screen**:
    - User type: External. Fill in the app name and support email.
    - Scopes: the defaults (`email`, `profile`, `openid`) are enough.
-   - Publishing status: leave it on **Testing**, and add your own Gmail plus each friend's under **Test users**. This acts as your invite list (up to 100 people). Anyone not on the list can't sign in.
+   - Publishing status: on **Testing**, only Gmail addresses listed under **Test users** can sign in (up to 100). To let anyone sign in, add the home page, privacy policy (`privacy.html`) and terms (`terms.html`) links on the Branding page, then **Publish app** on the Audience page. Basic sign-in scopes need no verification review.
 3. **Credentials → Create credentials → OAuth client ID → Web application**:
    - Authorized JavaScript origins: `https://<your-username>.github.io` and `http://localhost:8000`.
    - Authorized redirect URIs: `https://<project-ref>.supabase.co/auth/v1/callback`. Supabase shows this exact URL on its Google provider page.

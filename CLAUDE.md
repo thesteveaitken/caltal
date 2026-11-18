@@ -36,7 +36,7 @@ Personal calorie and macro tracker, shared with a few friends. Not commercial. M
 - **Keys:** the publishable key (`sb_publishable_...`) is public and lives in `js/core.js`. The secret key (`sb_secret_...`) must **never** go in the app's files, the repo, or chat. It is only for `scripts/.env`.
 - **Gitignored, never commit:** `scripts/.env`, `*.csv` and `promote.txt`.
 - Check `git status` before committing: this repo is public.
-- The Google OAuth consent screen is in "Testing" mode, so only listed test users can sign in with Google (guests need no account). Add friends' Gmail addresses under Test users in Google Cloud. Publishing it to production is planned (ROADMAP section 3, step 6).
+- The Google OAuth consent screen is **In production** (published 2026-11-17), so any Google account can sign in. Its Branding page links the home page, `privacy.html` and `terms.html`; if the site moves to a new address, update those links and the authorized domain there too.
 - supabase-js: call other Supabase methods inside `onAuthStateChange` only after a `setTimeout`, to avoid a deadlock.
 
 ## Run and deploy

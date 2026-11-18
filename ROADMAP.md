@@ -1,14 +1,12 @@
 # CalTal roadmap
 
-## Where we left off (2026-11-15)
+## Where we left off (2026-11-17)
 Everything below marked built is committed and live. Weight is finished: stages 1-3, the Today summary cell, goal weight in both sheets.
 **Pick up with:**
-1. **Section 0 housekeeping** below: the second-account isolation test (Apps Script archived 2026-11-17). (Checked 2026-11-14: the publishable key alone reads nothing private; every private table returns empty.)
-2. **Publish the Google consent screen** (Google Cloud, Testing to In production) so friends and employers can sign in; then check sign-in works from an account not on the test list. See section 3, step 6. Only basic email/profile scopes, so it should not need Google's review.
-3. **Backups.** The free Supabase plan has no downloadable backups, and the database now holds years of weight history. Idea: `scripts/backup.py` (same `scripts/.env`) dumps every table to a dated JSON file outside the repo, run now and then.
-4. Pace tick on the summary bars (2a-bis).
+1. **Backups.** The free Supabase plan has no downloadable backups, and the database now holds years of weight history. Idea: `scripts/backup.py` (same `scripts/.env`) dumps every table to a dated JSON file outside the repo, run now and then.
+2. Pace tick on the summary bars (2a-bis).
 
-**Done recently:** code cleanup A to E (2026-11-15, next section), guest merge test, Goals helper (2a-quater), creatine streak and grid (2b), weight stage 1 (7-day average line that fills gaps by straight lines and stops at the latest weigh-in; might cap long gaps later), stage 2 (Log weight Shortcut, SETUP.md section 6), stage 3 (Health history imported from 2015), Weight on the Today summary, one-row desktop summary from 1100px.
+**Done recently:** Section 0 housekeeping and the Google consent screen published, with privacy policy and terms pages (2026-11-17), code cleanup A to F (2026-11-15/16, next section), guest merge test, Goals helper (2a-quater), creatine streak and grid (2b), weight stage 1 (7-day average line that fills gaps by straight lines and stops at the latest weigh-in; might cap long gaps later), stage 2 (Log weight Shortcut, SETUP.md section 6), stage 3 (Health history imported from 2015), Weight on the Today summary, one-row desktop summary from 1100px.
 
 **Future consideration** (discussed 2026-11-14, nothing decided):
 - **A real domain** (for example a .com or .app). Keep GitHub Pages, which supports custom domains with free HTTPS. Update the Supabase Site URL and redirect URLs, the Google authorized origins and CLAUDE.md. Catch: browsers keep guest data and home-screen installs per address, so switch before friends rely on guest mode or install it. Keep the repo **public**: it shows employers the code, and going private hides nothing that matters (the publishable key is in the page anyway; old history may already be copied) while needing a paid GitHub plan or a move to Cloudflare Pages / Netlify.
@@ -61,9 +59,9 @@ Later passes:
 Found in the public-repo review. These are dashboard steps, not code.
 - [x] **Archive the old Apps Script deployment** (Done 2026-11-17: both web app URLs in the public git history now return Google's "unable to open the file" page; local `AppsScript.gs` deleted.)
 - [x] **Disable Supabase Email sign-in** (Authentication > Sign In / Providers > Email). It is on by default, and the publishable key is public, so anyone could sign up by email directly. Re-enable it when adding magic links. Also check that anonymous sign-ins are off.
-- [ ] **Test data isolation with a second Google account** (must be on the consent screen's test-user list). It should see the standard foods but none of your foods or log entries. Also try querying another user's rows from the browser console: it should return nothing.
+- [x] **Test data isolation with a second Google account** (Done 2026-11-17, with an account not on the test list after publishing: it sees the 172 standard foods and nothing else; a console read of every table returned none of anyone else's rows, and inserting a standard food was refused by RLS.)
 - [x] **Check the live site** (https://thesteveaitken.github.io/caltal/): sign in, and confirm the imported history and foods appear.
-- [ ] Optional: add a license if you want others to be able to reuse the code. With none, all rights are reserved.
+- [x] ~~Optional: add a license~~ Decided 2026-11-17: no license, so all rights are reserved.
 
 ## 1. Logo and desktop layout (done)
 - Show the logo in the header and on the sign-in screen. `caltal-icon.png` is not in the repo yet and needs committing (or inlining like the favicon).
@@ -163,7 +161,7 @@ Repeats of the same food on a day (2 or more, matched by `food_id`, or by name f
 3. **(Built and live)** **No sign-in screen:** anyone without a session lands straight in guest mode. A conspicuous amber banner at the top ("Guest mode. Your data is saved on this device only. Sign in to keep it and use it anywhere." plus a "Sign in with Google" button) shows for guests only; the profile menu's last item is "Sign in with Google"; a toast after the first log in a session says "Saved on this device. Sign in to keep it." Signing out lands you in a fresh guest session. The guest's profile button is a hamburger icon (not an avatar). Decided: no stronger nudge over time.
 4. **(Built and live, real sign-in test pending)** Merge on sign-in: `mergeGuestData()` runs when a real user's session starts and local guest data exists. Foods, favourites, entries, goals and quick-adds are copied up with their ids kept (so a repeat does nothing twice). A guest food whose name matches one the account already has attaches to it; references to foods that no longer exist are dropped (the entry keeps its name). Goals and quick-adds are copied only if the account has none. The local copy is deleted only after everything uploaded; on any error it stays and a toast says so. A toast reports how many entries were added. Note: leftover guest data on a shared browser would merge into whoever signs in next.
 5. **(Done with your account; second account pending)** Test the merge with a real Google sign-in, then with a second Google account.
-6. **Publish the Google consent screen** (Google Cloud, a step for Steve): from Testing to In production so any Google account can sign in. Basic sign-in scopes should not need Google's verification review and should not show an "unverified app" warning, but confirm by signing in with an account that is not on the test list. It is reversible and does not expose data (row-level security keeps each user's rows separate). Signed-in users' emails appear in Supabase under Authentication > Users, which gives contact details.
+6. **(Done 2026-11-17) Publish the Google consent screen** (Google Cloud, a step for Steve). The Branding page links `privacy.html` and `terms.html`. Original note: from Testing to In production so any Google account can sign in. Basic sign-in scopes should not need Google's verification review and should not show an "unverified app" warning, but confirm by signing in with an account that is not on the test list. It is reversible and does not expose data (row-level security keeps each user's rows separate). Signed-in users' emails appear in Supabase under Authentication > Users, which gives contact details.
 
 ## 4. Weight (planned 2026-11-13)
 **Apple Health background.** A website cannot read or write Apple Health; only native apps can (no web API). The bridge is the Shortcuts app, which can read Health samples and "Log Health Sample". Decided: Apple Health sync is a private feature for Steve only; if friends ever want it, that means making CalTal a native app.
