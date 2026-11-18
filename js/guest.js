@@ -18,8 +18,7 @@ function makeLocalClient() {
   let standard = null;
 
   const nowIso = () => new Date().toISOString();
-  const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
-    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+  const uuid = newId;
   const save = () => {
     try { localStorage.setItem(GUEST_STORE_KEY, JSON.stringify(store)); return null; }
     catch (e) { return { message: 'Could not save on this device' }; }

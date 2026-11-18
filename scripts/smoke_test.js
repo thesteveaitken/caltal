@@ -144,6 +144,23 @@
     const alc7 = alcCard();
     q('#trendSeg [data-days="28"]').click(); await sleep(800);
     out.steps.alcLine = [alc7, alcCard()];
+    // a long Today list on a phone: log again from the bottom keeps the page scrolled, and the new row
+    // ends up in view above the pinned band; a quick-add from the top scrolls down to its row
+    await sb.from('log_entries').insert(['Toast', 'Apple', 'Soup', 'Rice', 'Salad', 'Tea', 'Cake', 'Nuts', 'Pear'].map((n, i) => ({
+      date: todayStr(), food_name: n, quantity: 1, calories: 100 + i, eaten_at: new Date(Date.now() - (9 - i) * 6e5).toISOString() })));
+    q('#tabToday').click(); q('#prevDay').click(); await sleep(400); q('#nextDay').click(); await sleep(600);
+    const band = () => q('.add-panel').getBoundingClientRect().top;
+    const inView = el => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= band(); };
+    window.scrollTo(0, document.body.scrollHeight); await sleep(300);
+    const pear = [...document.querySelectorAll('#entryList .entry[data-id]')].find(el => el.textContent.includes('Pear'));
+    const before = window.scrollY;
+    pear.querySelector('.entry-again').click(); await sleep(1200);
+    const flashed = q('#entryList .flash');
+    const kept = [before > 0, window.scrollY > before / 2, !!flashed && flashed.textContent.includes('Pear'), !!flashed && inView(flashed)];
+    window.scrollTo(0, 0); await sleep(300);
+    q('#quickGrid button').click(); await sleep(1200);
+    const flashed2 = q('#entryList .flash');
+    out.steps.scrollKeep = [...kept, !!flashed2 && inView(flashed2), window.scrollY > 0];
   } catch (e) { out.errors.push('test threw: ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
   const pre = document.createElement('pre'); pre.id = '__out'; pre.textContent = JSON.stringify(out); document.body.appendChild(pre);
   document.title = 'DONE';

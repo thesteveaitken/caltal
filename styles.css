@@ -160,6 +160,10 @@ header {
 .entry-list { margin: 18px 20px 22px; padding-top: 6px; border-top: 2px dashed var(--border); display: flex; flex-direction: column; }
 .entry { display: flex; align-items: center; gap: 4px; min-height: 52px; cursor: pointer; border-radius: 6px; }
 .entry:active { background: var(--accent-dim); }
+/* A row just logged or changed: scrolled into view (clear of the pinned band on phones) and washed amber for a moment */
+.entry { scroll-margin: 12px 0 calc(188px + env(safe-area-inset-bottom)); }
+.entry.flash { animation: entry-flash 1.4s ease-out; }
+@keyframes entry-flash { 0%, 35% { background: var(--accent-dim); } 100% { background: transparent; } }
 .e-time { width: 48px; flex-shrink: 0; font-size: 12.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .entry-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .e-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
@@ -614,6 +618,7 @@ header {
   .col-left, .add-panel { display: flex; flex-direction: column; min-height: 0; }
   .date-slot { display: flex; justify-content: flex-end; margin: 0 20px 6px; }
   .col-left .entry-list { flex: 1; min-height: 0; overflow-y: auto; margin-bottom: 10px; }
+  .entry { scroll-margin: 8px 0; } /* no pinned band here: the list scrolls in its own column */
   .add-panel .food-list { flex: 1; min-height: 0; margin-bottom: 0; }
   .hero-main .num { font-size: 100px; }
   /* One row, however many cells (up to 6 today: protein, fluids, creatine, carbs, fat, weight),

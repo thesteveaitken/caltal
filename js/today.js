@@ -26,9 +26,12 @@ async function loadFoods() {
   }
 }
 
-async function loadEntriesForDate(date) {
+// focusId: an entry just logged or changed, scrolled into view and briefly highlighted.
+// "Loading…" shows only for a different day: reloading the same day keeps the list until the new one
+// replaces it, so the page never shrinks and the scroll position stays put.
+async function loadEntriesForDate(date, focusId = null) {
   const req = ++entriesRequest;
-  $('entryList').innerHTML = '<div class="loading-row">Loading…</div>';
+  if (date !== entriesShownDate) $('entryList').innerHTML = '<div class="loading-row">Loading…</div>';
   try {
     const rows = await must(sb.from('log_entries')
       .select(ENTRY_COLS)
@@ -37,12 +40,15 @@ async function loadEntriesForDate(date) {
       .order('created_at'));
     if (req !== entriesRequest) return; // a newer day was requested meanwhile
     entries = rows.map(numeric);
+    entriesShownDate = date;
     exitAdding();
     renderEntries();
     renderTotals();
+    if (focusId) focusEntry(focusId);
   } catch (err) {
     console.error(err);
     if (req !== entriesRequest) return;
+    entriesShownDate = null;
     $('entryList').innerHTML = '<div class="loading-row">Could not load entries.</div>';
   }
 }
@@ -53,6 +59,26 @@ async function loadEntriesForDate(date) {
 // placed where the most recent of them sits. Singletons render exactly as before.
 const expandedGroups = new Set();
 let expandedGroupsDate = null;
+let entriesShownDate = null; // the day the entry list is showing (null while loading or after an error)
+
+// Bring an entry's row into view (its group's row if it is inside a closed group) and flash it.
+// Scrolls only when the row is not fully visible; the scroll-margin in the CSS keeps it clear of
+// the pinned search band on phones. Reduced motion: the global CSS rule makes the flash instant.
+function focusEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  const list = $('entryList');
+  const row = list.querySelector(`.entry[data-id="${id}"]`)
+    || [...list.querySelectorAll('.group-head')].find(el => el.dataset.group === entryKey(e));
+  if (!row) return;
+  row.scrollIntoView({ block: 'nearest' }); // a jump, not a smooth scroll: the flash shows where it landed
+  row.classList.remove('flash');
+  void row.offsetWidth; // restart the animation if it is already running
+  row.classList.add('flash');
+  clearTimeout(row.flashTimer);
+  row.flashTimer = setTimeout(() => row.classList.remove('flash'), 1500); // the animation is 1.4s
+}
+const entryKey = e => e.food_id ? 'f:' + e.food_id : 'n:' + e.food_name;
 
 const AGAIN_ICON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 
@@ -120,7 +146,7 @@ function renderEntries() {
   }
   if (expandedGroupsDate !== currentDate) { expandedGroups.clear(); expandedGroupsDate = currentDate; }
 
-  const keyOf = e => e.food_id ? 'f:' + e.food_id : 'n:' + e.food_name;
+  const keyOf = entryKey;
   const byKey = new Map();
   entries.forEach(e => {
     const k = keyOf(e);
@@ -158,15 +184,16 @@ function renderEntries() {
       const e = entries.find(x => x.id === btn.dataset.id);
       if (!e) return;
       btn.disabled = true;
+      const id = newId();
       try {
         await must(sb.from('log_entries').insert({
-          date: e.date, food_id: e.food_id, food_name: e.food_name, quantity: e.quantity,
+          id, date: e.date, food_id: e.food_id, food_name: e.food_name, quantity: e.quantity,
           calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat,
           alcohol: e.alcohol, fluid_ml: e.fluid_ml, creatine_g: e.creatine_g,
           eaten_at: e.date === todayStr() ? eatenAtFor(e.date, nowHHMM()) : e.eaten_at,
         }));
         noteRecent(e.food_id);
-        await loadEntriesForDate(currentDate);
+        await loadEntriesForDate(currentDate, id);
         showToast(`Logged ${e.food_name} again`);
       } catch (err) {
         console.error(err);
@@ -238,6 +265,7 @@ function resetTodayState() {
   recentFoodIds = [];
   quickAdds = [];
   currentDate = todayStr();
+  entriesShownDate = null;
 }
 
 function effectiveQuickAdds() {
@@ -281,9 +309,10 @@ async function quickLog(btn) {
   if (!food) return;
   await withBusy(btn, null, async () => {
     try {
-      await must(sb.from('log_entries').insert({ date: currentDate, ...servingOf(food), eaten_at: eatenNow(currentDate) }));
+      const id = newId();
+      await must(sb.from('log_entries').insert({ id, date: currentDate, ...servingOf(food), eaten_at: eatenNow(currentDate) }));
       noteRecent(food.id);
-      await loadEntriesForDate(currentDate);
+      await loadEntriesForDate(currentDate, id);
       showToast(`Logged ${food.name}`);
     } catch (err) {
       console.error(err);
@@ -495,12 +524,13 @@ function scaledMacros() {
 $('confirmLog').addEventListener('click', async () => {
   const isEdit = editingId !== null;
   await withBusy($('confirmLog'), isEdit ? 'Saving…' : 'Logging…', async () => {
+    const id = isEdit ? editingId : newId();
     try {
       if (isEdit) {
         await must(sb.from('log_entries').update(scaledMacros()).eq('id', editingId));
       } else {
         await must(sb.from('log_entries').insert({
-          date: currentDate,
+          id, date: currentDate,
           food_id: activeFood.id,
           food_name: activeFood.name,
           ...scaledMacros(),
@@ -510,7 +540,7 @@ $('confirmLog').addEventListener('click', async () => {
       closeSheet('logSheetOverlay');
       $('searchInput').value = '';
       renderFoodList();
-      await loadEntriesForDate(currentDate);
+      await loadEntriesForDate(currentDate, id);
       showToast(isEdit ? 'Changes saved' : `Logged ${activeFood.name}`);
       editingId = null;
     } catch (err) {
@@ -542,7 +572,7 @@ $('removeEntry').addEventListener('click', async () => {
 async function restoreEntry(entry) {
   try {
     await must(sb.from('log_entries').insert({ ...entry }));
-    await loadEntriesForDate(currentDate);
+    await loadEntriesForDate(currentDate, entry.id);
     showToast('Entry restored');
   } catch (err) {
     console.error(err);
@@ -670,6 +700,7 @@ async function saveFood(logIt) {
   }
 
   const editing = !!editingFoodId;
+  const loggedId = newId();
   await withBusy($(logIt ? 'saveNewFood' : 'saveFoodOnly'), 'Saving…', async () => {
     try {
       if (editing) {
@@ -679,12 +710,12 @@ async function saveFood(logIt) {
         const [food] = await must(sb.from('foods').insert({ owner_id: user.id, ...values }).select('id'));
         if (newFoodFavourite) await must(sb.from('favourites').insert({ user_id: user.id, food_id: food.id }));
         if (logIt) {
-          await must(sb.from('log_entries').insert({ date: currentDate, ...servingOf({ id: food.id, ...values }), eaten_at: eatenNow(currentDate) }));
+          await must(sb.from('log_entries').insert({ id: loggedId, date: currentDate, ...servingOf({ id: food.id, ...values }), eaten_at: eatenNow(currentDate) }));
         }
       }
       closeSheet('addFoodOverlay');
       await loadFoods();
-      if (logIt && !editing) await loadEntriesForDate(currentDate);
+      if (logIt && !editing) await loadEntriesForDate(currentDate, loggedId);
       showToast(editing ? 'Food updated' : logIt ? `Saved and logged ${name}` : 'Food saved');
     } catch (err) {
       console.error(err);
@@ -728,8 +759,9 @@ $('saveOneOff').addEventListener('click', async () => {
 
   await withBusy($('saveOneOff'), 'Logging…', async () => {
     try {
+      const id = newId();
       await must(sb.from('log_entries').insert({
-        date: currentDate,
+        id, date: currentDate,
         food_id: null,
         food_name: name,
         quantity: 1,
@@ -737,7 +769,7 @@ $('saveOneOff').addEventListener('click', async () => {
         eaten_at: eatenNow(currentDate),
       }));
       closeSheet('oneOffOverlay');
-      await loadEntriesForDate(currentDate);
+      await loadEntriesForDate(currentDate, id);
       showToast(`Logged ${name}`);
     } catch (err) {
       console.error(err);

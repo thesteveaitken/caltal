@@ -26,6 +26,10 @@ const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate(
 const hhmm = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;                   // local time, HH:MM
 const dayStart = dateStr => new Date(dateStr + 'T00:00:00');                          // local midnight
 const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+// A new row id made in the browser, so the app knows a new entry's id without reading it back.
+// The fallback is for plain-http pages (a phone testing against the Mac's LAN address), which lack randomUUID.
+const newId = () => (crypto.randomUUID ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
 
 function todayStr() { return ymd(new Date()); }
 
