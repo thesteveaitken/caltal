@@ -233,12 +233,19 @@ function renderWeightCard({ cfg, days, today, chart, ro, stats, foot }) {
 }
 
 // Compact habit strip: no readout/stat rows, the summary lives in the header.
+// On 4 weeks the grid is a calendar: whole Monday-to-Sunday weeks around the window (so 4 or 5 rows),
+// and every day it shows counts, including the padding.
 function renderCreatineCard({ card, cfg, goal, days, today, chart, ro, stats }) {
+  if (days.length > 7) {
+    const first = weekStartOf(days[0]), last = addDays(weekStartOf(days[days.length - 1]), 6);
+    days = [];
+    for (let d = first; d <= last; d = addDays(d, 1)) days.push(d);
+  }
   const eff = days.map(d => (trendCreatineStart && d >= trendCreatineStart) ? dayVal(cfg, d) : null);
   drawDotStrip(chart, cfg, days, eff, goal, today);
   const head = card.querySelector('.trend-legend');
   const si = days.indexOf(trendSel);
-  const done = eff.filter((v, i) => v !== null && days[i] !== today);
+  const done = eff.filter((v, i) => v !== null && days[i] < today);
   if (si >= 0) head.innerHTML = `${longDayLabel(trendSel)} · ${eff[si] === null ? 'not tracked' : (eff[si] > 0 ? fmtV(cfg, eff[si]) : 'none')} ${openDayLink(trendSel)}`;
   else head.innerHTML = !trendCreatineStart ? 'No creatine logged yet' : [
     done.length ? `<b>${done.filter(v => v >= goal).length} of ${done.length}</b> days at goal` : '',
@@ -431,8 +438,9 @@ function drawWeightChart(el, cfg, items, goal, unit) {
 }
 
 // Creatine dots, one per day: amber = taken, half amber = some, hollow ring = missed, dashed ring =
-// today still to do, tiny dot = not tracked. 7 days: one row with weekday letters. 4 weeks: a grid of 4 rows of 7 consecutive
-// days (each column is one weekday, each row labelled with its first date), so weekly patterns show.
+// today still to do, tiny dot = not tracked, nothing = future. 7 days: one row with weekday letters. 4 weeks: a calendar
+// grid, one row per Monday-to-Sunday week (each column is one weekday, each row labelled with its Monday), so weekly
+// patterns show.
 function drawDotStrip(el, cfg, days, vals, goal, today) {
   const W = Math.max(240, el.clientWidth || 320), n = days.length, grid = n > 7;
   const labW = grid ? 40 : 6, r = 6, slot = (W - labW - r) / 7;
@@ -465,6 +473,7 @@ function drawDotStrip(el, cfg, days, vals, goal, today) {
       g += `<text class="t-ax" x="0" y="${y + 4}">${fmtMD(days[row * 7])}</text>`;
       for (let c = 0; c < 7 && row * 7 + c < n; c++) {
         const i = row * 7 + c;
+        if (days[i] > today) continue;
         g += dot(i, cx(c), y);
         g += `<rect class="tb-hit" data-date="${days[i]}" x="${labW + slot * c}" y="${head + row * rowH}" width="${slot}" height="${rowH}"/>`;
       }
