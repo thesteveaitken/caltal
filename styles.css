@@ -159,8 +159,9 @@ header {
 /* ---------- Today's entries: ruled line items ---------- */
 .entry-list { margin: 18px 20px 22px; padding-top: 6px; border-top: 2px dashed var(--border); display: flex; flex-direction: column; }
 .entry { display: flex; align-items: center; gap: 4px; min-height: 52px; cursor: pointer; border-radius: 6px; }
-/* Room either side so the tap and flash wash reaches past the text; the negative margin keeps the text where it was */
-.entry { padding-inline: 8px; margin-inline: -8px; }
+/* Room either side so the tap and flash wash reaches past the text; the negative margin keeps the text where it was.
+   More on the left: the copy button already has empty space on the right. */
+.entry { padding: 0 8px 0 12px; margin: 0 -8px 0 -12px; }
 .entry:active { background: var(--accent-dim); }
 /* A row just logged or changed: scrolled into view (clear of the pinned band on phones) and washed amber for a moment */
 .entry { scroll-margin: 12px 0 calc(188px + env(safe-area-inset-bottom)); }
@@ -621,7 +622,7 @@ header {
   .date-slot { display: flex; justify-content: flex-end; margin: 0 20px 6px; }
   .col-left .entry-list { flex: 1; min-height: 0; overflow-y: auto; margin-bottom: 10px; }
   .entry { scroll-margin: 8px 0; } /* no pinned band here: the list scrolls in its own column */
-  .col-left .entry { margin-inline: 0; } /* the scrolling list would clip rows that stick out, so here the text moves in instead */
+  .col-left .entry { margin: 0; padding-left: 16px; } /* the scrolling list would clip rows that stick out, so here the text moves in instead */
   .add-panel .food-list { flex: 1; min-height: 0; margin-bottom: 0; }
   .hero-main .num { font-size: 100px; }
   /* One row, however many cells (up to 6 today: protein, fluids, creatine, carbs, fat, weight),
