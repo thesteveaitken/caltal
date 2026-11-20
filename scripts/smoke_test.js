@@ -144,6 +144,18 @@
     const alc7 = alcCard();
     q('#trendSeg [data-days="28"]').click(); await sleep(800);
     out.steps.alcLine = [alc7, alcCard()];
+    // alcohol calendar: food on 2 of the past weeks' days fills them in (dry days count as 0, totals scale to 7 days);
+    // tapping a day, then a week total, fills the readout
+    await sb.from('log_entries').insert([...Array(10)].map((_, i) => ({ date: addDays(todayStr(), -(7 + i)), food_name: 'Oats', quantity: 1, calories: 300 })));
+    q('#trendSeg [data-days="28"]').click(); await sleep(500);
+    while (!q('#trendNext').disabled) { q('#trendNext').click(); await sleep(500); }
+    await sleep(300);
+    const calFilled = alcCard();
+    const tap = sel => { const el = q(sel); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }; // SVG has no .click()
+    tap(`#trendCards [data-card="alc"] [data-date="${addDays(todayStr(), -8)}"]`); await sleep(200);
+    const calDay = clean(q('#trendCards [data-card="alc"] .trend-readout').innerHTML);
+    tap('#trendCards [data-card="alc"] [data-wk]'); await sleep(200);
+    out.steps.alcCal = [calFilled, calDay, clean(q('#trendCards [data-card="alc"] .trend-readout').innerHTML)];
     // a long Today list on a phone: log again from the bottom keeps the page scrolled, and the new row
     // ends up in view above the pinned band; a quick-add from the top scrolls down to its row
     await sb.from('log_entries').insert(['Toast', 'Apple', 'Soup', 'Rice', 'Salad', 'Tea', 'Cake', 'Nuts', 'Pear'].map((n, i) => ({

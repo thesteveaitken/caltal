@@ -4,11 +4,11 @@
 // Bar charts drawn as inline SVG (no chart library). Window = last 7 or 28 days ending at
 // trendEnd. A day counts only if calories were logged (fluids and creatine also count a day
 // that only has water or creatine). Today is "in progress": drawn with a ghost up to the goal
-// and left out of averages and counts. Alcohol is weekly (last 8 calendar weeks, Mon-Sun).
+// and left out of averages and counts. Alcohol is bars by day on 7 days and a calendar with week totals on 4 weeks.
 let trendDays = 7;
 let trendEnd = null;
 let trendSel = null;     // selected day (YYYY-MM-DD)
-let trendSelWk = null;   // selected week start for the alcohol chart
+let trendSelWk = null;   // selected week (its Monday) on the alcohol calendar
 let trendRows = new Map();
 let trendReq = 0;
 let trendCreatineStart = null; // date of the first creatine ever logged; earlier days are not counted as misses
@@ -28,7 +28,7 @@ const TREND_CARDS = [
   { id: 'flu', title: 'Fluids',   key: 'fluid_ml', goalKey: 'fluid_ml', dir: 'floor', unit: 'L', div: 1000, tile: 'days at goal', avg: true },
   { id: 'cf',  title: 'Carbs and fat', unit: 'g', stack: [['carbs', 'tb-carbs', 'Carbs'], ['fat', 'tb-fat', 'Fat']] },
   { id: 'cr',  title: 'Creatine', kind: 'dots', key: 'creatine_g', goalKey: 'creatine_g', unit: 'g' },
-  { id: 'alc', title: 'Alcohol, weekly', kind: 'weekly', key: 'alcohol', unit: 'drinks' },
+  { id: 'alc', title: 'Alcohol', kind: 'alcohol', key: 'alcohol', unit: 'drinks' },
 ];
 
 function fmtAxis(v) { return v >= 1000 ? (Math.round(v / 100) / 10) + 'k' : String(+v.toFixed(1)); }
@@ -45,11 +45,11 @@ function trendWindow() {
   for (let i = trendDays - 1; i >= 0; i--) days.push(addDays(trendEnd, -i));
   return days;
 }
-function trendWeeks() {
-  const w0 = weekStartOf(trendEnd || todayStr());
-  const weeks = [];
-  for (let i = 7; i >= 0; i--) weeks.push(addDays(w0, -7 * i));
-  return weeks;
+// The 4-week calendars (creatine, alcohol) show whole Monday-to-Sunday weeks around the window, so 4 or 5 rows.
+function calendarDays(days) {
+  const out = [], last = addDays(weekStartOf(days[days.length - 1]), 6);
+  for (let d = weekStartOf(days[0]); d <= last; d = addDays(d, 1)) out.push(d);
+  return out;
 }
 
 function trendRangeLabel(days) {
@@ -63,12 +63,11 @@ function trendRangeLabel(days) {
 
 async function loadTrends() {
   const days = trendWindow();
-  const weeks = trendWeeks();
   const req = ++trendReq;
   $('trendRange').textContent = trendRangeLabel(days);
   $('trendNext').disabled = trendEnd >= todayStr();
-  const from = [addDays(days[0], -6), addDays(weeks[0], -21)].sort()[0]; // 3 more weeks for the 4-week alcohol average
-  const to = [addDays(weeks[7], 6), todayStr()].sort()[0];
+  const from = addDays(days[0], -6); // also covers the calendar's first Monday
+  const to = [addDays(weekStartOf(days[days.length - 1]), 6), todayStr()].sort()[0];
   try {
     // 6 extra days before the window so the 7-day average is complete on the first bar.
     const rows = await must(sb.from('daily_totals')
@@ -149,7 +148,7 @@ function trendCardShell(cfg) {
   let title = cfg.title, legend = '';
   if (cfg.stack) legend = cfg.stack.map(([k, , lab]) => `<span class="sw" style="background:var(--${k})"></span>${lab}`).join('');
   else if (cfg.kind === 'weight') legend = ['line: 7-day avg', goals.weight_kg ? `goal ${fmtWeight(goals.weight_kg)}` : ''].filter(Boolean).join(' · ');
-  else if (cfg.kind === 'weekly') { title = trendDays === 7 ? 'Alcohol' : 'Alcohol, by week'; legend = `standard drinks · line: ${trendDays === 7 ? '7-day' : '4-week'} avg`; }
+  else if (cfg.kind === 'alcohol') legend = trendDays === 7 ? 'line: 7-day avg' : 'drinks a day · week total';
   else if (cfg.kind !== 'dots') {
     const g = !goal ? '' : cfg.dir === 'ceil' ? `limit ${fmtNum(goal)}` : `goal ${fmtV(cfg, goal)}`;
     legend = [g, cfg.avg ? 'line: 7-day avg' : ''].filter(Boolean).join(' · ');
@@ -164,9 +163,9 @@ function trendCardShell(cfg) {
     </div>`;
 }
 
-// Which renderer draws a card. Alcohol is by day on the 7-day view and by week on the 4-week view.
+// Which renderer draws a card. Alcohol is by day on the 7-day view and a calendar on the 4-week view.
 function trendCardKind(cfg) {
-  if (cfg.kind === 'weekly') return trendDays === 7 ? 'alcDay' : 'alcWeek';
+  if (cfg.kind === 'alcohol') return trendDays === 7 ? 'alcDay' : 'alcCal';
   return cfg.kind || (cfg.stack ? 'stack' : 'goal');
 }
 
@@ -176,17 +175,18 @@ const openDayLink = d => `<a data-open="${d}">Open day ›</a>`;
 const longDayLabel = d => dayStart(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
 // Each renderer gets the card's parts: { card, cfg, goal, days, today, chart, ro (readout), stats, foot }.
-// The line is the 7-day average of drinks a day, as on the goal charts: days with entries only, today left out.
+// A day counts only if calories were logged (no drinks = 0); unlogged days have no bar and stay out of the line.
+// The line is the 7-day average of drinks a day, as on the goal charts, today left out.
 function renderAlcoholByDay({ cfg, days, today, chart, ro, stats, foot }) {
   const items = days.map(d => {
-    const r = trendRows.get(d), w = [];
+    const w = [];
     for (let k = 0; k < 7; k++) {
       const dd = addDays(d, -k);
       if (dd === today) continue;
       const v = dayVal(cfg, dd);
       if (v !== null) w.push(v);
     }
-    return { id: d, val: r ? (r.alcohol || 0) : null, live: d === today, avg: mean(w) };
+    return { id: d, val: dayVal(cfg, d), live: d === today, avg: mean(w) };
   });
   drawTrendChart(chart, { ...cfg, kind: 'alcDay', avg: true }, items, null);
   const si = days.indexOf(trendSel);
@@ -197,31 +197,51 @@ function renderAlcoholByDay({ cfg, days, today, chart, ro, stats, foot }) {
   foot.textContent = 'By week on the 4 weeks view.';
 }
 
-// Drinks in the week starting Monday w, or null if nothing was logged that week.
+// A week's total needs this many logged days; fewer and it shows "—" and stays out of the average.
+const ALC_WEEK_MIN_DAYS = 4;
+
+// Drinks in the week starting Monday w, from the days with calories logged: { sum, n (logged days),
+// week (sum / n x 7, so a partly logged week is on the same footing as a full one) }, or null if none.
 function weekAlcohol(w) {
-  let sum = 0, logged = false;
+  let sum = 0, n = 0;
   for (let k = 0; k < 7; k++) {
     const r = trendRows.get(addDays(w, k));
-    if (r && r.calories > 0) logged = true;
-    if (r) sum += r.alcohol || 0;
+    if (r && r.calories > 0) { n++; sum += r.alcohol || 0; }
   }
-  return logged || sum > 0 ? sum : null;
+  return n ? { sum, n, week: sum / n * 7 } : null;
 }
 
-// The line is the 4-week average of weekly totals: logged weeks only, the current week left out.
-function renderAlcoholByWeek({ cfg, today, chart, ro, stats }) {
-  const over = w => addDays(w, 6) < today;
-  const items = trendWeeks().map(w => {
-    const win = [0, 1, 2, 3].map(k => addDays(w, -7 * k)).filter(over).map(weekAlcohol).filter(v => v !== null);
-    return { id: w, val: weekAlcohol(w), live: !over(w), lab: fmtMD(w), avg: mean(win) };
-  });
-  drawTrendChart(chart, { ...cfg, avg: true }, items, null);
-  const sel = items.find(i => i.id === trendSelWk);
-  ro.innerHTML = sel ? `<b>Week of ${longDayLabel(sel.id)}</b> · ${sel.val === null ? 'no entries' : fmtV(cfg, sel.val)}` : '';
-  const done = items.filter(i => i.val !== null && !i.live).map(i => i.val);
-  const last = items[items.length - 1];
+// 4 weeks: a calendar of drinks a day (whole weeks, like creatine) with each week's total on the right.
+// A finished week's total is drinks per logged day x 7 ("~" when partly logged, "—" under ALC_WEEK_MIN_DAYS);
+// the current week shows its real total so far. "avg a week" is the mean of the finished weeks' totals.
+function renderAlcoholCalendar({ cfg, days, today, chart, ro, stats, foot }) {
+  const cal = calendarDays(days);
+  const weeks = [];
+  for (let i = 0; i < cal.length; i += 7) {
+    const w = cal[i], a = weekAlcohol(w), live = addDays(w, 6) >= today;
+    const ok = a && a.n >= ALC_WEEK_MIN_DAYS;
+    weeks.push({ id: w, a, live, val: live ? (a ? a.sum : null) : (ok ? a.week : null), part: !live && ok && a.n < 7 });
+  }
+  drawAlcoholCalendar(chart, cfg, cal, cal.map(d => dayVal(cfg, d)), weeks, today);
+  const sw = weeks.find(w => w.id === trendSelWk), si = cal.indexOf(trendSel);
+  if (sw) {
+    const n = sw.a ? sw.a.n : 0;
+    const what = sw.live ? (sw.a ? `${fmtV(cfg, sw.a.sum)} so far` : 'no entries')
+      : sw.val !== null ? `${fmtV(cfg, sw.val)}${sw.part ? ` (${fmtV(cfg, sw.a.sum)} in ${n} logged days, scaled to 7)` : ''}`
+      : n ? `${n} of 7 days logged, too few for a week total` : 'no entries';
+    ro.innerHTML = `<b>Week of ${longDayLabel(sw.id)}</b> · ${what}`;
+  } else if (si >= 0) {
+    const v = dayVal(cfg, trendSel);
+    ro.innerHTML = `<b>${longDayLabel(trendSel)}</b> · ${v === null ? 'no entries' : v > 0 ? fmtV(cfg, v) : 'no drinks'}${openDayLink(trendSel)}`;
+  } else ro.innerHTML = '';
+  const done = weeks.filter(w => !w.live && w.val !== null).map(w => w.val);
+  const cur = weeks.find(w => w.live), last = cur || [...weeks].reverse().find(w => w.val !== null);
   stats.innerHTML = statTile(done.length ? String(+mean(done).toFixed(1)) : '—', 'avg a week') +
-    statTile(last.val === null ? '—' : String(+last.val.toFixed(1)), last.live ? 'this week so far' : 'latest week');
+    statTile(!last || last.val === null ? '—' : String(+last.val.toFixed(1)), cur ? 'this week so far' : 'latest week');
+  foot.textContent = [
+    weeks.some(w => w.part) ? '~ partly logged week, scaled to 7 days.' : '',
+    weeks.some(w => !w.live && w.a && w.val === null) ? `— fewer than ${ALC_WEEK_MIN_DAYS} days logged.` : '',
+  ].filter(Boolean).join(' ');
 }
 
 // Dots are weigh-ins. The line is the 7-day average (weightAvgOn: gaps filled by straight lines,
@@ -254,11 +274,7 @@ function renderWeightCard({ cfg, days, today, chart, ro, stats, foot }) {
 // On 4 weeks the grid is a calendar: whole Monday-to-Sunday weeks around the window (so 4 or 5 rows),
 // and every day it shows counts, including the padding.
 function renderCreatineCard({ card, cfg, goal, days, today, chart, ro, stats }) {
-  if (days.length > 7) {
-    const first = weekStartOf(days[0]), last = addDays(weekStartOf(days[days.length - 1]), 6);
-    days = [];
-    for (let d = first; d <= last; d = addDays(d, 1)) days.push(d);
-  }
+  if (days.length > 7) days = calendarDays(days);
   const eff = days.map(d => (trendCreatineStart && d >= trendCreatineStart) ? dayVal(cfg, d) : null);
   drawDotStrip(chart, cfg, days, eff, goal, today);
   const head = card.querySelector('.trend-legend');
@@ -309,7 +325,7 @@ function renderGoalCard({ cfg, goal, days, today, chart, ro, stats }) {
 }
 
 const TREND_RENDERERS = {
-  alcDay: renderAlcoholByDay, alcWeek: renderAlcoholByWeek, weight: renderWeightCard,
+  alcDay: renderAlcoholByDay, alcCal: renderAlcoholCalendar, weight: renderWeightCard,
   dots: renderCreatineCard, stack: renderStackCard, goal: renderGoalCard,
 };
 
@@ -345,15 +361,14 @@ function chartDayAxis(items, cx, sel, H, dotY) {
   return g;
 }
 
-// items: [{ id, val (display units or null), parts?, live?, avg?, lab? }]. goal in display units.
+// items: [{ id, val (display units or null), parts?, live?, avg? }]. goal in display units.
 function drawTrendChart(el, cfg, items, goal) {
-  const weekly = cfg.kind === 'weekly';
   const alc = cfg.key === 'alcohol';
   const W = Math.max(240, el.clientWidth || 320), H = 180;
   const m = { l: 34, r: 6, t: 10, b: 30 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
-  const n = items.length, slot = pw / n, bw = Math.min(weekly ? 22 : 26, slot * 0.6);
-  const sel = weekly ? trendSelWk : trendSel;
+  const n = items.length, slot = pw / n, bw = Math.min(26, slot * 0.6);
+  const sel = trendSel;
 
   const top = Math.max(goal || 0, ...items.map(i => i.val || 0), ...items.map(i => i.avg || 0), alc ? 3 : 1e-6);
   const step = niceStep(top / 4);
@@ -370,7 +385,6 @@ function drawTrendChart(el, cfg, items, goal) {
   items.forEach((it, i) => {
     if (it.val === null) return;
     const x = cx(i) - bw / 2, rx = Math.min(5, bw / 2), isSel = it.id === sel;
-    if (weekly && it.val === 0) { g += `<text class="t-ax" x="${cx(i)}" y="${y(0) - 4}" text-anchor="middle">0</text>`; return; }
     if (alc && it.val === 0) return;
     const h = Math.max(2, ph * it.val / yMax);
     if (cfg.stack) {
@@ -405,12 +419,10 @@ function drawTrendChart(el, cfg, items, goal) {
   const pts = items.map((it, i) => it.avg == null ? null : `${cx(i)},${y(it.avg)}`).filter(Boolean);
   if (cfg.avg && pts.length > 1) g += `<polyline class="ta-line" points="${pts.join(' ')}"/>`;
 
-  if (weekly) {
-    items.forEach((it, i) => { g += `<text class="t-ax" x="${cx(i)}" y="${H - 6}" text-anchor="middle">${it.lab}</text>`; });
-  } else g += chartDayAxis(items, cx, sel, H, m.t + ph + 12);
+  g += chartDayAxis(items, cx, sel, H, m.t + ph + 12);
 
   items.forEach((it, i) => {
-    g += `<rect class="tb-hit" ${weekly ? 'data-wk' : 'data-date'}="${it.id}" x="${m.l + slot * i}" y="0" width="${slot}" height="${H}"/>`;
+    g += `<rect class="tb-hit" data-date="${it.id}" x="${m.l + slot * i}" y="0" width="${slot}" height="${H}"/>`;
   });
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title}">${g}</svg>`;
 }
@@ -500,6 +512,38 @@ function drawDotStrip(el, cfg, days, vals, goal, today) {
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title}">${g}</svg>`;
 }
 
+// Alcohol calendar: one row per Monday-to-Sunday week, a column per weekday, then the week's total.
+// A drink day is a filled circle with the number in it, a dry logged day a pale ring, a day with nothing
+// logged a tiny dot (as on the creatine calendar), today with no drinks yet a dashed ring, the future nothing.
+function drawAlcoholCalendar(el, cfg, days, vals, weeks, today) {
+  const W = Math.max(240, el.clientWidth || 320);
+  const labW = 40, totW = 48, head = 18, rowH = 34, rows = weeks.length;
+  const slot = (W - labW - totW) / 7, H = head + rows * rowH, rad = Math.min(12, slot * 0.38);
+  const cx = c => labW + slot * c + slot / 2, tx = W - 4;
+  let g = '';
+  for (let c = 0; c < 7; c++) g += `<text class="t-ax" x="${cx(c)}" y="11" text-anchor="middle">${dayAbbr(days[c], false)}</text>`;
+  g += `<text class="t-ax" x="${tx}" y="11" text-anchor="end">week</text>`;
+  weeks.forEach((wk, row) => {
+    const top = head + row * rowH, y = top + rowH / 2;
+    g += `<text class="t-ax" x="0" y="${y + 4}">${fmtMD(wk.id)}</text>`;
+    for (let c = 0; c < 7; c++) {
+      const i = row * 7 + c, d = days[i], v = vals[i], x = cx(c);
+      if (d > today) continue;
+      if (v === null) g += `<circle cx="${x}" cy="${y}" r="2" fill="var(--text-dim)"/>`;
+      else if (v > 0) g += `<circle class="tb-alc" cx="${x}" cy="${y}" r="${rad}"/><text class="t-alc-n" x="${x}" y="${y + 4}" text-anchor="middle">${+v.toFixed(1)}</text>`;
+      else if (d === today) g += `<circle cx="${x}" cy="${y}" r="${rad - 1}" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+      else g += `<circle cx="${x}" cy="${y}" r="${rad - 1}" fill="none" stroke="var(--border)" stroke-width="2"/>`;
+      if (d === trendSel) g += `<circle cx="${x}" cy="${y}" r="${rad + 3}" fill="none" stroke="var(--text)" stroke-width="1.5"/>`;
+      g += `<rect class="tb-hit" data-date="${d}" x="${labW + slot * c}" y="${top}" width="${slot}" height="${rowH}"/>`;
+    }
+    const t = wk.val !== null ? (wk.part ? '~' + Math.round(wk.val) : String(+wk.val.toFixed(1))) : (wk.a || !wk.live ? '—' : '');
+    const cls = 't-wk' + (wk.val === null || wk.live ? ' dim' : '') + (wk.id === trendSelWk ? ' sel' : '');
+    g += `<text class="${cls}" x="${tx}" y="${y + 4}" text-anchor="end">${t}</text>`;
+    g += `<rect class="tb-hit" data-wk="${wk.id}" x="${W - totW}" y="${top}" width="${totW}" height="${rowH}"/>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${cfg.title}">${g}</svg>`;
+}
+
 $('trendCards').addEventListener('click', ev => {
   const wEdit = ev.target.closest('[data-weight]');
   if (wEdit) { openWeight(wEdit.dataset.weight); return; }
@@ -512,8 +556,8 @@ $('trendCards').addEventListener('click', ev => {
   }
   const hit = ev.target.closest('.tb-hit');
   if (!hit) return;
-  if (hit.dataset.wk) trendSelWk = trendSelWk === hit.dataset.wk ? null : hit.dataset.wk;
-  else trendSel = trendSel === hit.dataset.date ? null : hit.dataset.date;
+  if (hit.dataset.wk) { trendSelWk = trendSelWk === hit.dataset.wk ? null : hit.dataset.wk; trendSel = null; }
+  else { trendSel = trendSel === hit.dataset.date ? null : hit.dataset.date; trendSelWk = null; }
   renderTrends();
 });
 document.querySelectorAll('#trendSeg button').forEach(b => b.addEventListener('click', () => {

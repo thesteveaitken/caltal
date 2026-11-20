@@ -489,6 +489,10 @@ header {
 .tb-fat { fill: var(--fat); }
 .tb-selring { fill: none; stroke: var(--text); stroke-width: 2; }
 .tb-alc { fill: var(--alcohol); }
+.t-alc-n { fill: var(--bg); font-size: 12px; font-weight: 700; font-family: var(--font-num); pointer-events: none; }
+.t-wk { fill: var(--text); font-size: 15px; font-weight: 700; font-family: var(--font-num); }
+.t-wk.dim { fill: var(--text-dim); font-weight: 600; }
+.t-wk.sel { text-decoration: underline; text-decoration-thickness: 2px; }
 .tg-line { stroke: var(--text-dim); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .ta-line { fill: none; stroke: var(--text); stroke-width: 1.5; opacity: 0.5; stroke-linejoin: round; }
 .t-grid { stroke: var(--border); stroke-width: 1; }
